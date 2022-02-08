@@ -240,8 +240,8 @@ def ReadTest(data, start, end, exit=0, stop=0):
 
 
 # ReadMarket()
-sample_N = 100
-step = 100
+sample_N = 168
+step = 75
 tot_samples = 1200
 symbol = 'ADA_USDT'
 t_f = '1h'
@@ -276,8 +276,11 @@ for a in range(1, tot_samples-sample_N, step):
 
     max_max = max(maxes)
     ind_max_max = maxes.index(max_max)
-
     max_bamx.append(b_maxes[ind_max_max])
+    min_min = min(mins)
+    ind_min_min = mins.index(min_min)
+    min_bmin.append(b_mins[ind_min_min])
+
     maxres.append(max_max)
     minres.append(min(mins))
     print(str(len(maxres)))
@@ -285,19 +288,20 @@ for a in range(1, tot_samples-sample_N, step):
 fig = plt.figure()
 
 fig.suptitle('Symbol:' + symbol + '-- Time Frame: ' + t_f +
-              '-- samples: ' + str(sample_N) + '-- Step Number: ' + str(step))
+             '-- samples: ' + str(sample_N) + '-- Step Number: ' + str(step))
 
 ax1 = fig.add_subplot(2, 1, 1)
 ax2 = fig.add_subplot(2, 1, 2)
 ax1.plot(xdata, maxres, label='Max profit')
-ax1.plot(xdata, minres, label='Min loss')
+ax1.plot(xdata, minres, label='Max loss')
 
 ax1.set_xlabel('range')
-ax1.set_ylabel('Max Profit/ Min loss')
+ax1.set_ylabel('Max Profit/loss')
 ax1.legend()
 
 
-ax2.plot(xdata, max_bamx, label='Box Size')
+ax2.plot(xdata, max_bamx, label='B_Size_Max')
+ax2.plot(xdata, min_bmin, label='B_size_Min')
 ax2.set_ylabel('Box Size')
 ax2.set_xlabel('range')
 ax2.legend()
