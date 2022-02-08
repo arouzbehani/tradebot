@@ -10,6 +10,7 @@ class Col(object):
         self._Low = None
         self._CurrentBox = None
         self._Boxes = None
+        self._Close = None
 
     @property
     def Type(self):
@@ -18,6 +19,14 @@ class Col(object):
     @Type.setter
     def Type(self, value):
         self._Type = value
+
+    @property
+    def Close(self):
+        return self._Close
+
+    @Close.setter
+    def Close(self, value):
+        self._Close = value
 
     @property
     def High(self):
@@ -77,7 +86,7 @@ def GetBox(num, bsize, high):
         return (i + (((bn + 1)) * bsize))
 
 
-def Columns(bsize, r, highs, lows):
+def Columns(bsize, r, highs, lows,closes):
     cols = []
 
     col0 = Col()
@@ -85,6 +94,7 @@ def Columns(bsize, r, highs, lows):
     col0.Min = lows[0]
     col0.High = highs[0]
     col0.Low = lows[0]
+    col0.Close = closes[0]
 
     col0.Type = "O"
     cols.append(col0)
@@ -97,6 +107,7 @@ def Columns(bsize, r, highs, lows):
     for i in range(0, len(highs)):
         cols[n].High = highs[i]
         cols[n].Low = lows[i]
+        cols[n].Close = closes[i]
         if (cols[n].Type == "O"):
             if (lows[i] < cols[n].CurrentBox):
                 bn = abs(int(round((lows[i] - lows[i - 1]) / bsize)))
@@ -107,6 +118,7 @@ def Columns(bsize, r, highs, lows):
             elif (highs[i] > cols[n].CurrentBox + r * bsize):
                 c = Col()
                 c.High = highs[i]
+                c.Close=closes[i]
                 c.Low = lows[i]
                 c.Min = cols[n].CurrentBox + 1
                 c.Max = cols[n].CurrentBox + r * bsize
@@ -127,6 +139,7 @@ def Columns(bsize, r, highs, lows):
             elif (lows[i] < cols[n].CurrentBox - r * bsize):
                 c = Col()
                 c.High = highs[i]
+                c.Close=closes[i]
                 c.Low = lows[i]
                 c.Max = cols[n].CurrentBox + 1
                 c.Min = cols[n].CurrentBox - r * bsize
