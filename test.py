@@ -4,7 +4,7 @@ from tracemalloc import stop
 from matplotlib.transforms import Transform
 
 
-def Test(cols, bsize,exit=0,stop=0):
+def Test(cols, bsize, saveprofit=0, stoploss=0):
     money = 100
     token = 0
     transaction = False
@@ -24,8 +24,10 @@ def Test(cols, bsize,exit=0,stop=0):
                         transaction = True
                         money = token*cols[x].Close
                         token = 0
-                        if( exit>0 and money/100 >= 1+ exit/100): break
-                        if( stop>0 and money/100 <= 1 - stop/100): break
+                        if(saveprofit > 0 and money/100 >= 1 + saveprofit/100):
+                            break
+                        if(stoploss > 0 and money/100 <= 1 - stoploss/100):
+                            break
 
     profit = 0
     if(transaction):
@@ -33,5 +35,6 @@ def Test(cols, bsize,exit=0,stop=0):
             profit = token*cols[len(cols)-1].Close - 100
         elif (money > 0 and token == 0):
             profit = money - 100
-        
-    return ["Profit: " + str(profit) , profit]
+
+    #return ["Profit: " + str(profit), profit]
+    return profit

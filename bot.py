@@ -8,11 +8,14 @@ from matplotlib import pyplot as plt
 import numpy as np
 import ta
 import pandas as pd
-from PF import Columns
+from PF import Columns, ColumnsV2
+from PF2 import Columns2
 import config
 from ta.volatility import BollingerBands, AverageTrueRange
 import statistics
 import test
+import scipy.optimize as optimize
+import pivot as piv
 exchange = ccxt.kucoin({
     'apikey': config.Kucoin_API_Key,
     'secret': config.kucoin_API_Secret
@@ -69,7 +72,7 @@ def SaveTestData(t_f, lim):
             bars = exchange.fetch_ohlcv(m, limit=lim, timeframe=t_f)
             df = pd.DataFrame(bars, columns=['timestamp',
                                              'open', 'high', 'low', 'close', 'volume'])
-            filepath = Path('TEST/'+t_f+'/'+m.replace('/', '_')+'.csv')
+            filepath = Path('SAVE/'+t_f+'/'+m.replace('/', '_')+'.csv')
             filepath.parent.mkdir(parents=True, exist_ok=True)
             df.to_csv(filepath)
             print('success csv save for ' + m)
@@ -146,10 +149,12 @@ def FindSignals(m, cols, bsize):
     return[gn, totn, out_gn, out_totn, strd, onecols, totenters, totexits]
 
 
-def ReadMarket(savefile=True):
+def ReadMarket(tf='1d',coin='All', lim=500, savefile=True):
 
     markets = exchange.load_markets()
-    simple = [t for t in markets if t == 'LTC/USDT']
+    if(coin !='All'):
+        simple = [t for t in markets if t == coin]
+        markets=simple
 
     gn = 0
     totn = 0
@@ -157,14 +162,15 @@ def ReadMarket(savefile=True):
     out_totn = 0
     strd = ''
     onecols = ''
+    entry_onecols = ''
     ferrors = ''
     totenters = ''
     totexits = ''
 
-    for m in simple:
+    for m in markets:
         if m.endswith('/USDT'):
             try:
-                bars = exchange.fetch_ohlcv(m, limit=500, timeframe='1h')
+                bars = exchange.fetch_ohlcv(m, limit=lim, timeframe=tf)
                 df = pd.DataFrame(bars, columns=['timestamp',
                                                  'open', 'high', 'low', 'close', 'volume'])
                 price_avg = statistics.mean(df['high'].values)
@@ -179,12 +185,19 @@ def ReadMarket(savefile=True):
                 out_gn += res[2]
                 out_totn += res[3]
                 strd += res[4]
+                if(res[5] != ''):
+                    if(res[5].startswith('Enter')):
+                        entry_onecols += res[5].split('in')[1] 
+
                 onecols += res[5]
                 totenters += res[6]
                 totexits += res[7]
             except:
                 ferrors += m + '\n'
                 print('error in fetch ' + m)
+
+    onecols += 'Enetr One Cols ****************************************************************' + '\n'
+    onecols += entry_onecols
     if(savefile):
         strd += '****************************************************************' + '\n'
         strd += 'good items for today: ' + str(gn) + '\n'
@@ -214,8 +227,45 @@ def ReadMarket(savefile=True):
         f.write(ferrors)
         f.close()
 
+    markets = exchange.load_markets()
+    for m in markets:
+        if m.endswith('/USDT'):
+            try:
+                bars = exchange.fetch_ohlcv(
+                    m, limit=lim, timeframe=tframe)
+                df = pd.DataFrame(bars, columns=['timestamp',
+                                                 'open', 'high', 'low', 'close', 'volume'])
+                df.to_csv("/SAVE/"+m)
+                break
+            except:
+                print()
 
-def ReadTest(data, start, end, exit=0, stop=0):
+
+def ReadMarketGetColumns(name, tframe, hnum, rnum):
+    cols = []
+    bsize = 1
+    markets = exchange.load_markets()
+    simple = [t for t in markets if t == name]
+    for m in simple:
+        if m.endswith('/USDT'):
+            try:
+                bars = exchange.fetch_ohlcv(
+                    m, limit=hnum+rnum, timeframe=tframe)
+                df = pd.DataFrame(bars, columns=['timestamp',
+                                                 'open', 'high', 'low', 'close', 'volume'])
+                price_avg = statistics.mean(df['high'].values)
+                bsize = b_size(price_avg)
+                highs = df['high'].values
+                lows = df['low'].values
+                closes = df['close'].values
+                cols = ColumnsV2(bsize, 3, highs, lows, closes)
+
+            except:
+                print('error in fetch ' + m)
+    return [cols, bsize]
+
+
+def ReadTest(data, start, end, saveprofit=0, stoploss=0):
     if end == 0:
         end = len(data)
     if end >= len(data):
@@ -233,80 +283,91 @@ def ReadTest(data, start, end, exit=0, stop=0):
 
     for b in bsizes:
         cols = Columns(b, 3, highs, lows, closes)
-        res = test.Test(cols, bsize, exit)
+        res = test.Test(cols, bsize, saveprofit, stoploss)
         tests.append(res[1])
 
     return [bsizes, tests]
 
 
-# ReadMarket()
-sample_N = 168
-step = 75
-tot_samples = 1200
-symbol = 'ADA_USDT'
-t_f = '1h'
-allres = []
-maxres = []
-minres = []
-exit = 10
-stoploss = 10
-max_bamx = []
-min_bmin = []
-xdata = []
-data = pd.read_csv('Test/'+t_f+'/'+symbol+'.csv')
-for a in range(1, tot_samples-sample_N, step):
-    xdata.append(a)
-    maxes = []
-    mins = []
-    b_maxes = []
-    b_mins = []
-    for x in range(a, a+sample_N):
-        testres = ReadTest(data, x, x+sample_N, exit)
-        mx = max(testres[1])
-        max_index = (testres[1]).index(mx)
-        b_max = (testres[0])[max_index]
-        maxes.append(mx)
-        b_maxes.append(b_max)
-
-        mn = min(testres[1])
-        min_index = (testres[1]).index(mn)
-        b_min = (testres[0])[min_index]
-        mins.append(mn)
-        b_mins.append(b_min)
-
-    max_max = max(maxes)
-    ind_max_max = maxes.index(max_max)
-    max_bamx.append(b_maxes[ind_max_max])
-    min_min = min(mins)
-    ind_min_min = mins.index(min_min)
-    min_bmin.append(b_mins[ind_min_min])
-
-    maxres.append(max_max)
-    minres.append(min(mins))
-    print(str(len(maxres)))
-
-fig = plt.figure()
-
-fig.suptitle('Symbol:' + symbol + '-- Time Frame: ' + t_f +
-             '-- samples: ' + str(sample_N) + '-- Step Number: ' + str(step))
-
-ax1 = fig.add_subplot(2, 1, 1)
-ax2 = fig.add_subplot(2, 1, 2)
-ax1.plot(xdata, maxres, label='Max profit')
-ax1.plot(xdata, minres, label='Max loss')
-
-ax1.set_xlabel('range')
-ax1.set_ylabel('Max Profit/loss')
-ax1.legend()
 
 
-ax2.plot(xdata, max_bamx, label='B_Size_Max')
-ax2.plot(xdata, min_bmin, label='B_size_Min')
-ax2.set_ylabel('Box Size')
-ax2.set_xlabel('range')
-ax2.legend()
+def PerformTest(sample_N, step, tot_samples, symbol, t_f, saveprofit, stoploss):
 
-plt.show()
+    maxres = []
+    minres = []
+    max_bamx = []
+    min_bmin = []
+    xdata = []
+    data = pd.read_csv('Test/'+t_f+'/'+symbol+'.csv')
+    for a in range(1, tot_samples-sample_N, step):
+        xdata.append(a)
+        maxes = []
+        mins = []
+        b_maxes = []
+        b_mins = []
+        for x in range(a, a+sample_N):
+            testres = ReadTest(data, x, x+sample_N, saveprofit, stoploss)
+            mx = max(testres[1])
+            max_index = (testres[1]).index(mx)
+            b_max = (testres[0])[max_index]
+            maxes.append(mx)
+            b_maxes.append(b_max)
+
+            mn = min(testres[1])
+            min_index = (testres[1]).index(mn)
+            b_min = (testres[0])[min_index]
+            mins.append(mn)
+            b_mins.append(b_min)
+
+        max_max = max(maxes)
+        ind_max_max = maxes.index(max_max)
+        max_bamx.append(b_maxes[ind_max_max])
+        min_min = min(mins)
+        ind_min_min = mins.index(min_min)
+        min_bmin.append(b_mins[ind_min_min])
+
+        maxres.append(max_max)
+        minres.append(min(mins))
+        print(str(len(maxres)))
+
+    fig = plt.figure()
+
+    fig.suptitle('Symbol:' + symbol + '-- Time Frame: ' + t_f +
+                 '-- samples: ' + str(sample_N) + '-- Step Number: ' + str(step))
+
+    ax1 = fig.add_subplot(2, 1, 1)
+    ax2 = fig.add_subplot(2, 1, 2)
+    ax1.plot(xdata, maxres, label='Max profit')
+    ax1.plot(xdata, minres, label='Max loss')
+
+    ax1.set_xlabel('range')
+    ax1.set_ylabel('Max Profit/loss')
+    ax1.legend()
+
+    ax2.plot(xdata, max_bamx, label='B_Size_Max')
+    ax2.plot(xdata, min_bmin, label='B_size_Min')
+    ax2.set_ylabel('Box Size')
+    ax2.set_xlabel('range')
+    ax2.legend()
+
+    plt.show()
+# PerformTest(168,75,1200,"ADA_USDT",'1h',10,10)
+
+
+def ReadTest_B(params):
+    data, b, start, end, saveprofit, stoploss = params
+    cols = Columns(b, 3, data['high'].tolist()[start:end], data['low'].tolist()[
+                   start:end], data['close'].tolist()[start:end])
+    return test.Test(cols, b, saveprofit, stoploss)
+# SaveTestData("1d",2000)
+
+# data = pd.read_csv('Test/1h/ADA_USDT.csv')
+# initdata=[data,0.0075,0,168,10,10]
+# res=ReadTest_B(initdata)
+# print(str(res))
+# data = pd.read_csv('Test/1h/ADA_USDT.csv')
+# cols = Columns2(0.05, 3, data['high'].tolist(), data['low'].tolist(), data['close'].tolist(),data['timestamp'].tolist())
+# print (cols)
 
 # highs=(df['high']).values
 # print(highs)
@@ -321,8 +382,15 @@ plt.show()
 # df['movingaverage']=bb_indicator.bollinger_mavg()
 # print(df)
 
+
 # print(len(cols))
 # for x in range(0, len(cols)):
 #     print(cols[x].CurrentBox)
 #     for i in range(0, len(cols[x].Boxes)):
 #         print(cols[x].Boxes[i])
+ 
+ 
+# ReadMarket('1h','LUNA/USDT',700)
+df = pd.read_csv('SAVE\\1h\\BTC_USDT.csv')
+
+piv.getPivots(df)
