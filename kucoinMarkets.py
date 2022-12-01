@@ -7,13 +7,16 @@ exchange = ccxt.kucoin({
     'secret': config.kucoin_API_Secret
 })
 
-
-def GetMarketData(tf='1d', coin='All', lim=500,paircoin='/USDT'):
+def GetMarkets():
+    return exchange.load_markets()
+def GetMarketData(markets,tf='1d', coin='All', lim=500, paircoin='/USDT'):
     marketData = []
+    errordata = []
 
-    markets = exchange.load_markets()
+    #markets = exchange.load_markets()
     if (coin != 'All'):
         simple = [t for t in markets if t == coin]
+        # simple.append('ADA/USDT')
         markets = simple
 
     for m in markets:
@@ -22,7 +25,9 @@ def GetMarketData(tf='1d', coin='All', lim=500,paircoin='/USDT'):
                 bars = exchange.fetch_ohlcv(m, limit=lim, timeframe=tf)
                 df = pd.DataFrame(bars, columns=['timestamp',
                                                  'open', 'high', 'low', 'close', 'volume'])
+                df["Coin"] = m
                 marketData.append(df)
             except:
-                print('error in fetch ' + m)
-    return marketData
+                print('error in fetch for market:' + m + ' --- tf:'+tf)
+                errordata.append(m + ':' + tf)
+    return (marketData, errordata)
