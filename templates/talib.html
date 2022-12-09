@@ -1,0 +1,120 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>TA Lib Signals</title>
+    <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Bootstrap CSS v5.2.1 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+    <!-- <link href="{{ url_for('static', filename='css/bootstrap/bootstrap.min.css') }}" rel="stylesheet" /> -->
+  <style>
+    body{
+      padding: 20px;
+    }
+    table td , table th{
+      text-align:center;
+    }
+    table td {
+      font-size: small;
+    }
+    table td:last-child{
+      word-break: break-all;
+
+    }
+    table tr{
+    }
+    div.table-responsive{
+      max-height: 500px;
+      overflow-y: scroll;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="container">
+        <h1>TA-Lib Signals <label style="font-size: small;"><a target="_blank" href="https://ta-lib.org/">about TA Lib ...</a></label></h1>
+  
+    <hr/>
+    </div>
+  </header>
+  <main>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 col-md-6 col-12">
+            <h4 style="text-align: center;">Time Frame: 1h</h4>
+            <div style="text-align: center; width: 100%;">
+
+            </div>
+            <nav>
+                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                      <button class="nav-link active" id="nav-bullish-tab" data-bs-toggle="tab" data-bs-target="#nav-bullish" type="button" role="tab" aria-controls="nav-bullish" aria-selected="true"><strong style="color: green;">Bullish</strong></button>
+                      <button class="nav-link" id="nav-bearish-tab" data-bs-toggle="tab" data-bs-target="#nav-bearish" type="button" role="tab" aria-controls="nav-bearish" aria-selected="false"><strong style="color: red;">Bearish</strong></button>
+                    </div>
+                  </nav>
+                  <div class="tab-content" id="nav-tabContent">
+                    <div class="tab-pane fade show active" id="nav-bullish" role="tabpanel" aria-labelledby="nav-bullish-tab">
+                        <div class="table-responsive">
+                          {{tables['1h_bullish'][0]}}
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="nav-bearish" role="tabpanel" aria-labelledby="nav-bearish-tab">
+                      <div class="table-responsive">
+                        {{tables['1h_bearish'][0]}}
+                      </div>
+                    </div>
+                  </div>
+     
+            </div>
+            <div class="col-lg-6 col-md-6 col-12">
+              <h4 style="text-align: center;">Time Frame: 1d</h4>
+              <div style="text-align: center; width: 100%;">
+    
+              </div>
+              <nav>
+                      <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                        <button class="nav-link active" id="nav-bullish-tab_1d" data-bs-toggle="tab" data-bs-target="#nav-bullish_1d" type="button" role="tab" aria-controls="nav-bullish_1d" aria-selected="true"><strong style="color: green;">Bullish</strong></button>
+                        <button class="nav-link" id="nav-bearish-tab_1d" data-bs-toggle="tab" data-bs-target="#nav-bearish_1d" type="button" role="tab" aria-controls="nav-bearish_1d" aria-selected="false"><strong style="color: red;">Bearish</strong></button>
+                      </div>
+                    </nav>
+                    <div class="tab-content" id="nav-tabContent">
+                      <div class="tab-pane fade show active" id="nav-bullish_1d" role="tabpanel" aria-labelledby="nav-bullish-tab_1d">
+                          <div class="table-responsive">
+                            {{tables['1d_bullish'][0]}}
+                          </div>
+                      </div>
+                      <div class="tab-pane fade" id="nav-bearish_1d" role="tabpanel" aria-labelledby="nav-bearish-tab_1d">
+                        <div class="table-responsive">
+                          {{tables['1d_bearish'][0]}}
+                        </div>
+                      </div>
+                    </div>
+       
+              </div>
+        </div>
+
+    </div>
+
+  </main>
+  <footer>
+    
+    <!-- place footer here -->
+  </footer>
+  <!-- Bootstrap JavaScript Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
+    integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous">
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.min.js"
+    integrity="sha384-7VPbUDkoPSGFnVtYi0QogXtr74QeVeeIs99Qfg5YCF+TidwNdjvaKZX19NZ/e6oz" crossorigin="anonymous">
+  </script>
+          <!-- <script src="{{ url_for('static', filename='js/bootstrap/bootstrap.min.js') }}"></script> -->
+
+</body>
+
+</html>
