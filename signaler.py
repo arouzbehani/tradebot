@@ -1,10 +1,12 @@
 import datetime
 import os
+from pathlib import Path
 import time
 import kucoinMarkets as kc
 import talibHelper as tah
 import yfinance as yf
 import pandas as pd
+import MarketReader
 
 
 class MarketData(object):
@@ -38,17 +40,25 @@ class MarketData(object):
         self._Data = value
 
 
-def FindSignals_01(maxdelay_min,timeframes):
+def FindSignals_01(maxdelay_min, timeframes, testdata=False):
     kucoinmarkets = []
     latestSignals = []
     # timeframes = ['5m', '15m', '1h', '4h', '1d', '1w']
     errors = []
     markets = []
+    datframes = []
 
     for i in range(0, len(timeframes)):
+        if (timeframes == '1d'):
+            maxdelay_min = 7*24*60
         markets = kc.GetMarkets()
         marketsegment = {k: markets[k] for k in ('ADA/USDT', 'BTC/USDT')}
-        datframes, e = kc.GetMarketData(markets, timeframes[i], 'All', 350)
+        if (testdata):
+            datframes, e = kc.GetMarketData(
+                marketsegment, timeframes[i], 'All', 350)
+        else:
+            datframes, e = kc.GetMarketData(markets, timeframes[i], 'All', 350)
+
         now = datetime.datetime.now()
         now_timestamp = time.time() - maxdelay_min*60
 
@@ -64,7 +74,7 @@ def FindSignals_01(maxdelay_min,timeframes):
 
             try:
                 # res , md.Data = tah.MorningStars(df)
-                res2, alld = tah.AllPatterns(df)
+                res2, alld = tah.AllPatterns(df[:-1])
                 if (res2):
                     latest = alld.loc[(alld['timestamp'] >=
                                        now_timestamp*1000)].tail(1)
@@ -78,35 +88,50 @@ def FindSignals_01(maxdelay_min,timeframes):
                 print('Error in finding signal : ' +
                       md.TimeFrame + "___"+md.Coin)
            # md.Data = df
-            dt_string = "TA-Lib Signals/"+timeframes[i]+"/" + \
-                timeframes[i] + "__" + now.strftime("%d%m%Y%H%M%S")+".csv"
+            rel_path = "TA-Lib Signals/"+timeframes[i]+"/" + \
+                timeframes[i] + "__" + \
+                now.strftime("%d_%m_%Y__%H_%M_%S")+".csv"
+
+            BASE_DIR = '/root/trader_webapp'
+            abs_path = os.path.join(BASE_DIR, rel_path)
+            # abs_path=rel_path
             if (len(latestSignals) > 0):
                 signalsdf = pd.concat(latestSignals)
 
-                signalsdf.to_csv(dt_string, header=True,
+                signalsdf.to_csv(abs_path, header=True,
                                  index=True, sep=',', mode='w')
 
-    # for kmd in kucoinmarkets:
-    #     if(len(kmd.Data)>0):
 
-    #         # now=datetime.datetime.now()
-    #         # now_timestamp = time.time() - maxdelay_min*60
-    #         dt_string ="Scan Report/"+kmd.TimeFrame+"___"+kmd.Coin.replace('/','_')+"_"+ now.strftime("%d%m%Y%H%M%S")+".txt"
-    #         try:
-    #             filtered_df = kmd.Data.loc[(kmd.Data['timestamp'] >= now_timestamp*1000)]
-    #             if(len(filtered_df)>0):
-    #                 filtered_df.to_csv(dt_string, header=True, index=True, sep=' ', mode='w')
-    #         except:
-    #             print('Not able to write to file')
+def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin',relp=False):
+    latestSignals = []
+    
 
+    for i in range(0, len(timeframes)):
+        now_timestamp = time.time() - maxdelay_min*60
+        now = datetime.datetime.now()
 
-# data = yf.download("SPY", start="2022-05-01", end="2022-11-30")
-# print(data)
-# utcnow=datetime.datetime.now(datetime.timezone.utc)
-# print(utcnow)
-# print(time.time())
+        for m in markets:
+            print("Finding Signals for Market : {} __ Timeframe:{}".format(
+                m, timeframes[i]))
+            df = markets[m]
 
-FindSignals_01(1*24*60,['1h','1d'])
+            try:
+                res2, alld = tah.AllPatterns(df)
+                if (res2):
+                    latest = alld.loc[(alld['timestamp'] >=
+                                       now_timestamp*1000)].tail(1)
+                    latestSignals.append(latest)
+            except:
+                print('Error in finding signal : {}___{}'.format(
+                    timeframes[i], m))
+        rel_path = "TA-Lib Signals/{}/{}/{}__{}.csv".format(
+            exchangeName, timeframes[i], timeframes[i], now.strftime("%d_%m_%Y__%H_%M_%S"))
+        BASE_DIR = '/root/trader_webapp'
+        abs_path = os.path.join(BASE_DIR, rel_path)
+        if(relp):
+            abs_path=rel_path
 
-
-
+        if (len(latestSignals) > 0):
+            signalsdf = pd.concat(latestSignals)
+            signalsdf.to_csv(abs_path, header=True,
+                             index=True, sep=',', mode='w')

@@ -16,6 +16,23 @@
     body{
       padding: 20px;
     }
+    main{
+      min-height: 100vh;
+      height: auto;
+      }
+    footer{
+      position: relative;
+      bottom: 0;
+      display: inline-block;
+      width: 100%;
+      padding: 20px;
+      background-color: rgba(90, 133, 133, 0.808);
+      color: aliceblue;
+    }
+    footer a{
+      color: aliceblue;
+
+    }
     table td , table th{
       text-align:center;
     }
@@ -29,16 +46,17 @@
     table tr{
     }
     div.table-responsive{
+      min-height: 300px;
       max-height: 500px;
       overflow-y: scroll;
     }
   </style>
 </head>
 
-<body>
+<body style="height: 100%;">
   <header>
     <div class="container">
-        <h1>TA-Lib Signals <label style="font-size: small;"><a target="_blank" href="https://ta-lib.org/">about TA Lib ...</a></label></h1>
+        <h1>TA-Lib Signals <label style="font-size: small;"><a target="_blank" href="https://mrjbq7.github.io/ta-lib/func_groups/pattern_recognition.html">about TA Lib Pattern Recognition ...</a></label></h1>
   
     <hr/>
     </div>
@@ -46,66 +64,63 @@
   <main>
     <div class="container">
         <div class="row">
-            <div class="col-lg-6 col-md-6 col-12">
-            <h4 style="text-align: center;">Time Frame: 1h</h4>
-            <div style="text-align: center; width: 100%;">
+          {%for t in tables %}
+            {%if tables[t] %}
+          <div class="col-lg-12 col-md-12 col-sm-12 col-12" style="padding:30px;">
+                <h4 style="text-align: center;">Time Frame: {{t}}</h4>
+                <div style="text-align: center; width: 100%;">
 
-            </div>
-            <nav>
-                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                      <button class="nav-link active" id="nav-bullish-tab" data-bs-toggle="tab" data-bs-target="#nav-bullish" type="button" role="tab" aria-controls="nav-bullish" aria-selected="true"><strong style="color: green;">Bullish</strong></button>
-                      <button class="nav-link" id="nav-bearish-tab" data-bs-toggle="tab" data-bs-target="#nav-bearish" type="button" role="tab" aria-controls="nav-bearish" aria-selected="false"><strong style="color: red;">Bearish</strong></button>
-                    </div>
-                  </nav>
-                  <div class="tab-content" id="nav-tabContent">
-                    <div class="tab-pane fade show active" id="nav-bullish" role="tabpanel" aria-labelledby="nav-bullish-tab">
-                        <div class="table-responsive">
-                          {{tables['1h_bullish'][0]}}
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="nav-bearish" role="tabpanel" aria-labelledby="nav-bearish-tab">
-                      <div class="table-responsive">
-                        {{tables['1h_bearish'][0]}}
-                      </div>
-                    </div>
-                  </div>
-     
-            </div>
-            <div class="col-lg-6 col-md-6 col-12">
-              <h4 style="text-align: center;">Time Frame: 1d</h4>
-              <div style="text-align: center; width: 100%;">
-    
-              </div>
+                </div>
+
               <nav>
                       <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                        <button class="nav-link active" id="nav-bullish-tab_1d" data-bs-toggle="tab" data-bs-target="#nav-bullish_1d" type="button" role="tab" aria-controls="nav-bullish_1d" aria-selected="true"><strong style="color: green;">Bullish</strong></button>
-                        <button class="nav-link" id="nav-bearish-tab_1d" data-bs-toggle="tab" data-bs-target="#nav-bearish_1d" type="button" role="tab" aria-controls="nav-bearish_1d" aria-selected="false"><strong style="color: red;">Bearish</strong></button>
+                        <button class="nav-link active" id="nav-bullish-tab" data-bs-toggle="tab" data-bs-target="#nav-bullish-{{t}}" type="button" role="tab" aria-controls="nav-bullish-{{t}}" aria-selected="true"><strong style="color: green;">Bullish</strong></button>
+                        <button class="nav-link" id="nav-bearish-tab" data-bs-toggle="tab" data-bs-target="#nav-bearish-{{t}}" type="button" role="tab" aria-controls="nav-bearish-{{t}}" aria-selected="false"><strong style="color: red;">Bearish</strong></button>
                       </div>
                     </nav>
                     <div class="tab-content" id="nav-tabContent">
-                      <div class="tab-pane fade show active" id="nav-bullish_1d" role="tabpanel" aria-labelledby="nav-bullish-tab_1d">
+                      <div class="tab-pane fade show active" id="nav-bullish-{{t}}" role="tabpanel" aria-labelledby="nav-bullish-tab-{{t}}">
+                        <div style="width: 100%;">
+                          <input class="search form-control" id="bullish_search_{{t}}" placeholder="Search Coin or Pattern Here ... " />
+                        </div>
                           <div class="table-responsive">
-                            {{tables['1d_bullish'][0]}}
+                          {{tables[t][0]}}
+
                           </div>
                       </div>
-                      <div class="tab-pane fade" id="nav-bearish_1d" role="tabpanel" aria-labelledby="nav-bearish-tab_1d">
+                      <div class="tab-pane fade" id="nav-bearish-{{t}}" role="tabpanel" aria-labelledby="nav-bearish-tab-{{t}}">
+                        <div style="width: 100%;">
+                          <input class="search form-control"  id="bearish_search_{{t}}" placeholder="Search Coin or Pattern Here ... " />
+                        </div>
                         <div class="table-responsive">
-                          {{tables['1d_bearish'][0]}}
+                          {{tables[t][1]}}
                         </div>
                       </div>
                     </div>
-       
+      
               </div>
-        </div>
+            {%else%}
+            <div class="col-lg-12 col-md-12 col-sm-12 col-12" style="padding:30px;">
+              {{t}}
+
+            </div>
+
+            {%endif%}
+
+          {%endfor%}
+
+
 
     </div>
 
   </main>
   <footer>
-    
+      <a style="font-size: small" href="https://github.com/arouzbehani/tradebot" target="_blank">https://github.com/arouzbehani/tradebot</a>
+
     <!-- place footer here -->
   </footer>
   <!-- Bootstrap JavaScript Libraries -->
+  
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
     integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous">
   </script>
@@ -113,8 +128,32 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.min.js"
     integrity="sha384-7VPbUDkoPSGFnVtYi0QogXtr74QeVeeIs99Qfg5YCF+TidwNdjvaKZX19NZ/e6oz" crossorigin="anonymous">
   </script>
-          <!-- <script src="{{ url_for('static', filename='js/bootstrap/bootstrap.min.js') }}"></script> -->
+  <script src="https://code.jquery.com/jquery-3.6.1.min.js" integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous"></script>
+  <script>
+              $('.search').on('keyup', function (e) {
+                var id=$(this)[0].id;
+                tf=id.split('_')[2]
+                tableid=id.split('_')[0]+"_table_"+tf
+                var value = $(this).val();
+                $("table#"+tableid+" tr").each(function (index) {
+                    if (index != 0) {
 
+                        $row = $(this);
+
+                        var coin = $row.find("td:first").text();
+                        var pattern = $row.find("td:nth-child(5)").text();
+                        
+                        if (!(coin.toLowerCase().includes(value.toLowerCase()) || pattern.toLowerCase().includes(value.toLowerCase()))) {
+                            $(this).hide();
+                        }
+                        else {
+                            $(this).show();
+                        }
+                    }
+                });
+
+            });
+</script>
 </body>
 
 </html>

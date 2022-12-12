@@ -2,9 +2,7 @@ import os
 from flask import Flask, jsonify, render_template
 import pandas as pd
 from pathlib import Path
-
 from IPython.display import HTML
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "secretkey123"
 app.debug = True
@@ -23,44 +21,61 @@ def about():
     return render_template('about.html', organization='About Traqqqder')
 
 
-def GetData():
+def GetData(market,relp=False):
     BASE_DIR = '/root/trader_webapp'
-    data = {'1h':[], '1d':[]}
+    data = {'1h':[], '1d':[] , '30m':[],'4h':[]}
     for tf in data:
-        rel_path = 'TA-Lib Signals/'+tf+'/'
+        rel_path = 'TA-Lib Signals/{}/{}/'.format(market,tf)
         abs_dir = os.path.join(BASE_DIR, rel_path)
-        #abs_dir=rel_path
-        print(abs_dir)
+        if(relp):
+            abs_dir=rel_path
         paths = sorted(Path(abs_dir).iterdir(), key=os.path.getmtime)
-        print(paths)
-        # for path in os.listdir(abs_dir):
         for path in paths:
-            # check if current path is a file
-            # if os.path.isfile(os.path.join(abs_dir, path)):
-                #df = pd.read_csv(os.path.join(abs_dir, path))
             df = pd.read_csv(path)
             data[tf].append(df)
-                # print(df)
     return data
+
+@app.route("/signals")
+def signals():
+    data = GetData(market='Kucoin',relp=False)
+    # data[0]['Trading View']=data[0]['Coin'].map(tourl)
+    if (len(data) > 0):
+        tables = {'30m': [],
+                    '1h': [],
+                    '4h': [],
+                    '1d': []}
+        for d in data:
+            if(data[d]):
+                pretty_bullish = data[d][len(data[d])-1][[
+                    'Coin', 'date time', 'bullish', 'bullish patterns']].sort_values(by=['bullish'], ascending=False)
+                pretty_bearish = data[d][len(data[d])-1][[
+                    'Coin', 'date time', 'bearish', 'bearish patterns']].sort_values(by=['bearish'], ascending=False)
+                tables[d].append(HTML(pretty_bullish.to_html(classes='table table-striped')))
+                tables[d].append(HTML(pretty_bearish.to_html(classes='table table-striped')))
+
+        return render_template('talib.html', tables=tables)
+    else:
+        return render_template('talib.html', "", "")
+
 
 
 @app.route("/talib")  # this sets the route to this page
 def talib():
-    data = GetData()
-    print(str(len(data)))
+    data = GetData(market='Kucoin',relp=False)
     # data[0]['Trading View']=data[0]['Coin'].map(tourl)
     if (len(data) > 0):
-        tables = {'1h_bullish': [],
-                  '1h_bearish': [],
-                  '1d_bullish': [],
-                  '1d_bearish': []}
+        tables = {'30m': [],
+                    '1h': [],
+                    '4h': [],
+                    '1d': []}
         for d in data:
-            pretty_bullish = data[d][len(data[d])-1][[
-                'Coin', 'date time', 'bullish', 'bullish patterns']].sort_values(by=['bullish'], ascending=False)
-            pretty_bearish = data[d][len(data[d])-1][[
-                'Coin', 'date time', 'bearish', 'bearish patterns']].sort_values(by=['bearish'], ascending=False)
-            tables[d+'_bullish'].append(HTML(pretty_bullish.to_html(classes='table table-hovered')))
-            tables[d+'_bearish'].append(HTML(pretty_bearish.to_html(classes='table table-hovered')))
+            if(data[d]):
+                pretty_bullish = data[d][len(data[d])-1][[
+                    'Coin', 'date time', 'bullish', 'bullish patterns']].sort_values(by=['bullish'], ascending=False)
+                pretty_bearish = data[d][len(data[d])-1][[
+                    'Coin', 'date time', 'bearish', 'bearish patterns']].sort_values(by=['bearish'], ascending=False)
+                tables[d].append(HTML(pretty_bullish.to_html(classes='table table-striped',table_id="bullish_table_{}".format(d))))
+                tables[d].append(HTML(pretty_bearish.to_html(classes='table table-striped',table_id="bearish_table_{}".format(d))))
 
         return render_template('talib.html', tables=tables)
     else:
