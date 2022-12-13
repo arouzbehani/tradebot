@@ -141,9 +141,10 @@
                         $row = $(this);
 
                         var coin = $row.find("td:first").text();
-                        var pattern = $row.find("td:nth-child(5)").text();
+                        var brout = $row.find("td:nth-child(3)").text();
+                        var pattern = $row.find("td:nth-child(6)").text();
                         
-                        if (!(coin.toLowerCase().includes(value.toLowerCase()) || pattern.toLowerCase().includes(value.toLowerCase()))) {
+                        if (!(coin.toLowerCase().includes(value.toLowerCase()) || pattern.toLowerCase().includes(value.toLowerCase()) || brout.toLowerCase().includes(value.toLowerCase()))) {
                             $(this).hide();
                         }
                         else {

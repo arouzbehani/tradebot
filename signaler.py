@@ -6,8 +6,7 @@ import kucoinMarkets as kc
 import talibHelper as tah
 import yfinance as yf
 import pandas as pd
-import MarketReader
-
+import breakout as bro
 
 class MarketData(object):
     def __init__(self):
@@ -38,7 +37,6 @@ class MarketData(object):
     @Data.setter
     def Data(self, value):
         self._Data = value
-
 
 def FindSignals_01(maxdelay_min, timeframes, testdata=False):
     kucoinmarkets = []
@@ -102,7 +100,11 @@ def FindSignals_01(maxdelay_min, timeframes, testdata=False):
                                  index=True, sep=',', mode='w')
 
 
-def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin',relp=False):
+def br_check(c,tf,exch,candles,percentage,relp):
+    if bro.is_coin_breaking_out(c,tf,exch,candles,percentage,relp):
+        return 'Breaking Out'
+    return ''
+def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin',relp=False,brout_candles=15,brout_percentage=2):
     latestSignals = []
     
 
@@ -114,7 +116,7 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
             print("Finding Signals for Market : {} __ Timeframe:{}".format(
                 m, timeframes[i]))
             df = markets[m]
-
+            
             try:
                 res2, alld = tah.AllPatterns(df)
                 if (res2):
@@ -133,5 +135,6 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
 
         if (len(latestSignals) > 0):
             signalsdf = pd.concat(latestSignals)
+            signalsdf['breaking out']=signalsdf['Coin'].apply(br_check,exch=exchangeName, tf=timeframes[i],candles=brout_candles,percentage =brout_percentage ,relp=relp)
             signalsdf.to_csv(abs_path, header=True,
                              index=True, sep=',', mode='w')

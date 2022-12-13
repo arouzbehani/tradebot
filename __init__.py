@@ -61,7 +61,7 @@ def signals():
 
 @app.route("/talib")  # this sets the route to this page
 def talib():
-    data = GetData(market='Kucoin',relp=False)
+    data = GetData(market='Kucoin',relp=True)
     # data[0]['Trading View']=data[0]['Coin'].map(tourl)
     if (len(data) > 0):
         tables = {'30m': [],
@@ -70,9 +70,14 @@ def talib():
                     '1d': []}
         for d in data:
             if(data[d]):
-                pretty_bullish = data[d][len(data[d])-1][[
-                    'Coin', 'date time', 'bullish', 'bullish patterns']].sort_values(by=['bullish'], ascending=False)
-                pretty_bearish = data[d][len(data[d])-1][[
+                if('breaking out' in data[d][-1].columns):
+                    pretty_bullish = data[d][-1][[
+                        'Coin', 'breaking out' , 'date time', 'bullish', 'bullish patterns']].sort_values(by=['bullish'], ascending=False)
+                else:
+                     pretty_bullish = data[d][-1][[
+                        'Coin', 'date time', 'bullish', 'bullish patterns']].sort_values(by=['bullish'], ascending=False)
+                   
+                pretty_bearish = data[d][-1][[
                     'Coin', 'date time', 'bearish', 'bearish patterns']].sort_values(by=['bearish'], ascending=False)
                 tables[d].append(HTML(pretty_bullish.to_html(classes='table table-striped',table_id="bullish_table_{}".format(d))))
                 tables[d].append(HTML(pretty_bearish.to_html(classes='table table-striped',table_id="bearish_table_{}".format(d))))

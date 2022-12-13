@@ -5,7 +5,8 @@ import pandas as pd
 
 BASE_DIR = '/root/trader_webapp'
 
-def GetMarkets(tf,exchangeName='Kucoin',relp=False):
+def GetMarkets(tf,exchangeName='Kucoin',relp=False, testdata=False):
+    t=0
     markets={}
     rel_dir = 'Market Data/{}/{}/'.format(exchangeName,tf)
     abs_dir = os.path.join(BASE_DIR, rel_dir)
@@ -15,6 +16,9 @@ def GetMarkets(tf,exchangeName='Kucoin',relp=False):
     for path in paths:
         df=pd.read_csv(path)
         if(df.size>0):
+            t +=1
+            if(testdata) : 
+                if(t>6): break
             markets[df['Coin'][0]]=df
     return markets 
 def ReadKucoinMarket(timeframes,testdata=False,relp=False):
