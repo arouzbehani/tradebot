@@ -18,7 +18,7 @@ def GetMarkets(tf,exchangeName='Kucoin',relp=False, testdata=False):
         if(df.size>0):
             t +=1
             if(testdata) : 
-                if(t>6): break
+                if(t>16): break
             markets[df['Coin'][0]]=df
     return markets 
 def ReadKucoinMarket(timeframes,testdata=False,relp=False):

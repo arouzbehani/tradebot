@@ -3,6 +3,8 @@ from pathlib import Path
 import signaler as sg
 from IPython.display import HTML
 import pandas as pd
+from ta.volatility import BollingerBands as bb
+import pandas as pd
 def GetData():
     data = {'1h':[], '1d':[] , '30m':[],'4h':[]}
     for tf in data:
@@ -29,6 +31,10 @@ def talib():
                 tables[d].append(HTML(pretty_bullish.to_html(classes='table table-hovered')))
                 tables[d].append(HTML(pretty_bearish.to_html(classes='table table-hovered')))
     print(tables)
+def getMarketData(exch='kucoin',coin='BTC_USDT',tf='1h'):
+    rel_path = 'Market Data/{}/{}/{}__{}.csv'.format(exch,tf,coin,tf)
+    return pd.read_csv(rel_path)
+
 
 def GetData0():
     BASE_DIR = '/root/trader_webapp'
@@ -62,5 +68,24 @@ def signals():
 
     print(tables)
 
-l=[1,2,3,4]
-print(l[-1])
+def arraytest():
+    l=[1,2,3,4,5,6,7,8,9,10]
+    print(f"list -->{l}")
+    print(f"l[:-1] -->{l[:-1]}")
+    print(f"l[-1:] -->{l[-1:]}")
+    print(f"l[-2:-1] -->{l[-2:-1]}")
+    print(f"l[-1] -->{l[-1]}")
+def BollingerView():
+    df=getMarketData(coin='BTC_USDT')
+    
+    indicator_bb = bb(close=df['close'], window=20,
+            window_dev=2, fillna=False)
+    df['date'] = pd.to_datetime(df['timestamp'], unit='ms')
+    df['upperband'] = indicator_bb.bollinger_hband()
+    df['middleband'] = indicator_bb.bollinger_mavg()
+    df['lowerband'] = indicator_bb.bollinger_lband()
+    df['pband'] = indicator_bb.bollinger_pband()
+    pd.set_option('display.max_rows', 1000)
+
+    print(pd.DataFrame(df , columns=['date','pband']))
+BollingerView()
