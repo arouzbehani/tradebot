@@ -76,4 +76,5 @@ def AllPatterns(data):
 
     return True, finalres
 def BoolingerBands(close, timeperiod=5, nbdevup=2, nbdevdn=2, matype=0):
-    return talib.BBANDS(close, timeperiod=5, nbdevup=2, nbdevdn=2, matype=0)
+    
+    return talib.BBANDS(close, timeperiod=timeperiod, nbdevup=nbdevup, nbdevdn=nbdevdn, matype=matype)

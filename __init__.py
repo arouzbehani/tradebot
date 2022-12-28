@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template,redirect,url_for
 import pandas as pd
 from pathlib import Path
 from IPython.display import HTML
@@ -35,27 +35,6 @@ def GetData(market,relp=False):
             data[tf].append(df)
     return data
 
-@app.route("/signals")
-def signals():
-    data = GetData(market='Kucoin',relp=False)
-    # data[0]['Trading View']=data[0]['Coin'].map(tourl)
-    if (len(data) > 0):
-        tables = {'30m': [],
-                    '1h': [],
-                    '4h': [],
-                    '1d': []}
-        for d in data:
-            if(data[d]):
-                pretty_bullish = data[d][len(data[d])-1][[
-                    'Coin', 'date time', 'bullish', 'bullish patterns']].sort_values(by=['bullish'], ascending=False)
-                pretty_bearish = data[d][len(data[d])-1][[
-                    'Coin', 'date time', 'bearish', 'bearish patterns']].sort_values(by=['bearish'], ascending=False)
-                tables[d].append(HTML(pretty_bullish.to_html(classes='table table-striped')))
-                tables[d].append(HTML(pretty_bearish.to_html(classes='table table-striped')))
-
-        return render_template('talib.html', tables=tables)
-    else:
-        return render_template('talib.html', "", "")
 
 def makelink(c,streaml,exch,tf):
     return '{}?symbol={}&exch={}&tf={}'.format(streaml,c.replace('/','_'),exch,tf)
@@ -64,9 +43,12 @@ def make_clickablez(name,streaml,exch,tf):
     return '{}" rel="noopener noreferrer" target="_blank">{}'.format(url,name)
 def make_clickable(url,name):
     return '<a href="{}" rel="noopener noreferrer" target="_blank">{}</a>'.format(url,name)
-
-@app.route("/talib")  # this sets the route to this page
+@app.route("/talib")
 def talib():
+    return redirect(url_for('signals'))
+
+@app.route("/signals")  # this sets the route to this page
+def signals():
     # streaml='http://localhost:8501/'
     streaml='http://trader.baharsoft.com:8100/'
 
@@ -80,42 +62,41 @@ def talib():
         for d in data:
             if(data[d]):
                 df=data[d][-1]
-                pretty_bullish = df[[
-                        'Coin', 'date time', 'bullish', 'bullish patterns']].sort_values(by=['bullish'], ascending=False)
+                pretty = df[[
+                        'Coin', 'date time','volume']].sort_values(by=['volume'], ascending=False)
+                if('entry' in df.columns):
+                    pretty = df[[
+                            'Coin', 'date time','entry']].sort_values(by=['entry'], ascending=False)
 
+                if('bullish patterns' in df.columns):
+                    pretty ['bullish patterns']=df[['bullish patterns']]
+                    pretty ['bullish']=df[['bullish']]
+                if('bearish patterns' in df.columns):
+                    pretty ['bearish patterns']=df[['bearish patterns']]
+                    pretty ['bearish']=df[['bearish']]
                 if('breaking out' in df.columns):
-                    pretty_bullish ['breaking out']=df[['breaking out']]
+                    pretty ['breaking out']=df[['breaking out']]
                 if('bollinger' in df.columns):
-                    pretty_bullish ['bollinger']=df[['bollinger']]
+                    pretty ['bollinger']=df[['bollinger']]
+                if('rsi' in df.columns):
+                    pretty ['rsi']=df[['rsi']]
+                if('ema' in df.columns):
+                    pretty ['ema']=df[['ema']]
+                if('sma' in df.columns):
+                    pretty ['sma']=df[['sma']]
 
-                pretty_bullish['url']=pretty_bullish['Coin'].apply(makelink,streaml=streaml,exch='Kucoin',tf=d)
-                pretty_bullish['Coin'] = pretty_bullish.apply(lambda x: make_clickable(x['url'],x['Coin']), axis=1)
-                pretty_bullish.style
-                pretty_bullish.__delitem__('url')
+                pretty['url']=pretty['Coin'].apply(makelink,streaml=streaml,exch='Kucoin',tf=d)
+                pretty['Coin'] = pretty.apply(lambda x: make_clickable(x['url'],x['Coin']), axis=1)
+                pretty.style
+                pretty.__delitem__('url')
 
-                pretty_bearish = df[[
-                    'Coin', 'date time', 'bearish', 'bearish patterns']].sort_values(by=['bearish'], ascending=False)
-                if('breaking out' in df.columns):
-                    pretty_bearish ['breaking out']=df[['breaking out']]
-                if('bollinger' in df.columns):
-                    pretty_bearish ['bollinger']=df[['bollinger']]
 
-                pretty_bearish['url']=pretty_bearish['Coin'].apply(makelink,streaml=streaml,exch='Kucoin',tf=d)
-                pretty_bearish['Coin'] = pretty_bearish.apply(lambda x: make_clickable(x['url'],x['Coin']), axis=1)
-                pretty_bearish.style
-                pretty_bearish.__delitem__('url')
+                html=pretty.to_html(classes='table table-striped',table_id="pretty_table_{}".format(d),escape=False,render_links=True)
+                tables[d].append(HTML(html))
 
-                bull_htm=pretty_bullish.to_html(classes='table table-striped',table_id="bullish_table_{}".format(d),escape=False,render_links=True)
-                bear_htm=pretty_bearish.to_html(classes='table table-striped',table_id="bearish_table_{}".format(d),escape=False,render_links=True)
-                tables[d].append(HTML(bull_htm))
-                tables[d].append(HTML(bear_htm))
-
-        return render_template('talib.html', tables=tables)
+        return render_template('signals.html', tables=tables)
     else:
-        return render_template('talib.html', "", "")
-
-
-
+        return render_template('signals.html', "", "")
 
 
 if __name__ == "__main__":

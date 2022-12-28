@@ -88,4 +88,8 @@ def BollingerView():
     pd.set_option('display.max_rows', 1000)
 
     print(pd.DataFrame(df , columns=['date','pband']))
-BollingerView()
+#BollingerView()
+def arrayshow():
+    list=[1,2,3,4,5,6,7,8,9,10]
+    print(list[:len(list)-3])
+arrayshow()

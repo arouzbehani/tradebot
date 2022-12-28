@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>TA Lib Signals</title>
+    <title>Signals</title>
     <!-- Required meta tags -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -20,6 +20,11 @@
       min-height: 100vh;
       height: auto;
       }
+      @media (min-width: 1400px){
+        .container{
+            max-width: 95%;
+        }
+    }      
     footer{
       position: relative;
       bottom: 0;
@@ -56,7 +61,7 @@
 <body style="height: 100%;">
   <header>
     <div class="container">
-        <h1>TA-Lib Signals <label style="font-size: small;"><a target="_blank" href="https://mrjbq7.github.io/ta-lib/func_groups/pattern_recognition.html">about TA Lib Pattern Recognition ...</a></label></h1>
+        <h1>Signals</h1>
   
     <hr/>
     </div>
@@ -72,32 +77,13 @@
                 <div style="text-align: center; width: 100%;">
 
                 </div>
+                <div style="width: 100%;">
+                  <input class="search form-control" id="pretty_search_{{t}}" placeholder="Search Coin or Pattern Here ... " />
+                </div>
+                <div class="table-responsive">
+                  {{tables[t][0]}}
 
-              <nav>
-                      <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                        <button class="nav-link active" id="nav-bullish-tab" data-bs-toggle="tab" data-bs-target="#nav-bullish-{{t}}" type="button" role="tab" aria-controls="nav-bullish-{{t}}" aria-selected="true"><strong style="color: green;">Bullish</strong></button>
-                        <button class="nav-link" id="nav-bearish-tab" data-bs-toggle="tab" data-bs-target="#nav-bearish-{{t}}" type="button" role="tab" aria-controls="nav-bearish-{{t}}" aria-selected="false"><strong style="color: red;">Bearish</strong></button>
-                      </div>
-                    </nav>
-                    <div class="tab-content" id="nav-tabContent">
-                      <div class="tab-pane fade show active" id="nav-bullish-{{t}}" role="tabpanel" aria-labelledby="nav-bullish-tab-{{t}}">
-                        <div style="width: 100%;">
-                          <input class="search form-control" id="bullish_search_{{t}}" placeholder="Search Coin or Pattern Here ... " />
-                        </div>
-                          <div class="table-responsive">
-                          {{tables[t][0]}}
-
-                          </div>
-                      </div>
-                      <div class="tab-pane fade" id="nav-bearish-{{t}}" role="tabpanel" aria-labelledby="nav-bearish-tab-{{t}}">
-                        <div style="width: 100%;">
-                          <input class="search form-control"  id="bearish_search_{{t}}" placeholder="Search Coin or Pattern Here ... " />
-                        </div>
-                        <div class="table-responsive">
-                          {{tables[t][1]}}
-                        </div>
-                      </div>
-                    </div>
+                  </div>
       
               </div>
             {%else%}
@@ -131,8 +117,10 @@
   </script>
   <script src="https://code.jquery.com/jquery-3.6.1.min.js" integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous"></script>
   <script>
-              $('.search').on('keyup', function (e) {
-                var id=$(this)[0].id;
+    $(document).ready(function(){
+    })
+    $(document).on('keyup', 'input', function () {
+      var id=$(this)[0].id;
                 tf=id.split('_')[2]
                 tableid=id.split('_')[0]+"_table_"+tf
                 var value = $(this).val();
@@ -143,14 +131,20 @@
 
                         var coin = $row.find("td:first").text();
                         var pattern = $row.find("td:nth-child(5)").text();
-                        var brout = $row.find("td:nth-child(6)").text();
-                        var bb = $row.find("td:nth-child(7)").text();
+                        var brout = $row.find("td:nth-child(5)").text();
+                        var bb = $row.find("td:nth-child(6)").text();
+                        var rsi = $row.find("td:nth-child(7)").text();
+                        var ema = $row.find("td:nth-child(8)").text();
+                        var sma = $row.find("td:nth-child(9)").text();
                         
                         if (!(
                             coin.toLowerCase().includes(value.toLowerCase()) || 
                             pattern.toLowerCase().includes(value.toLowerCase()) || 
                             brout.toLowerCase().includes(value.toLowerCase()) ||
-                            bb.toLowerCase().includes(value.toLowerCase()) 
+                            bb.toLowerCase().includes(value.toLowerCase()) ||
+                            rsi.toLowerCase().includes(value.toLowerCase()) ||
+                            ema.toLowerCase().includes(value.toLowerCase()) ||
+                            sma.toLowerCase().includes(value.toLowerCase()) 
 
                             )
                             
@@ -162,8 +156,8 @@
                         }
                     }
                 });
+})
 
-            });
 </script>
 </body>
 

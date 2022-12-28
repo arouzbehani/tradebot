@@ -8,6 +8,10 @@ import yfinance as yf
 import pandas as pd
 import breakout as bro
 from ta.volatility import BollingerBands as bb
+from ta.momentum import RSIIndicator as rsi
+from ta.trend import EMAIndicator as ema
+from ta.trend import SMAIndicator as sma
+import talib  as ta
 
 
 class MarketData(object):
@@ -104,13 +108,95 @@ def FindSignals_01(maxdelay_min, timeframes, testdata=False):
 
 
 Base_DIR = '/root/trader_webapp/'
+def ema_check(Coin, tf, exch, timeperiod=30, relp=False):
+    df = None
+    rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
+    abs_dir = os.path.join(Base_DIR, rel_dir)
+    if (relp):
+        abs_dir = rel_dir
+    for path in Path(abs_dir).iterdir():
+        if (path.name.startswith(Coin.replace('/', '_'))):
+            df = pd.read_csv(path)
+            break
+    if (len(df) > timeperiod):
+        ema_indicator_5=ema(close=df['close'],window=5,fillna=False)
+        ema_indicator_10=ema(close=df['close'],window=10,fillna=False)
+        ema_indicator_30=ema(close=df['close'],window=30,fillna=False)
+        df['ema_5'] = ema_indicator_5.ema_indicator()
+        df['ema_10'] = ema_indicator_10.ema_indicator()
+        df['ema_30'] = ema_indicator_30.ema_indicator()
+        last_ema_5 = df[-1:]['ema_5'].values[0]
+        last_ema_10 = df[-1:]['ema_10'].values[0]
+        last_ema_30 = df[-1:]['ema_30'].values[0]
+        if(last_ema_30<= last_ema_10):
+            if (last_ema_10 <= last_ema_5):
+                return "EMA Entry Signal"
+    return "No EMA Signal"
+
+def sma_check(Coin, tf, exch, timeperiod=30, relp=False):
+    df = None
+    rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
+    abs_dir = os.path.join(Base_DIR, rel_dir)
+    if (relp):
+        abs_dir = rel_dir
+    for path in Path(abs_dir).iterdir():
+        if (path.name.startswith(Coin.replace('/', '_'))):
+            df = pd.read_csv(path)
+            break
+    if (len(df) > timeperiod):
+        sma_indicator_5=sma(close=df['close'],window=5,fillna=False)
+        sma_indicator_10=sma(close=df['close'],window=10,fillna=False)
+        sma_indicator_30=sma(close=df['close'],window=30,fillna=False)
+        df['sma_5'] = sma_indicator_5.sma_indicator()
+        df['sma_10'] = sma_indicator_10.sma_indicator()
+        df['sma_30'] = sma_indicator_30.sma_indicator()
+        last_sma_5 = df[-1:]['sma_5'].values[0]
+        last_sma_10 = df[-1:]['sma_10'].values[0]
+        last_sma_30 = df[-1:]['sma_30'].values[0]
+        if(last_sma_30<= last_sma_10):
+            if (last_sma_10 <= last_sma_5):
+                return "SMA Entry Signal"
+    return "No SMA Signal"
 
 
+
+def PPSR(df):
+    PP = pd.Series((df['high'] + df['low'] + df['close']) / 3)
+    R1 = pd.Series(2 * PP - df['low'])
+    S1 = pd.Series(2 * PP - df['high'])
+    R2 = pd.Series(PP + df['high'] - df['low'])
+    S2 = pd.Series(PP - df['high'] + df['low'])
+    R3 = pd.Series(df['high'] + 2 * (PP - df['low']))
+    S3 = pd.Series(df['low'] - 2 * (df['high'] - PP))
+    psr = {'PP':PP, 'R1':R1, 'S1':S1, 'R2':R2, 'S2':S2, 'R3':R3, 'S3':S3}
+    PSR = pd.DataFrame(psr)
+    df = df.join(PSR)
+    return df    
 def br_check(c, tf, exch, candles, percentage, relp):
     if bro.is_coin_breaking_out(c, tf, exch, candles, percentage, relp):
-        return 'Breaking Out'
+        return 'Breaking Out Entry'
     return ''
 
+def rsi_check(Coin, tf, exch, timeperiod=20, relp=False):
+    df = None
+    rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
+    abs_dir = os.path.join(Base_DIR, rel_dir)
+    if (relp):
+        abs_dir = rel_dir
+    for path in Path(abs_dir).iterdir():
+        if (path.name.startswith(Coin.replace('/', '_'))):
+            df = pd.read_csv(path)
+            break
+    if (len(df) > timeperiod):
+        rsi_indicator=rsi(close=df['close'],window=timeperiod,fillna=False)
+        df['rsi'] = rsi_indicator.rsi()
+        last_rsi = round(df[-1:]['rsi'].values[0],1)
+        if(last_rsi<=30):
+            return 'Entry rsi: {}'.format(last_rsi)
+        if(last_rsi>=70):
+            return 'Exit rsi: {}'.format(last_rsi)
+        else:
+            return 'No rsi Signal: {}'.format(last_rsi)
 
 def boll_check(Coin, tf, exch, timeperiod=20, nstdv=2, relp=False):
     df = None
@@ -123,8 +209,10 @@ def boll_check(Coin, tf, exch, timeperiod=20, nstdv=2, relp=False):
             df = pd.read_csv(path)
             break
     if (len(df) > timeperiod):
-        indicator_bb = bb(close=df['close'], window=20,
-                          window_dev=2, fillna=False)
+
+
+        indicator_bb = bb(close=df['close'], window=timeperiod,
+                          window_dev=nstdv, fillna=False)
         df['upperband'] = indicator_bb.bollinger_hband()
         df['middleband'] = indicator_bb.bollinger_mavg()
         df['lowerband'] = indicator_bb.bollinger_lband()
@@ -151,9 +239,16 @@ def boll_check(Coin, tf, exch, timeperiod=20, nstdv=2, relp=False):
             if (last_close < last_upperband):
                 return "BB Exit Signal"
     return "No BB Signal"
+def count_entry(s:str):
+    try:
+        if(s.lower().__contains__('entry')):
+            return 1
+    except:
+        print('Error in counting Entry: {}'.format(str(s)))
+        return 0
+    return 0
 
-
-def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin', relp=False, brout_candles=15, brout_percentage=2):
+def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin', relp=False, brout_candles=15, brout_percentage=2,read_patterns=False):
     latestSignals = []
 
     for i in range(0, len(timeframes)):
@@ -164,16 +259,24 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
             print("Finding Signals for Market : {} __ Timeframe:{}".format(
                 m, timeframes[i]))
             df = markets[m]
-
-            try:
-                res2, alld = tah.AllPatterns(df)
-                if (res2):
+            if(read_patterns):
+                try:
+                    res2, alld = tah.AllPatterns(df)
+                    if (res2):
+                        latest = alld.loc[(alld['timestamp'] >=
+                                        now_timestamp*1000)].tail(1)
+                        latestSignals.append(latest)
+                except:
+                    print('Error in finding signal : {}___{}'.format(
+                        timeframes[i], m))
+            else:
+                    df['date time'] = pd.to_datetime(df['timestamp'], unit='ms')
+                    alld=(pd.DataFrame(data=df).sort_values(by=['timestamp']))
                     latest = alld.loc[(alld['timestamp'] >=
-                                       now_timestamp*1000)].tail(1)
+                                        now_timestamp*1000)].tail(1)
                     latestSignals.append(latest)
-            except:
-                print('Error in finding signal : {}___{}'.format(
-                    timeframes[i], m))
+
+
         rel_path = "TA-Lib Signals/{}/{}/{}__{}.csv".format(
             exchangeName, timeframes[i], timeframes[i], now.strftime("%d_%m_%Y__%H_%M_%S"))
         BASE_DIR = '/root/trader_webapp'
@@ -183,10 +286,23 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
 
         if (len(latestSignals) > 0):
             signalsdf = pd.concat(latestSignals)
+
             signalsdf['breaking out'] = signalsdf['Coin'].apply(
                 br_check, exch=exchangeName, tf=timeframes[i], candles=brout_candles, percentage=brout_percentage, relp=relp)
             signalsdf['bollinger'] = signalsdf['Coin'].apply(
                 boll_check, exch=exchangeName, tf=timeframes[i], timeperiod=20, nstdv=2, relp=relp)
+            signalsdf['rsi'] = signalsdf['Coin'].apply(
+                rsi_check, exch=exchangeName, tf=timeframes[i], timeperiod=14, relp=relp)
+            signalsdf['ema'] = signalsdf['Coin'].apply(
+                ema_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, relp=relp)
+            signalsdf['sma'] = signalsdf['Coin'].apply(
+                sma_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, relp=relp)
+
+            scols=['breaking out','bollinger','rsi','ema','sma']
+            signalsdf['entry']=0
+            for s in scols:
+                signalsdf['entry'] +=signalsdf[s].map(count_entry)
+            signalsdf=signalsdf.sort_values(by=['entry'],ascending=False)
             signalsdf.to_csv(abs_path, header=True,
                              index=True, sep=',', mode='w')
 
