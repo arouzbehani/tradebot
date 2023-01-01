@@ -11,7 +11,9 @@ from ta.volatility import BollingerBands as bb
 from ta.momentum import RSIIndicator as rsi
 from ta.trend import EMAIndicator as ema
 from ta.trend import SMAIndicator as sma
+from ta.trend import ADXIndicator as adx
 import talib  as ta
+import numpy as np
 
 
 class MarketData(object):
@@ -119,6 +121,17 @@ def ema_check(Coin, tf, exch, timeperiod=30, relp=False):
             df = pd.read_csv(path)
             break
     if (len(df) > timeperiod):
+
+        adx_indicator = adx(
+            high=df['high'], low=df['low'], close=df['close'], window=14, fillna=False)
+        df['adx'] = adx_indicator.adx()
+        df['adx_neg'] = adx_indicator.adx_neg()
+        df['adx_pos'] = adx_indicator.adx_pos()
+        df['adx_signal'] = np.where(np.logical_and(
+            df['adx'] > 35, df['adx_pos'] > df['adx_neg']), df['close'], np.nan)
+        last_adx_entry_signal=df[-1:]['adx_signal'].values[0]
+        one_to_last_adx_entry_signal = df[-2:-1]['adx_signal'].values[0]
+
         ema_indicator_5=ema(close=df['close'],window=5,fillna=False)
         ema_indicator_10=ema(close=df['close'],window=10,fillna=False)
         ema_indicator_30=ema(close=df['close'],window=30,fillna=False)
@@ -128,9 +141,18 @@ def ema_check(Coin, tf, exch, timeperiod=30, relp=False):
         last_ema_5 = df[-1:]['ema_5'].values[0]
         last_ema_10 = df[-1:]['ema_10'].values[0]
         last_ema_30 = df[-1:]['ema_30'].values[0]
+        one_to_last_ema_5 = df[-2:-1]['ema_5'].values[0]
+        one_to_last_ema_10 = df[-2:-1]['ema_10'].values[0]
+        one_to_last_ema_30 = df[-2:-1]['ema_30'].values[0]
+
         if(last_ema_30<= last_ema_10):
             if (last_ema_10 <= last_ema_5):
-                return "EMA Entry Signal"
+                if(one_to_last_ema_30> one_to_last_ema_10 or one_to_last_ema_10 > one_to_last_ema_5 or one_to_last_ema_30> one_to_last_ema_5):
+                    if(last_adx_entry_signal==np.nan and one_to_last_adx_entry_signal==np.nan):
+                        return "EMA Entry Signal"
+                    else:
+                        return "EMA Uptrend Entry Signal"
+
     return "No EMA Signal"
 
 def sma_check(Coin, tf, exch, timeperiod=30, relp=False):
@@ -144,6 +166,17 @@ def sma_check(Coin, tf, exch, timeperiod=30, relp=False):
             df = pd.read_csv(path)
             break
     if (len(df) > timeperiod):
+
+        adx_indicator = adx(
+            high=df['high'], low=df['low'], close=df['close'], window=14, fillna=False)
+        df['adx'] = adx_indicator.adx()
+        df['adx_neg'] = adx_indicator.adx_neg()
+        df['adx_pos'] = adx_indicator.adx_pos()
+        df['adx_signal'] = np.where(np.logical_and(
+            df['adx'] > 35, df['adx_pos'] > df['adx_neg']), df['close'], np.nan)
+        last_adx_entry_signal=df[-1:]['adx_signal'].values[0]
+        one_to_last_adx_entry_signal = df[-2:-1]['adx_signal'].values[0]
+
         sma_indicator_5=sma(close=df['close'],window=5,fillna=False)
         sma_indicator_10=sma(close=df['close'],window=10,fillna=False)
         sma_indicator_30=sma(close=df['close'],window=30,fillna=False)
@@ -153,9 +186,17 @@ def sma_check(Coin, tf, exch, timeperiod=30, relp=False):
         last_sma_5 = df[-1:]['sma_5'].values[0]
         last_sma_10 = df[-1:]['sma_10'].values[0]
         last_sma_30 = df[-1:]['sma_30'].values[0]
+        one_to_last_sma_5 = df[-2:-1]['sma_5'].values[0]
+        one_to_last_sma_10 = df[-2:-1]['sma_10'].values[0]
+        one_to_last_sma_30 = df[-2:-1]['sma_30'].values[0]
+
         if(last_sma_30<= last_sma_10):
             if (last_sma_10 <= last_sma_5):
-                return "SMA Entry Signal"
+                if(one_to_last_sma_30> one_to_last_sma_10 or one_to_last_sma_10 > one_to_last_sma_5 or one_to_last_sma_30> one_to_last_sma_5):
+                    if(last_adx_entry_signal==np.nan and one_to_last_adx_entry_signal==np.nan):
+                        return "SMA Entry Signal"
+                    else:
+                        return "SMA Uptrend Entry Signal"
     return "No SMA Signal"
 
 
@@ -188,11 +229,25 @@ def rsi_check(Coin, tf, exch, timeperiod=20, relp=False):
             df = pd.read_csv(path)
             break
     if (len(df) > timeperiod):
+        adx_indicator = adx(
+            high=df['high'], low=df['low'], close=df['close'], window=14, fillna=False)
+        df['adx'] = adx_indicator.adx()
+        df['adx_neg'] = adx_indicator.adx_neg()
+        df['adx_pos'] = adx_indicator.adx_pos()
+        df['adx_signal'] = np.where(np.logical_and(
+            df['adx'] > 35, df['adx_pos'] > df['adx_neg']), df['close'], np.nan)
+
         rsi_indicator=rsi(close=df['close'],window=timeperiod,fillna=False)
         df['rsi'] = rsi_indicator.rsi()
         last_rsi = round(df[-1:]['rsi'].values[0],1)
+        last_adx_entry_signal=df[-1:]['adx_signal'].values[0]
+        one_to_last_adx_entry_signal = df[-2:-1]['adx_signal'].values[0]
         if(last_rsi<=30):
-            return 'Entry rsi: {}'.format(last_rsi)
+            if(last_adx_entry_signal==np.nan and one_to_last_adx_entry_signal==np.nan):
+                return 'Entry rsi: {}'.format(last_rsi)
+            else:
+                return 'Entry Uptrend rsi: {}'.format(last_rsi)
+
         if(last_rsi>=70):
             return 'Exit rsi: {}'.format(last_rsi)
         else:
@@ -210,6 +265,13 @@ def boll_check(Coin, tf, exch, timeperiod=20, nstdv=2, relp=False):
             break
     if (len(df) > timeperiod):
 
+        adx_indicator = adx(
+            high=df['high'], low=df['low'], close=df['close'], window=14, fillna=False)
+        df['adx'] = adx_indicator.adx()
+        df['adx_neg'] = adx_indicator.adx_neg()
+        df['adx_pos'] = adx_indicator.adx_pos()
+        df['adx_signal'] = np.where(np.logical_and(
+            df['adx'] > 35, df['adx_pos'] > df['adx_neg']), df['close'], np.nan)
 
         indicator_bb = bb(close=df['close'], window=timeperiod,
                           window_dev=nstdv, fillna=False)
@@ -221,20 +283,28 @@ def boll_check(Coin, tf, exch, timeperiod=20, nstdv=2, relp=False):
         last_close = df[-1:]['close'].values[0]
         last_lowerband = df[-1:]['lowerband'].values[0]
         last_upperband = df[-1:]['upperband'].values[0]
+        last_adx_entry_signal=df[-1:]['adx_signal'].values[0]
         one_to_last_close = df[-2:-1]['close'].values[0]
         one_to_last_lowerband = df[-2:-1]['lowerband'].values[0]
         one_to_last_upperband = df[-2:-1]['upperband'].values[0]
         one_to_last_pband = df[-2:-1]['pband'].values[0]
+        one_to_last_adx_entry_signal = df[-2:-1]['adx_signal'].values[0]
 
         if (one_to_last_close < one_to_last_lowerband):
             if (last_close > last_lowerband):
-                return "BB Entry Signal"
+                if(last_adx_entry_signal==np.nan and one_to_last_adx_entry_signal==np.nan):
+                    return "BB Entry Signal"
+                else:
+                    return "BB Entry Uptrend Signal"
             if (last_close < last_lowerband and one_to_last_pband < 0):
                 return "BB Squeez Exit Signal"
 
         elif (one_to_last_close > one_to_last_upperband):
             if (last_close > last_upperband and one_to_last_pband >= 1):
-                return "BB Squeez Entry Signal"
+                if(last_adx_entry_signal==np.nan and one_to_last_adx_entry_signal==np.nan):
+                    return "BB Squeez Entry Signal"
+                else:
+                    return "BB Squeez Entry Uptrend Signal"
 
             if (last_close < last_upperband):
                 return "BB Exit Signal"

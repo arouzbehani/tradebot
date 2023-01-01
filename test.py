@@ -5,6 +5,7 @@ from IPython.display import HTML
 import pandas as pd
 from ta.volatility import BollingerBands as bb
 import pandas as pd
+import numpy as np
 def GetData():
     data = {'1h':[], '1d':[] , '30m':[],'4h':[]}
     for tf in data:
@@ -92,4 +93,32 @@ def BollingerView():
 def arrayshow():
     list=[1,2,3,4,5,6,7,8,9,10]
     print(list[:len(list)-3])
-arrayshow()
+# arrayshow()
+def is_consolidating(closes, percentage=2):
+    max_close=closes.max()
+    min_close=closes.min()
+    threshold=1-(percentage/100)
+    if min_close > (max_close * threshold):
+        return True
+    return False
+def brout_check(df,candles=15):
+    for index in df.index:
+        if (index>=candles):
+            last_close=df['close'][index]
+            if (is_consolidating(df['close'][index-candles-1:index-1],percentage=10)):
+                if(last_close>df['close'][index-candles-1:index-1].max()):
+                    df['brout'][index]=1
+                else:
+                    df['brout'][index]=np.nan
+            else:
+                    df['brout'][index]=np.nan
+        else:
+            df['brout'][index]=np.nan
+            
+    return df
+df=getMarketData(tf='1d',coin='FTM_USDT')
+df1=df.reset_index()
+df1['brout']=np.nan
+#st.dataframe(df['close'][18-15:18].min())
+df2=brout_check(df1,candles=15)
+print(df2)
