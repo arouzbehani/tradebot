@@ -135,10 +135,10 @@ def brout_check(df,candles=15):
 # rep = cmc.cryptocurrency_trending_latest()
 # print(rep)
 def set_output(o):
-    if(o=='Hi Sai'):
+    if not (str(o).__contains__('Hi Sai')):
          return "No value found"
     return o
-data = {'ID': ['1', '2', '3', '4'],'Name header':['John','Ahmad','Neli','Hamid'],'Output':['Hi Sai','output 2','Hi Sai','output 4']}
+data = {'ID': ['1', '2', '3', '4'],'Name header':['John','Ahmad','Neli','Hamid'],'Output':['Hi Sai sasasdasd','output 2','112123 Hi Sai','output 4']}
 df = pd.DataFrame(data)
 df['Output']=df['Output'].map(set_output)
 print (df)

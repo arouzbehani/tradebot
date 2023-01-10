@@ -16,6 +16,8 @@ from ta.volume import ForceIndexIndicator as fi
 import talib  as ta
 import numpy as np
 import math
+from sklearn.linear_model import LinearRegression
+from sklearn import preprocessing , model_selection , svm
 
 
 class MarketData(object):
@@ -112,6 +114,51 @@ def FindSignals_01(maxdelay_min, timeframes, testdata=False):
 
 
 Base_DIR = '/root/trader_webapp/'
+def ml_check(Coin, tf, exch, minsize=30, forecast_out=20, relp=False):
+    try:
+        df0 = None
+        rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
+        abs_dir = os.path.join(Base_DIR, rel_dir)
+        if (relp):
+            abs_dir = rel_dir
+        for path in Path(abs_dir).iterdir():
+            if (path.name.startswith(Coin.replace('/', '_'))):
+                df0 = pd.read_csv(path)
+                break
+        if (len(df0) > minsize):
+            df=df0[:-forecast_out]
+            #df=df[['time','close','open','high','low','volume']]
+            df['hl_pct']=(df['high']-df['low'])/df['low'] * 100
+            df['pct_change']=(df['close']-df['open'])/df['low'] * 100
+            df=df[['close','volume','hl_pct','pct_change']]
+            forecast_col='close'
+            df.fillna(-99999,inplace=True)
+
+            df['label']=df[forecast_col].shift(-forecast_out)
+
+            X=np.array(df.drop(['label'],1))
+            X=preprocessing.scale(X)
+            X=X[:-forecast_out]
+            X_lately=X[-forecast_out:]
+
+            df.dropna(inplace=True)
+
+            y=np.array(df['label'])
+            X_train,X_test,y_train,y_test=model_selection.train_test_split(X,y,test_size=0.2)
+            clf=LinearRegression()
+            clf.fit(X_train,y_train)
+            accuracy=clf.score(X_test,y_test)
+
+            forecast_set=clf.predict(X_lately)
+            forecast_max=forecast_set.max()
+            last_close=df[-1:]['close'].values[0]
+            if(accuracy >= 0.9 and forecast_max>=1.10*last_close):
+                prof_predict=round(100*(forecast_max / last_close -1),2)
+                return f'ML Entry; {prof_predict}'
+    except:
+        return ''
+    return ''
+
 def ema_check(Coin, tf, exch, timeperiod=30, relp=False):
     try:
         df = None
@@ -161,8 +208,6 @@ def ema_check(Coin, tf, exch, timeperiod=30, relp=False):
         return "Error on EMA Signal"
 
 def sma_check(Coin, tf, exch, timeperiod=30, relp=False):
-    if(Coin=='MASK_USDT'):
-        e=1
     try:
         df = None
         rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
@@ -411,8 +456,10 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
                 sma_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, relp=relp)
             signalsdf['force'] = signalsdf['Coin'].apply(
                 fi_check, exch=exchangeName, tf=timeframes[i], timeperiod=100, relp=relp)
+            signalsdf['ML'] = signalsdf['Coin'].apply(
+                ml_check, tf=timeframes[i], exch=exchangeName, minsize=30, forecast_out=20, relp=relp)
 
-            scols=['breaking out','bollinger','rsi','ema','sma','force']
+            scols=['breaking out','bollinger','rsi','ema','sma','force','ML']
             signalsdf['entry']=0
             for s in scols:
                 signalsdf['entry'] +=signalsdf[s].map(count_entry)

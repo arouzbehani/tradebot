@@ -8,7 +8,7 @@ from matplotlib import style
 
 style.use('ggplot')
 tf='30m'
-coin='BTC_USDT'
+coin='AXS3L_USDT'
 df0=helper.GetData(tf=tf,symbol=coin,exch='Kucoin')
 helper.append_rsi(df=df0,entry_signal=True,entry_signal_mode='All')
 helper.append_fi(df=df0)

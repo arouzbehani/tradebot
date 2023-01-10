@@ -159,3 +159,4 @@ cython_debug/
 #.idea/
 s.csv
 config.py
+test.py

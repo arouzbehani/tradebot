@@ -1,7 +1,7 @@
 import MarketReader as mr
 import signaler as sg
 
-testdata = True
+testdata = False
 relpath = True
 read_patterns = False
 tf = '30m'
