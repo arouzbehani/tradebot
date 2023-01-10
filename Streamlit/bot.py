@@ -233,28 +233,28 @@ def bollinger_strategy_bot(x):
         return 100000
 
 
-exch='Kucoin'
-tf='4h'
-coin='BTC_USDT'
-rel_path='Market Data/{}/{}/{}__{}.csv'.format(exch,tf,coin,tf)
-abs_dir = os.path.join(BASE_DIR, rel_path)
-if(relp):
-    abs_dir=rel_path
-csvdf=pd.read_csv(abs_dir)
+# exch='Kucoin'
+# tf='4h'
+# coin='BTC_USDT'
+# rel_path='Market Data/{}/{}/{}__{}.csv'.format(exch,tf,coin,tf)
+# abs_dir = os.path.join(BASE_DIR, rel_path)
+# if(relp):
+#     abs_dir=rel_path
+# csvdf=pd.read_csv(abs_dir)
 
 
-def objective(x):
-    return -bollinger_strategy_bot(x)
-def constraint(x):
-    return (x[0] + x[1])
-cons={'type':'ineq','fun':constraint}
-x0=np.array([0.01,0.01])
-sol=minimize(objective,x0,method='SLSQP', bounds=[(0.03,0.5),(0.05,0.1)], options={'disp':True})
-xOpt=sol.x
-balance=-sol.fun
-print(balance)
-print('profit:{} -- stoploss:{}'.format(xOpt[0],xOpt[1]))
-# res=minimize_scalar(bollinger_strategy_bot,bounds=(0.01, 0.09), method='bounded')
-# print(res.x)
-# print(100000-bollinger_strategy_bot(res.x))
-# bollinger_strategy_bot(coin='BTC_USDT',tf='4h', balance_amount=10,profit=0.03,stoploss=0.03)
+# def objective(x):
+#     return -bollinger_strategy_bot(x)
+# def constraint(x):
+#     return (x[0] + x[1])
+# cons={'type':'ineq','fun':constraint}
+# x0=np.array([0.01,0.01])
+# sol=minimize(objective,x0,method='SLSQP', bounds=[(0.03,0.5),(0.05,0.1)], options={'disp':True})
+# xOpt=sol.x
+# balance=-sol.fun
+# print(balance)
+# print('profit:{} -- stoploss:{}'.format(xOpt[0],xOpt[1]))
+# # res=minimize_scalar(bollinger_strategy_bot,bounds=(0.01, 0.09), method='bounded')
+# # print(res.x)
+# # print(100000-bollinger_strategy_bot(res.x))
+# # bollinger_strategy_bot(coin='BTC_USDT',tf='4h', balance_amount=10,profit=0.03,stoploss=0.03)

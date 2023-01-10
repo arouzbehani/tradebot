@@ -24,6 +24,7 @@ def GetMarketData(markets,tf='1d', coin='All', lim=500, paircoin='/USDT',relp=Fa
     for m in markets:
         if m.endswith(paircoin):
             try:
+            
                 bars = exchange.fetch_ohlcv(m, limit=lim, timeframe=tf)
                 df = pd.DataFrame(bars, columns=['timestamp',
                                                  'open', 'high', 'low', 'close', 'volume'])
@@ -47,3 +48,7 @@ def GetMarketData(markets,tf='1d', coin='All', lim=500, paircoin='/USDT',relp=Fa
                 print('error in fetching market data for: ' + m + ' --- tf:'+tf)
                 errordata.append(m + ':' + tf)
     return (marketData, errordata)
+# markets=(exchange.load_markets())
+# for m in markets:
+#     print (markets[m])
+#     break

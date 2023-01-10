@@ -1,11 +1,16 @@
+import math
 import os
 from pathlib import Path
 import signaler as sg
 from IPython.display import HTML
 import pandas as pd
 from ta.volatility import BollingerBands as bb
+from ta.volume import ForceIndexIndicator as fi
 import pandas as pd
 import numpy as np
+from coinmarketcapapi import CoinMarketCapAPI
+import config
+
 def GetData():
     data = {'1h':[], '1d':[] , '30m':[],'4h':[]}
     for tf in data:
@@ -116,9 +121,25 @@ def brout_check(df,candles=15):
             df['brout'][index]=np.nan
             
     return df
-df=getMarketData(tf='1d',coin='FTM_USDT')
-df1=df.reset_index()
-df1['brout']=np.nan
-#st.dataframe(df['close'][18-15:18].min())
-df2=brout_check(df1,candles=15)
-print(df2)
+# df=getMarketData(tf='30m',coin='Theta_USDT')
+# fi_indicator=fi(close =df['close'],volume=df['volume'],window=100,fillna=False)
+# df['fi']=fi_indicator.force_index()
+# vol_mean=(df['fi'].max()+abs(df['fi'].min()))/2
+# print(f"max:{df['fi'].max()/vol_mean} min:{df['fi'].min()/vol_mean}")
+# df1=df.reset_index()
+# df1['brout']=np.nan
+# #st.dataframe(df['close'][18-15:18].min())
+# df2=brout_check(df1,candles=15)
+# print(df2)
+# cmc = CoinMarketCapAPI(api_key=config.CoinMarketCap_API_Key)
+# rep = cmc.cryptocurrency_trending_latest()
+# print(rep)
+def set_output(o):
+    if(o=='Hi Sai'):
+         return "No value found"
+    return o
+data = {'ID': ['1', '2', '3', '4'],'Name header':['John','Ahmad','Neli','Hamid'],'Output':['Hi Sai','output 2','Hi Sai','output 4']}
+df = pd.DataFrame(data)
+df['Output']=df['Output'].map(set_output)
+print (df)
+ 

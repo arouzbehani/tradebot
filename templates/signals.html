@@ -136,6 +136,7 @@
                         var rsi = $row.find("td:nth-child(7)").text();
                         var ema = $row.find("td:nth-child(8)").text();
                         var sma = $row.find("td:nth-child(9)").text();
+                        var force = $row.find("td:nth-child(10)").text();
                         
                         if (!(
                             coin.toLowerCase().includes(value.toLowerCase()) || 
@@ -144,7 +145,8 @@
                             bb.toLowerCase().includes(value.toLowerCase()) ||
                             rsi.toLowerCase().includes(value.toLowerCase()) ||
                             ema.toLowerCase().includes(value.toLowerCase()) ||
-                            sma.toLowerCase().includes(value.toLowerCase()) 
+                            sma.toLowerCase().includes(value.toLowerCase()) ||
+                            force.toLowerCase().includes(value.toLowerCase()) 
 
                             )
                             

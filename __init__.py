@@ -84,6 +84,8 @@ def signals():
                     pretty ['ema']=df[['ema']]
                 if('sma' in df.columns):
                     pretty ['sma']=df[['sma']]
+                if('force' in df.columns):
+                    pretty ['force']=df[['force']]
 
                 pretty['url']=pretty['Coin'].apply(makelink,streaml=streaml,exch='Kucoin',tf=d)
                 pretty['Coin'] = pretty.apply(lambda x: make_clickable(x['url'],x['Coin']), axis=1)
