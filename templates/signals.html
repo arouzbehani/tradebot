@@ -72,7 +72,7 @@
         <div class="row">
           {%for t in tables %}
             {%if tables[t] %}
-          <div class="col-lg-12 col-md-12 col-sm-12 col-12" style="padding:30px;">
+              <div class="col-lg-12 col-md-12 col-sm-12 col-12" style="padding:30px;">
                 <h4 style="text-align: center;">Time Frame: {{t}}</h4>
                 <div style="text-align: center; width: 100%;">
 
@@ -82,15 +82,8 @@
                 </div>
                 <div class="table-responsive">
                   {{tables[t][0]}}
-
                   </div>
-      
               </div>
-            {%else%}
-            <div class="col-lg-12 col-md-12 col-sm-12 col-12" style="padding:30px;">
-              {{t}}
-
-            </div>
 
             {%endif%}
 
@@ -131,23 +124,23 @@
 
                         var coin = $row.find("td:first").text();
                         var pattern = $row.find("td:nth-child(5)").text();
-                        var brout = $row.find("td:nth-child(5)").text();
+                        // var brout = $row.find("td:nth-child(5)").text();
                         var bb = $row.find("td:nth-child(6)").text();
                         var rsi = $row.find("td:nth-child(7)").text();
-                        var ema = $row.find("td:nth-child(8)").text();
-                        var sma = $row.find("td:nth-child(9)").text();
-                        var force = $row.find("td:nth-child(10)").text();
-                        var ml = $row.find("td:nth-child(11)").text();
+                        // var ema = $row.find("td:nth-child(8)").text();
+                        var sma = $row.find("td:nth-child(8)").text();
+                        // var force = $row.find("td:nth-child(10)").text();
+                        var ml = $row.find("td:nth-child(9)").text();
                         
                         if (!(
                             coin.toLowerCase().includes(value.toLowerCase()) || 
                             pattern.toLowerCase().includes(value.toLowerCase()) || 
-                            brout.toLowerCase().includes(value.toLowerCase()) ||
+                            // brout.toLowerCase().includes(value.toLowerCase()) ||
                             bb.toLowerCase().includes(value.toLowerCase()) ||
                             rsi.toLowerCase().includes(value.toLowerCase()) ||
-                            ema.toLowerCase().includes(value.toLowerCase()) ||
+                            // ema.toLowerCase().includes(value.toLowerCase()) ||
                             sma.toLowerCase().includes(value.toLowerCase()) ||
-                            force.toLowerCase().includes(value.toLowerCase()) ||
+                            // force.toLowerCase().includes(value.toLowerCase()) ||
                             ml.toLowerCase().includes(value.toLowerCase()) 
 
                             )

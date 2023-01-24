@@ -1,4 +1,4 @@
-import os
+import os , GLOBAL
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -10,15 +10,14 @@ from ta.trend import SMAIndicator as sma
 from ta.trend import MACD as macd
 from ta.volume import ForceIndexIndicator as fi
 
-Base_DIR = '/root/trader_webapp/'
-Base_DIR = 'C:\\Users\\Ahmad\\Desktop\\tradebot\\'
+
 relp = False
 def GetData(tf, symbol, exch):
     df = None
     rel_dir = 'Market Data/{}/{}/'.format(exch, tf, symbol)
     rel_dir = 'Market Data\\{}\\{}\\'.format(exch, tf, symbol)
     # rel_dir='Market Data/{}/{}/'.format(exch,tf,symbol)
-    abs_dir = os.path.join(Base_DIR, rel_dir)
+    abs_dir = os.path.join(GLOBAL.BASE_DIR, rel_dir)
     if (relp):
         abs_dir=os.path.abspath(rel_dir)
         #abs_dir = rel_dir                                                                                                                  
@@ -30,7 +29,20 @@ def GetData(tf, symbol, exch):
     df['time'] = pd.to_datetime(df['timestamp'], unit='ms')                               
     
     return df
+def GetAllData(exch='Kucoin'):
+    tfs=['30m','1h','4h','1d']
+    markets=[]
+    for tf in tfs:
+        rel_dir = 'Market Data\\{}\\{}'.format(exch, tf)
+        abs_dir=os.path.join(GLOBAL.BASE_DIR,rel_dir)
+        for path in Path(abs_dir).iterdir():
+            try:
+                df=pd.read_csv(path)
+                markets.append({path.name:df})
+            except:
+                print(f'error in reading {path}')
 
+    return markets
 
 def is_consolidating(closes, percentage=2):
     max_close = closes.max()

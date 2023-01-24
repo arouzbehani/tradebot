@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from coinmarketcapapi import CoinMarketCapAPI
 import config
+import yfinance as yf
 
 def GetData():
     data = {'1h':[], '1d':[] , '30m':[],'4h':[]}
@@ -134,12 +135,18 @@ def brout_check(df,candles=15):
 # cmc = CoinMarketCapAPI(api_key=config.CoinMarketCap_API_Key)
 # rep = cmc.cryptocurrency_trending_latest()
 # print(rep)
-def set_output(o):
-    if not (str(o).__contains__('Hi Sai')):
-         return "No value found"
-    return o
-data = {'ID': ['1', '2', '3', '4'],'Name header':['John','Ahmad','Neli','Hamid'],'Output':['Hi Sai sasasdasd','output 2','112123 Hi Sai','output 4']}
-df = pd.DataFrame(data)
-df['Output']=df['Output'].map(set_output)
-print (df)
+# def set_output(o):
+#     if not (str(o).__contains__('Hi Sai')):
+#          return "No value found"
+#     return o
+# data = {'ID': ['1', '2', '3', '4'],'Name header':['John','Ahmad','Neli','Hamid'],'Output':['Hi Sai sasasdasd','output 2','112123 Hi Sai','output 4']}
+# df = pd.DataFrame(data)
+# df['Output']=df['Output'].map(set_output)
+# print (df)
  
+msft = yf.Ticker("MSFT")
+data = yf.download("MSFT", start="2022-01-01", end="2022-01-30")
+hist = msft.history(period="1wk")
+
+print(hist)
+print(data)

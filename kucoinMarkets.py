@@ -2,8 +2,7 @@ import ccxt
 import config
 import pandas as pd
 import os
-
-BASE_DIR = '/root/trader_webapp'
+import GLOBAL
 
 exchange = ccxt.kucoin({
     'apikey': config.Kucoin_API_Key,
@@ -30,7 +29,7 @@ def GetMarketData(markets,tf='1d', coin='All', lim=500, paircoin='/USDT',relp=Fa
                                                  'open', 'high', 'low', 'close', 'volume'])
                 df["Coin"] = m
                 rel_path='Market Data/Kucoin/{}/{}__{}.csv'.format(tf,m.replace('/','_'),tf)
-                abs_path = os.path.join(BASE_DIR, rel_path)
+                abs_path = os.path.join(GLOBAL.BASE_DIR, rel_path)
                 if(relp):
                     abs_path=rel_path
                 if(os.path.isfile(abs_path)):
@@ -48,6 +47,7 @@ def GetMarketData(markets,tf='1d', coin='All', lim=500, paircoin='/USDT',relp=Fa
                 print('error in fetching market data for: ' + m + ' --- tf:'+tf)
                 errordata.append(m + ':' + tf)
     return (marketData, errordata)
+
 # markets=(exchange.load_markets())
 # for m in markets:
 #     print (markets[m])

@@ -1,5 +1,5 @@
 import datetime
-import os
+import os , GLOBAL
 from pathlib import Path
 import time
 import kucoinMarkets as kc
@@ -18,7 +18,7 @@ import numpy as np
 import math
 from sklearn.linear_model import LinearRegression
 from sklearn import preprocessing , model_selection , svm
-
+import Streamlit.pivot_helper as pivh
 
 class MarketData(object):
     def __init__(self):
@@ -103,8 +103,7 @@ def FindSignals_01(maxdelay_min, timeframes, testdata=False):
                 timeframes[i] + "__" + \
                 now.strftime("%d_%m_%Y__%H_%M_%S")+".csv"
 
-            BASE_DIR = '/root/trader_webapp'
-            abs_path = os.path.join(BASE_DIR, rel_path)
+            abs_path = os.path.join(GLOBAL.BASE_DIR, rel_path)
             # abs_path=rel_path
             if (len(latestSignals) > 0):
                 signalsdf = pd.concat(latestSignals)
@@ -113,12 +112,12 @@ def FindSignals_01(maxdelay_min, timeframes, testdata=False):
                                  index=True, sep=',', mode='w')
 
 
-Base_DIR = '/root/trader_webapp/'
+
 def ml_check(Coin, tf, exch, minsize=30, forecast_out=20, relp=False):
     try:
         df0 = None
         rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
-        abs_dir = os.path.join(Base_DIR, rel_dir)
+        abs_dir = os.path.join(GLOBAL.BASE_DIR, rel_dir)
         if (relp):
             abs_dir = rel_dir
         for path in Path(abs_dir).iterdir():
@@ -126,7 +125,7 @@ def ml_check(Coin, tf, exch, minsize=30, forecast_out=20, relp=False):
                 df0 = pd.read_csv(path)
                 break
         if (len(df0) > minsize):
-            df=df0[:-forecast_out]
+            df=df0
             #df=df[['time','close','open','high','low','volume']]
             df['hl_pct']=(df['high']-df['low'])/df['low'] * 100
             df['pct_change']=(df['close']-df['open'])/df['low'] * 100
@@ -163,7 +162,7 @@ def ema_check(Coin, tf, exch, timeperiod=30, relp=False):
     try:
         df = None
         rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
-        abs_dir = os.path.join(Base_DIR, rel_dir)
+        abs_dir = os.path.join(GLOBAL.BASE_DIR, rel_dir)
         if (relp):
             abs_dir = rel_dir
         for path in Path(abs_dir).iterdir():
@@ -211,7 +210,7 @@ def sma_check(Coin, tf, exch, timeperiod=30, relp=False):
     try:
         df = None
         rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
-        abs_dir = os.path.join(Base_DIR, rel_dir)
+        abs_dir = os.path.join(GLOBAL.BASE_DIR, rel_dir)
         if (relp):
             abs_dir = rel_dir
         for path in Path(abs_dir).iterdir():
@@ -253,6 +252,24 @@ def sma_check(Coin, tf, exch, timeperiod=30, relp=False):
         return "No SMA Signal"
     except:
         return "Error on SMA Signal"
+def pivot_check(Coin, tf, exch,  relp=False):
+    try:
+        df = None
+        rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
+        abs_dir = os.path.join(GLOBAL.BASE_DIR, rel_dir)
+        if (relp):
+            abs_dir = rel_dir
+        for path in Path(abs_dir).iterdir():
+            if (path.name.startswith(Coin.replace('/', '_'))):
+                df = pd.read_csv(path)
+                break
+        df=df[-200:].reset_index()
+        df , _ , _ , _ =pivh.find_pivots(df,3,3)
+        df= df[~pd.isnull(df['pivot_trend'])]
+        return df[-1:]['pivot_trend'].values[0]
+    except:
+        return "Error in Pivot Check"
+
 
 
 def PPSR(df):
@@ -276,7 +293,7 @@ def rsi_check(Coin, tf, exch, timeperiod=20, relp=False):
     try:
         df = None
         rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
-        abs_dir = os.path.join(Base_DIR, rel_dir)
+        abs_dir = os.path.join(GLOBAL.BASE_DIR, rel_dir)
         if (relp):
             abs_dir = rel_dir
         for path in Path(abs_dir).iterdir():
@@ -314,7 +331,7 @@ def fi_check(Coin, tf, exch, timeperiod=100, relp=False):
     try:
         df = None
         rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
-        abs_dir = os.path.join(Base_DIR, rel_dir)
+        abs_dir = os.path.join(GLOBAL.BASE_DIR, rel_dir)
         if (relp):
             abs_dir = rel_dir
         for path in Path(abs_dir).iterdir():
@@ -338,7 +355,7 @@ def boll_check(Coin, tf, exch, timeperiod=20, nstdv=2, relp=False):
     try:
         df = None
         rel_dir = 'Market Data/{}/{}/'.format(exch, tf, Coin)
-        abs_dir = os.path.join(Base_DIR, rel_dir)
+        abs_dir = os.path.join(GLOBAL.BASE_DIR, rel_dir)
         if (relp):
             abs_dir = rel_dir
         for path in Path(abs_dir).iterdir():
@@ -385,9 +402,9 @@ def boll_check(Coin, tf, exch, timeperiod=20, nstdv=2, relp=False):
             elif (one_to_last_close > one_to_last_upperband):
                 if (last_close > last_upperband and one_to_last_pband >= 1):
                     if(math.isnan(last_adx_entry_signal) and math.isnan(one_to_last_adx_entry_signal)):
-                        return "BB Squeez Entry Signal"
+                        return "BB Squeez Signal"
                     else:
-                        return "BB Squeez Entry Uptrend Signal"
+                        return "BB Squeez Uptrend Signal"
 
                 if (last_close < last_upperband):
                     return "BB Exit Signal"
@@ -436,30 +453,34 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
 
         rel_path = "TA-Lib Signals/{}/{}/{}__{}.csv".format(
             exchangeName, timeframes[i], timeframes[i], now.strftime("%d_%m_%Y__%H_%M_%S"))
-        BASE_DIR = '/root/trader_webapp'
-        abs_path = os.path.join(BASE_DIR, rel_path)
+        abs_path = os.path.join(GLOBAL.BASE_DIR, rel_path)
         if (relp):
             abs_path = rel_path
 
         if (len(latestSignals) > 0):
             signalsdf = pd.concat(latestSignals)
+            # signalsdf['last_pivot'] = signalsdf['Coin'].apply(
+            #     pivot_check, tf=timeframes[i], exch=exchangeName, relp=relp)
 
-            signalsdf['breaking out'] = signalsdf['Coin'].apply(
-                br_check, exch=exchangeName, tf=timeframes[i], candles=brout_candles, percentage=brout_percentage, relp=relp)
-            signalsdf['bollinger'] = signalsdf['Coin'].apply(
+            # signalsdf['breaking out'] = signalsdf['Coin'].apply(
+            #     br_check, exch=exchangeName, tf=timeframes[i], candles=brout_candles, percentage=brout_percentage, relp=relp)
+            sym='Coin'
+            if 'Symbol' in signalsdf.columns: sym='Symbol'
+            signalsdf['bollinger'] = signalsdf[f'{sym}'].apply(
                 boll_check, exch=exchangeName, tf=timeframes[i], timeperiod=20, nstdv=2, relp=relp)
-            signalsdf['rsi'] = signalsdf['Coin'].apply(
+            signalsdf['rsi'] = signalsdf[sym].apply(
                 rsi_check, exch=exchangeName, tf=timeframes[i], timeperiod=14, relp=relp)
-            signalsdf['ema'] = signalsdf['Coin'].apply(
-                ema_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, relp=relp)
-            signalsdf['sma'] = signalsdf['Coin'].apply(
+            # signalsdf['ema'] = signalsdf[sym].apply(
+            #     ema_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, relp=relp)
+            signalsdf['sma'] = signalsdf[sym].apply(
                 sma_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, relp=relp)
-            signalsdf['force'] = signalsdf['Coin'].apply(
-                fi_check, exch=exchangeName, tf=timeframes[i], timeperiod=100, relp=relp)
-            signalsdf['ML'] = signalsdf['Coin'].apply(
+            # signalsdf['force'] = signalsdf[sym].apply(
+            #     fi_check, exch=exchangeName, tf=timeframes[i], timeperiod=100, relp=relp)
+            signalsdf['ML'] = signalsdf[sym].apply(
                 ml_check, tf=timeframes[i], exch=exchangeName, minsize=30, forecast_out=20, relp=relp)
 
-            scols=['breaking out','bollinger','rsi','ema','sma','force','ML']
+            # scols=['breaking out','bollinger','rsi','ema','sma','force','ML','last_pivot']
+            scols=['bollinger','rsi','sma','ML']
             signalsdf['entry']=0
             for s in scols:
                 signalsdf['entry'] +=signalsdf[s].map(count_entry)
@@ -474,9 +495,8 @@ def test():
 
 def MakeBollingerBandsSignals(market='Kucoin', tf='30m'):
     relp = True
-    BASE_DIR = '/root/trader_webapp'
     rel_path = 'TA-Lib Signals/{}/{}/'.format(market, tf)
-    abs_dir = os.path.join(BASE_DIR, rel_path)
+    abs_dir = os.path.join(GLOBAL.BASE_DIR, rel_path)
     if (relp):
         abs_dir = rel_path
     paths = sorted(Path(abs_dir).iterdir(), key=os.path.getmtime)
