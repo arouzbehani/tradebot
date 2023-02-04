@@ -1,4 +1,4 @@
-import os , GLOBAL
+import GLOBAL
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -8,19 +8,16 @@ from ta.trend import ADXIndicator as adx
 from ta.trend import EMAIndicator as ema
 from ta.trend import SMAIndicator as sma
 from ta.trend import MACD as macd
+from ta.trend import IchimokuIndicator as ichi
 from ta.volume import ForceIndexIndicator as fi
 
 
-relp = False
+local = True
 def GetData(tf, symbol, exch):
     df = None
     rel_dir = 'Market Data/{}/{}/'.format(exch, tf, symbol)
-    rel_dir = 'Market Data\\{}\\{}\\'.format(exch, tf, symbol)
     # rel_dir='Market Data/{}/{}/'.format(exch,tf,symbol)
-    abs_dir = os.path.join(GLOBAL.BASE_DIR, rel_dir)
-    if (relp):
-        abs_dir=os.path.abspath(rel_dir)
-        #abs_dir = rel_dir                                                                                                                  
+    abs_dir = GLOBAL.ABSOLUTE(rel_dir,local)
     for path in Path(abs_dir).iterdir():
         if (path.name.lower().startswith(symbol.lower())):
             df = pd.read_csv(path)
@@ -33,8 +30,8 @@ def GetAllData(exch='Kucoin'):
     tfs=['30m','1h','4h','1d']
     markets=[]
     for tf in tfs:
-        rel_dir = 'Market Data\\{}\\{}'.format(exch, tf)
-        abs_dir=os.path.join(GLOBAL.BASE_DIR,rel_dir)
+        rel_dir = 'Market Data/{}/{}'.format(exch, tf)
+        abs_dir=GLOBAL.ABSOLUTE(rel_dir,local)
         for path in Path(abs_dir).iterdir():
             try:
                 df=pd.read_csv(path)
@@ -78,6 +75,15 @@ def append_adx(df):
     df['adx_pos_neg'] = adx_indicator.adx_pos()/adx_indicator.adx_neg()
     df['adx_signal_marker'] = np.where(np.logical_and(np.logical_and(df['adx'] > 25, df['adx_pos'] > df['adx_neg']),df['adx'].shift(1) < 25), df['close'], np.nan)
     df['adx_signal'] = np.where(np.logical_and(df['adx'] > 25, df['adx_pos'] > df['adx_neg']), df['close'], np.nan)
+    return df
+def append_ichi(df):
+    ich_indicator = ichi(
+        high=df['high'], low=df['low'], window1=9,window2=26,window3=52,visual=True,fillna=False)
+    df['ich_a'] = ich_indicator.ichimoku_a()
+    df['ich_b'] = ich_indicator.ichimoku_b()
+    df['ich_base_line'] = ich_indicator.ichimoku_base_line()
+    df['ich_conversion_line'] = ich_indicator.ichimoku_conversion_line()
+    df['ich_komo_color'] = df['ich_a']- df['ich_b']
     return df
 
 def append_fi(df):
@@ -167,3 +173,4 @@ def append_macd(df):
     df['macd'] = macd_indicator.macd()
     df['macd_diff'] = macd_indicator.macd_diff()
     df['macd_signal'] = macd_indicator.macd_signal()
+
