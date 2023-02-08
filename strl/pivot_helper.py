@@ -258,8 +258,8 @@ def powerstat(df1, l, wn=3):
     else:
         return np.nan
     return np.nan
-pd.options.mode.chained_assignment = None # default='warn'
-def find_pivots(df, left_candles=7, right_candles=7,wn=2,short=False):
+
+def find_pivots(df, left_candles, right_candles,wn):
 
     df['init_pivot'] = df.apply(lambda x: pivotid(
         df, x.name, left_candles, right_candles), axis=1)
@@ -295,8 +295,6 @@ def find_pivots(df, left_candles=7, right_candles=7,wn=2,short=False):
 
         else:
             i += 1
-            
-    if short : return df
 
     df2 = df.loc[np.logical_or(
         df['pivot'] == 1, df['pivot'] == 2)].reset_index()

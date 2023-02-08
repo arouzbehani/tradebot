@@ -1,4 +1,3 @@
-from statistics import mean
 import streamlit as st
 import pandas as pd
 import helper
@@ -55,26 +54,6 @@ def is_consolidating(closes, percentage=2):
         return True
     return False
 
-def best_fit_slope_and_intercept(xs,ys):
-    m = (((mean(xs)*mean(ys)) - mean(xs*ys)) /
-         ((mean(xs)*mean(xs)) - mean(xs*xs)))
-    b = mean(ys) - m*mean(xs)
-    return m, b
-
-def squared_error(ys_orig,ys_line):
-    return sum((ys_line - ys_orig) * (ys_line - ys_orig))
-
-def coefficient_of_determination(ys_orig,ys_line):
-    y_mean_line = [mean(ys_orig) for y in ys_orig]
-    squared_error_regr = squared_error(ys_orig, ys_line)
-    squared_error_y_mean = squared_error(ys_orig, y_mean_line)
-    return 1 - (squared_error_regr/squared_error_y_mean)
-
-def r2(xs,ys):
-    m, b = best_fit_slope_and_intercept(xs,ys)
-    regression_line = [(m*x)+b for x in xs]
-    r_squared = coefficient_of_determination(ys,regression_line)
-    return r_squared
 
 def brout_check(df, candles=15):
     for index in df.index:
@@ -120,18 +99,6 @@ def DrawChart(limit=500, read_patterns=False, read_rsi=False, read_bb=True, read
             df, up_points, down_points, sidepoints, power_ups, power_downs, power_weaking_ups, power_weaking_downs = pivot_helper.find_pivots(
                 df, left_candles, right_candles, waves_number)
 
-<<<<<<< HEAD:strl/pages/chart.py
-<<<<<<< HEAD:strl/pages/chart.py
-            xs_up= np.where(df['pivot_trend'] == 'up', df['timestamp'], np.nan)
-            ys_up= np.where(df['pivot_trend'] == 'up', df['pointpos'], np.nan)
-            
-            xs_down= np.where(df['pivot_trend'] == 'down', df['timestamp'], np.nan)
-            ys_down= np.where(df['pivot_trend'] == 'down', df['pointpos'], np.nan)
-
-=======
->>>>>>> 53244542e91a989b72c20f68ef4f11302afe3df2:Streamlit/pages/chart.py
-=======
->>>>>>> 53244542e91a989b72c20f68ef4f11302afe3df2:Streamlit/pages/chart.py
             if (read_bull_patterns):
                 try:
                     patterns_res, ndf = alp(df)
