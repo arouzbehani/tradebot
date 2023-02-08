@@ -1,7 +1,6 @@
 import os , gc
 import pandas as pd
 import numpy as np
-<<<<<<< HEAD
 from sklearn.metrics import r2_score
 
 
@@ -37,39 +36,6 @@ def clean(obj):
     # print(tables)
 
 def getTestData(exch='kucoin',coin='BTC_USDT',tf='1h'):
-=======
-from coinmarketcapapi import CoinMarketCapAPI
-import config
-import yfinance as yf
-
-def GetData():
-    data = {'1h':[], '1d':[] , '30m':[],'4h':[]}
-    for tf in data:
-        res , df=sg.TALibPattenrSignals(7*24*60,[tf])
-        if( res ==True):
-            data[tf].append(df)
-            print("{} done!".format(tf))
-
-    return data
-
-def talib():
-    data = GetData()
-    if (len(data) > 0):
-        tables = {'1h': [],
-                    '4h': [],
-                    '30m': [],
-                    '1d': []}
-        for d in data:
-            if(len(data[d])>0):
-                pretty_bullish = data[d][0][[
-                    'Coin', 'date time', 'bullish', 'bullish patterns']].sort_values(by=['bullish'], ascending=False)
-                pretty_bearish = data[d][0][[
-                    'Coin', 'date time', 'bearish', 'bearish patterns']].sort_values(by=['bearish'], ascending=False)
-                tables[d].append(HTML(pretty_bullish.to_html(classes='table table-hovered')))
-                tables[d].append(HTML(pretty_bearish.to_html(classes='table table-hovered')))
-    print(tables)
-def getMarketData(exch='kucoin',coin='BTC_USDT',tf='1h'):
->>>>>>> 53244542e91a989b72c20f68ef4f11302afe3df2
     rel_path = 'Market Data/{}/{}/{}__{}.csv'.format(exch,tf,coin,tf)
     return pd.read_csv(rel_path)
 
@@ -153,7 +119,6 @@ def getMarketData(exch='kucoin',coin='BTC_USDT',tf='1h'):
 #         else:
 #             df['brout'][index]=np.nan
             
-<<<<<<< HEAD
 #     return df
 # # df=getMarketData(tf='30m',coin='Theta_USDT')
 # # fi_indicator=fi(close =df['close'],volume=df['volume'],window=100,fillna=False)
@@ -218,34 +183,3 @@ plt.scatter(xs,ys,color='#003F72',label='data')
 plt.plot(xs, regression_line, label='regression line')
 plt.legend(loc=4)
 plt.show()
-=======
-    return df
-# df=getMarketData(tf='30m',coin='Theta_USDT')
-# fi_indicator=fi(close =df['close'],volume=df['volume'],window=100,fillna=False)
-# df['fi']=fi_indicator.force_index()
-# vol_mean=(df['fi'].max()+abs(df['fi'].min()))/2
-# print(f"max:{df['fi'].max()/vol_mean} min:{df['fi'].min()/vol_mean}")
-# df1=df.reset_index()
-# df1['brout']=np.nan
-# #st.dataframe(df['close'][18-15:18].min())
-# df2=brout_check(df1,candles=15)
-# print(df2)
-# cmc = CoinMarketCapAPI(api_key=config.CoinMarketCap_API_Key)
-# rep = cmc.cryptocurrency_trending_latest()
-# print(rep)
-# def set_output(o):
-#     if not (str(o).__contains__('Hi Sai')):
-#          return "No value found"
-#     return o
-# data = {'ID': ['1', '2', '3', '4'],'Name header':['John','Ahmad','Neli','Hamid'],'Output':['Hi Sai sasasdasd','output 2','112123 Hi Sai','output 4']}
-# df = pd.DataFrame(data)
-# df['Output']=df['Output'].map(set_output)
-# print (df)
- 
-msft = yf.Ticker("MSFT")
-data = yf.download("MSFT", start="2022-01-01", end="2022-01-30")
-hist = msft.history(period="1wk")
-
-print(hist)
-print(data)
->>>>>>> 53244542e91a989b72c20f68ef4f11302afe3df2

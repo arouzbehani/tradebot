@@ -28,13 +28,7 @@ def GetMarketData(markets,tf='1d', coin='All', lim=500, paircoin='/USDT',local=F
                                                  'open', 'high', 'low', 'close', 'volume'])
                 df["Coin"] = m
                 rel_path='Market Data/Kucoin/{}/{}__{}.csv'.format(tf,m.replace('/','_'),tf)
-<<<<<<< HEAD:strl/kucoinMarkets.py
                 abs_path =GLOBAL.ABSOLUTE(rel_path,local)
-=======
-                abs_path = os.path.join(GLOBAL.BASE_DIR, rel_path)
-                if(relp):
-                    abs_path=rel_path
->>>>>>> 53244542e91a989b72c20f68ef4f11302afe3df2:kucoinMarkets.py
                 if(os.path.isfile(abs_path)):
                     df0=pd.read_csv(abs_path)
                     fdf=pd.concat([df[:-1],df0]).drop_duplicates().sort_values(by=['timestamp'])

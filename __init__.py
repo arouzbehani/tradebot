@@ -34,10 +34,7 @@ def GetData(market,relp=False):
             for path in paths:
                 df = pd.read_csv(path)
                 data[tf].append(df)
-<<<<<<< HEAD
                 del df
-=======
->>>>>>> 53244542e91a989b72c20f68ef4f11302afe3df2
     return data
 
 
@@ -94,14 +91,11 @@ def tables(data,exchange='Kucoin'):
                 pretty ['force']=df[['force']]
             if('ML' in df.columns):
                 pretty ['ML']=df[['ML']]
-<<<<<<< HEAD
             if('double_bot' in df.columns):
                 print('double bot')
                 pretty ['double_bot']=df[['double_bot']]
             else:
                 print('no double bot')
-=======
->>>>>>> 53244542e91a989b72c20f68ef4f11302afe3df2
 
             pretty['url']=pretty[f'{sym}'].apply(makelink,streaml=streaml,exch=exchange,tf=d)
             pretty[f'{sym}'] = pretty.apply(lambda x: make_clickable(x['url'],x[f'{sym}']), axis=1)
@@ -111,15 +105,11 @@ def tables(data,exchange='Kucoin'):
 
             html=pretty.to_html(classes='table table-striped',table_id="pretty_table_{}".format(d),escape=False,render_links=True)
             tables[d].append(HTML(html))
-<<<<<<< HEAD
             del df
     del data
     gc.collect()
     return tables
 
-=======
-    return tables
->>>>>>> 53244542e91a989b72c20f68ef4f11302afe3df2
 @app.route("/signals")
 def signals():
     data = GetData(market='Kucoin',relp=False)
@@ -138,20 +128,6 @@ def crypto_signals():
     if (len(data) > 0):
         
         return render_template('signals.html', tables=tables(data,exchange='Kucoin'))
-<<<<<<< HEAD
-=======
-    else:
-        return render_template('signals.html', "", "")
-
-@app.route("/signals/stocks")  # this sets the route to this page
-def stocks_signals():
-
-    data = GetData(market='Yahoo',relp=False)
-    # data[0]['Trading View']=data[0]['Coin'].map(tourl)
-    if (len(data) > 0):
-        
-        return render_template('signals.html', tables=tables(data,exchange='Yahoo'))
->>>>>>> 53244542e91a989b72c20f68ef4f11302afe3df2
     else:
         return render_template('signals.html', "", "")
 
