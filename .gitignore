@@ -161,4 +161,4 @@ s.csv
 config.py
 test.py
 madat.tar.gz
-madat.tar.gz
+*.tar.gz
