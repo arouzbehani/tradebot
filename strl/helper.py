@@ -1,4 +1,4 @@
-import os
+import GLOBAL
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -8,20 +8,16 @@ from ta.trend import ADXIndicator as adx
 from ta.trend import EMAIndicator as ema
 from ta.trend import SMAIndicator as sma
 from ta.trend import MACD as macd
+from ta.trend import IchimokuIndicator as ichi
 from ta.volume import ForceIndexIndicator as fi
 
-Base_DIR = '/root/trader_webapp/'
-Base_DIR = 'C:\\Users\\Ahmad\\Desktop\\tradebot\\'
-relp = False
+
+local = True
 def GetData(tf, symbol, exch):
     df = None
     rel_dir = 'Market Data/{}/{}/'.format(exch, tf, symbol)
-    rel_dir = 'Market Data\\{}\\{}\\'.format(exch, tf, symbol)
     # rel_dir='Market Data/{}/{}/'.format(exch,tf,symbol)
-    abs_dir = os.path.join(Base_DIR, rel_dir)
-    if (relp):
-        abs_dir=os.path.abspath(rel_dir)
-        #abs_dir = rel_dir                                                                                                                  
+    abs_dir = GLOBAL.ABSOLUTE(rel_dir,local)
     for path in Path(abs_dir).iterdir():
         if (path.name.lower().startswith(symbol.lower())):
             df = pd.read_csv(path)
@@ -30,7 +26,20 @@ def GetData(tf, symbol, exch):
     df['time'] = pd.to_datetime(df['timestamp'], unit='ms')                               
     
     return df
+def GetAllData(exch='Kucoin'):
+    tfs=['30m','1h','4h','1d']
+    markets=[]
+    for tf in tfs:
+        rel_dir = 'Market Data/{}/{}'.format(exch, tf)
+        abs_dir=GLOBAL.ABSOLUTE(rel_dir,local)
+        for path in Path(abs_dir).iterdir():
+            try:
+                df=pd.read_csv(path)
+                markets.append({path.name:df})
+            except:
+                print(f'error in reading {path}')
 
+    return markets
 
 def is_consolidating(closes, percentage=2):
     max_close = closes.max()
@@ -66,6 +75,15 @@ def append_adx(df):
     df['adx_pos_neg'] = adx_indicator.adx_pos()/adx_indicator.adx_neg()
     df['adx_signal_marker'] = np.where(np.logical_and(np.logical_and(df['adx'] > 25, df['adx_pos'] > df['adx_neg']),df['adx'].shift(1) < 25), df['close'], np.nan)
     df['adx_signal'] = np.where(np.logical_and(df['adx'] > 25, df['adx_pos'] > df['adx_neg']), df['close'], np.nan)
+    return df
+def append_ichi(df):
+    ich_indicator = ichi(
+        high=df['high'], low=df['low'], window1=9,window2=26,window3=52,visual=True,fillna=False)
+    df['ich_a'] = ich_indicator.ichimoku_a()
+    df['ich_b'] = ich_indicator.ichimoku_b()
+    df['ich_base_line'] = ich_indicator.ichimoku_base_line()
+    df['ich_conversion_line'] = ich_indicator.ichimoku_conversion_line()
+    df['ich_komo_color'] = df['ich_a']- df['ich_b']
     return df
 
 def append_fi(df):
@@ -117,11 +135,19 @@ def append_sma(df,entry_signal=False,entry_signal_mode='Uptrend'):
         close=df['close'], window=5, fillna=False)
     sma_indicator_10 = sma(
         close=df['close'], window=10, fillna=False)
-    sma_indicator_30 = sma(
-        close=df['close'], window=30, fillna=False)
+    sma_indicator_50 = sma(
+        close=df['close'], window=50, fillna=False)
     df['sma_5'] = sma_indicator_5.sma_indicator()
     df['sma_10'] = sma_indicator_10.sma_indicator()
-    df['sma_30'] = sma_indicator_30.sma_indicator()
+    df['sma_50'] = sma_indicator_50.sma_indicator()
+    # if(entry_signal):
+    #     if (entry_signal_mode == 'Uptrend'):
+    #         df['sma_entry_signal'] = np.where(np.logical_and(df['adx_signal'].isnull()==False,
+    #             np.logical_and(np.logical_and(np.logical_and(df['sma_30'] / df['sma_10']>=0.99,df['sma_30'] / df['sma_10']<=1), df['sma_10'] < df['sma_5']),
+    #                                                         np.logical_or(np.logical_or(df['sma_30'].shift(1) > df['sma_10'].shift(1), df['sma_10'].shift(1) > df['sma_5'].shift(1)), df['sma_30'].shift(1) > df['sma_5'].shift(1)))), df['sma_30'], np.nan)
+    #     else:
+    #         df['sma_entry_signal'] = np.where(np.logical_and(np.logical_and(np.logical_and(df['sma_30'] / df['sma_10']>=0.99,df['sma_30'] / df['sma_10']<=1), df['sma_10'] < df['sma_5']),
+    #                                                         np.logical_or(np.logical_or(df['sma_30'].shift(1) > df['sma_10'].shift(1), df['sma_10'].shift(1) > df['sma_5'].shift(1)), df['sma_30'].shift(1) > df['sma_5'].shift(1))), df['sma_30'], np.nan)
     if(entry_signal):
         if (entry_signal_mode == 'Uptrend'):
             df['sma_entry_signal'] = np.where(np.logical_and(df['adx_signal'].isnull()==False,
@@ -130,6 +156,7 @@ def append_sma(df,entry_signal=False,entry_signal_mode='Uptrend'):
         else:
             df['sma_entry_signal'] = np.where(np.logical_and(np.logical_and(np.logical_and(df['sma_30'] / df['sma_10']>=0.99,df['sma_30'] / df['sma_10']<=1), df['sma_10'] < df['sma_5']),
                                                             np.logical_or(np.logical_or(df['sma_30'].shift(1) > df['sma_10'].shift(1), df['sma_10'].shift(1) > df['sma_5'].shift(1)), df['sma_30'].shift(1) > df['sma_5'].shift(1))), df['sma_30'], np.nan)
+    
     df['sma_exit_signal']=np.where(np.logical_and(df['sma_30']>df['sma_10'],df['sma_10']>df['sma_5']),df['close'],np.nan)
 def append_ema(df,entry_signal=False,entry_signal_mode='Uptrend'):
     ema_indicator_5 = ema(
@@ -155,3 +182,4 @@ def append_macd(df):
     df['macd'] = macd_indicator.macd()
     df['macd_diff'] = macd_indicator.macd_diff()
     df['macd_signal'] = macd_indicator.macd_signal()
+

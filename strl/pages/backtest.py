@@ -25,7 +25,6 @@ st.markdown("""
                 }
         </style>
         """, unsafe_allow_html=True)
-
 start_test=0
 end_test=400
 
@@ -50,7 +49,6 @@ if (q.__contains__('tf')):
     tf=q['tf'][0]
 exch='Kucoin'
 init_df=helper.GetData(tf,coin,exch)
-
 def Run_sma_Strategy(x)-> tm.TradingEnv:
     fee=0.99875
     env=tm.TradingEnv(balance_amount=100,balance_unit='USDT',trading_fee_multiplier=fee)
