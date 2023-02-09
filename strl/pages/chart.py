@@ -15,7 +15,7 @@ import datetime
 import plotly.figure_factory as ff
 import MarketReader as mr
 
-local = False
+local = True
 st. set_page_config(layout="wide")
 st.markdown("""
 
@@ -290,16 +290,12 @@ def DrawChart(limit=500, read_patterns=False, read_rsi=False, read_bb=True, read
                     go.Scatter(x=df['time'], y=df['volume'], name='Volume'), row=rownum, col=1
                 )
             if (read_sma):
-                helper.append_sma(df, entry_signal=entry_signals,
-                                  entry_signal_mode=entry_signal_mode)
+                helper.append_sma_2(df, entry_signal=entry_signals,w1=10,w2=50)
                 fig.add_trace(
-                    go.Scatter(x=df['time'], y=df['sma_5'], name='sma 5'), row=1, col=1
+                    go.Scatter(x=df['time'], y=df['sma_1'], name='sma 10'), row=1, col=1
                 )
                 fig.add_trace(
-                    go.Scatter(x=df['time'], y=df['sma_10'], name='sma 10'), row=1, col=1
-                )
-                fig.add_trace(
-                    go.Scatter(x=df['time'], y=df['sma_30'], name='sma 30'), row=1, col=1
+                    go.Scatter(x=df['time'], y=df['sma_2'], name='sma 50'), row=1, col=1
                 )
                 if (entry_signals):
                     fig.add_trace(
@@ -455,27 +451,22 @@ with st.sidebar:
 
 with st.container():
     cols = st.columns([1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1])
-    if cols[0].button('5m'):
-        tf = '5m'
-        st.experimental_set_query_params(tf='5m', exch=exch, symbol=symbol)
-    if cols[1].button('15m'):
-        tf = '15m'
-        st.experimental_set_query_params(tf='15m', exch=exch, symbol=symbol)
-    if cols[2].button('30m'):
-        tf = '30m'
-        st.experimental_set_query_params(tf='30m', exch=exch, symbol=symbol)
-    if cols[3].button('1h'):
-        tf = '1h'
-        st.experimental_set_query_params(tf='1h', exch=exch, symbol=symbol)
-    if cols[4].button('4h'):
-        tf = '4h'
-        st.experimental_set_query_params(tf='4h', exch=exch, symbol=symbol)
-    if cols[5].button('1d'):
-        tf = '1d'
-        st.experimental_set_query_params(tf='1d', exch=exch, symbol=symbol)
-    if cols[6].button('Download Latest'):
-        if (symbol.lower().__contains__('usdt')):
-            mr.ReadKucoinMarket(timeframes=['5m', '15m', '30m', '1h', '4h', '1d'],
-                                local=local, testdata=False, symbol=symbol.replace('_', '/').upper())
+    tfs=['5m', '15m', '30m', '1h', '4h', '1d']
+    if exch=='Yahoo':
+        tfs=['15m', '30m', '60m', '90m', '1d','1wk']
+
+    for i in range(0,len(tfs)):
+        if cols[i].button(tfs[i]):
+            tf = tfs[i]
+            st.experimental_set_query_params(tf=tf, exch=exch, symbol=symbol)
+    if cols[len(tfs)].button('Download Latest'):
+        if exch=='Kucoin':
+            if (symbol.lower().__contains__('usdt')):
+                mr.ReadKucoinMarket(timeframes=tfs,
+                                    local=local, testdata=False, symbol=symbol.replace('_', '/').upper())
+        elif exch=='Yahoo':
+            mr.ReadYahooMarket(timeframes=tfs,
+                        local=local, testdata=False, symbol=symbol)
+
 
 DrawTheChart()

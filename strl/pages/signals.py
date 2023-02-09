@@ -3,7 +3,9 @@ import os , gc , GLOBAL
 import pandas  as pd
 from pathlib import Path
 from streamlit.components.v1 import html
-local =True
+import streamlit.components.v1 as components
+
+local =False
 
 def makelink(c,streaml,exch,tf):
     symbol=c.replace('/','_')
@@ -26,7 +28,17 @@ def GetData(market):
                 data[tf].append(df)
                 del df
     return data
-def tables(data,exchange='Kucoin'):
+def sq_match(c,sq):
+    if(c=='Coin' or c=='Symbol'):
+        t=str(c).split('>')[1].split('<')[0]
+        if(t.lower().__contains__(sq.lower())):
+            return 1
+    else:
+        if(str(c).lower().__contains__(sq.lower())):
+            return 1
+
+    return 0
+def tables(data,exchange='Kucoin',sq='sma entry'):
     # streaml='http://localhost:8501/'
     streaml='http://trader.baharsoft.com:8100/'
     tables = {'5m': [],
@@ -69,93 +81,64 @@ def tables(data,exchange='Kucoin'):
             if('ML' in df.columns):
                 pretty ['ML']=df[['ML']]
             if('double_bot' in df.columns):
-                print('double bot')
                 pretty ['double_bot']=df[['double_bot']]
-            else:
-                print('no double bot')
 
             pretty['url']=pretty[f'{sym}'].apply(makelink,streaml=streaml,exch=exchange,tf=d)
             pretty[f'{sym}'] = pretty.apply(lambda x: make_clickable(x['url'],x[f'{sym}']), axis=1)
             # pretty.style
             pretty.__delitem__('url')
+            if(sq!=''): 
+                all=[]
+                for c in pretty.columns:
+                    pretty['sq']=pretty[c].apply(sq_match,sq=sq)
+                    filtered=pretty[pretty['sq']==1]
+                    if(len(filtered)>0):
+                        all.append(filtered)
 
+                if len(all)>0:
+                    pretty=pd.concat(all).drop_duplicates().sort_index()
+                else:
+                    pretty.drop(pretty.index, inplace=True)
 
-            html=pretty.to_html(classes='table table-striped',table_id="pretty_table_{}".format(d),escape=False,render_links=True)
-            # tables[d].append(HTML(html))
+                pretty.__delitem__('sq')
+                del all
+                gc.collect()
             tables[d].append(pretty)
             del df
+            gc.collect()
     del data
     gc.collect()
     return tables
 
 def crypto_signals():
-
     data = GetData(market='Kucoin')
-    # data[0]['Trading View']=data[0]['Coin'].map(tourl)
     if (len(data) > 0):
-        all_tables=tables(data,exchange='Kucoin')
+        sq=st.text_input(label='',placeholder='Serch Coin or method ...')
+        all_tables=tables(data,exchange='Kucoin',sq=sq)
         for table in all_tables:
             if(len(all_tables[table])>0):
+                st.subheader(f'Time Frame: {table}')
+
                 st.write(all_tables[table][0].to_html(escape=False, index=False), unsafe_allow_html=True)
-
+                st.markdown("""---""")
+        del all_tables
+        del data
+        gc.collect()
 def stocks_signals():
-
     data = GetData(market='Yahoo')
-    all_tables=tables(data,exchange='Yahoo')
-    # data[0]['Trading View']=data[0]['Coin'].map(tourl)
     if (len(data) > 0):
+        sq=st.text_input(label='',placeholder='Serch Symbol or method ...')
+        all_tables=tables(data,exchange='Yahoo',sq=sq)
         for table in all_tables:
-            st.write(table.to_html(escape=False, index=False), unsafe_allow_html=True)
+            if(len(all_tables[table])>0):
+                st.subheader(f'Time Frame: {table}')
 
+                st.write(all_tables[table][0].to_html(escape=False, index=False), unsafe_allow_html=True)
+                st.markdown("""---""")
+with st.sidebar:
+    market=st.selectbox('Market',['Crypto','US Stock','Forex'])
 
-
-crypto_signals()
-
-my_js="""
-    $(document).on('keyup', 'input', function () {
-      var id=$(this)[0].id;
-                tf=id.split('_')[2]
-                tableid=id.split('_')[0]+"_table_"+tf
-                var value = $(this).val();
-                $("table#"+tableid+" tr").each(function (index) {
-                    if (index != 0) {
-
-                        $row = $(this);
-
-                        var coin = $row.find("td:first").text();
-                        var pattern = $row.find("td:nth-child(5)").text();
-                        // var brout = $row.find("td:nth-child(5)").text();
-                        var bb = $row.find("td:nth-child(6)").text();
-                        var rsi = $row.find("td:nth-child(7)").text();
-                        // var ema = $row.find("td:nth-child(8)").text();
-                        var sma = $row.find("td:nth-child(8)").text();
-                        // var force = $row.find("td:nth-child(10)").text();
-                        var db_b = $row.find("td:nth-child(9)").text();
-                        
-                        if (!(
-                            coin.toLowerCase().includes(value.toLowerCase()) || 
-                            pattern.toLowerCase().includes(value.toLowerCase()) || 
-                            // brout.toLowerCase().includes(value.toLowerCase()) ||
-                            bb.toLowerCase().includes(value.toLowerCase()) ||
-                            rsi.toLowerCase().includes(value.toLowerCase()) ||
-                            // ema.toLowerCase().includes(value.toLowerCase()) ||
-                            sma.toLowerCase().includes(value.toLowerCase()) ||
-                            // force.toLowerCase().includes(value.toLowerCase()) ||
-                            db_b.toLowerCase().includes(value.toLowerCase()) 
-
-                            )
-                            
-                            ) {
-                            $(this).hide();
-                        }
-                        else {
-                            $(this).show();
-                        }
-                    }
-                });
-})
-
-"""
-my_html = f"<script>{my_js}</script>"
-html(my_html)
-
+if market=='Crypto':
+    crypto_signals()
+if market=='US Stock':
+    stocks_signals()

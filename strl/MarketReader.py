@@ -45,8 +45,11 @@ def ReadYahooMarket(timeframes,testdata=False,local=False,symbol=''):
            "15m" :59 , "30m":59 , "60m":59 , "90m":59 }
     for i in range(0, len(timeframes)):
         markets = ym.GetMarkets(local)
-        marketsegment = {k: markets[k] for k in (0, 1)}
+        if symbol !='':
+            testdata=True
+            marketsegment = [x for x in markets if x.lower().__contains__(symbol.lower())]
         if(testdata):
             datframes, e = ym.GetMarketData(marketsegment,period=dict[timeframes[i]],symbol='All', tf= timeframes[i],local=local)
         else :
             datframes, e = ym.GetMarketData(markets, period=dict[timeframes[i]],symbol='All', tf= timeframes[i],local=local)
+

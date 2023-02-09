@@ -258,6 +258,40 @@ def sma_check(Coin, tf, exch, timeperiod=30, local=False):
         del df
         return "Error on SMA Signal"
 
+def sma_2_check(Coin, tf, exch, timeperiod=50, local=False):
+    try:
+        df = DF(Coin, exch, tf, local)
+
+        if (len(df) > timeperiod):
+
+            sma_indicator_10 = sma(close=df['close'], window=10, fillna=False)
+            sma_indicator_50 = sma(close=df['close'], window=50, fillna=False)
+            df['sma_10'] = sma_indicator_10.sma_indicator()
+            df['sma_50'] = sma_indicator_50.sma_indicator()
+            last_sma_10 = df[-1:]['sma_10'].values[0]
+            last_sma_50 = df[-1:]['sma_50'].values[0]
+            one_to_last_sma_10 = df[-2:-1]['sma_10'].values[0]
+            one_to_last_sma_50 = df[-2:-1]['sma_50'].values[0]
+            two_to_last_sma_50 = df[-3:-2]['sma_50'].values[0]
+
+            if (last_sma_50 <= last_sma_10 and one_to_last_sma_50 > one_to_last_sma_10):
+                if(last_sma_50>one_to_last_sma_50 and last_sma_10>one_to_last_sma_10):
+                    del df
+                    gc.collect()
+                    return "SMA Entry Signal"
+            if (last_sma_50 <= last_sma_10 and one_to_last_sma_50 < one_to_last_sma_10):
+                if(last_sma_50>one_to_last_sma_50 and one_to_last_sma_50< two_to_last_sma_50):
+                    del df
+                    gc.collect()
+                    return "SMA Entry Signal"                    
+        del df
+        gc.collect()
+        return "No SMA Signal"
+    except:
+        del df
+        gc.collect()
+        return "Error on SMA Signal"
+
 
 def pivot_check(Coin, tf, exch,  local=False):
     try:
@@ -524,19 +558,19 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
             #     br_check, exch=exchangeName, tf=timeframes[i], candles=brout_candles, percentage=brout_percentage, local=local)
             signalsdf['bollinger'] = signalsdf[f'{sym}'].apply(
                 boll_check, exch=exchangeName, tf=timeframes[i], timeperiod=20, nstdv=2, local=local)
-            signalsdf['rsi'] = signalsdf[f'{sym}'].apply(
-                rsi_check, exch=exchangeName, tf=timeframes[i], timeperiod=14, local=local)
+            # signalsdf['rsi'] = signalsdf[f'{sym}'].apply(
+            #     rsi_check, exch=exchangeName, tf=timeframes[i], timeperiod=14, local=local)
             # signalsdf['ema'] = signalsdf[f'{sym}'].apply(
             #     ema_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, local=local)
             signalsdf['sma'] = signalsdf[f'{sym}'].apply(
-                sma_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, local=local)
+                sma_2_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, local=local)
             # signalsdf['force'] = signalsdf[f'{sym}'].apply(
             #     fi_check, exch=exchangeName, tf=timeframes[i], timeperiod=100, local=local)
             # signalsdf['ML'] = signalsdf[f'{sym}'].apply(
             #     ml_check, tf=timeframes[i], exch=exchangeName, minsize=30, forecast_out=20, local=local)
 
             # scols=['breaking out','bollinger','rsi','ema','sma','force','ML','last_pivot']
-            scols = ['bollinger', 'rsi', 'sma', 'double_bot']
+            scols = [ 'rsi', 'sma', 'double_bot']
             signalsdf['entry'] = 0
             for s in scols:
                 signalsdf['entry'] += signalsdf[s].map(count_entry)
