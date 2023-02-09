@@ -2,8 +2,8 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime
 from datetime import timedelta
-import calendar , pytz
-import GLOBAL
+import calendar
+import GLOBAL as GLOBAL
 import os
 
 

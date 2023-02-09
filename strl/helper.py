@@ -254,6 +254,7 @@ def append_sma_2(df, entry_signal=False, w1=10, w2=50):
                                           , 
                                           df['sma_1'], np.nan
                                         )                                        
+    # df.to_csv('test.csv', header=True, index=True, sep=',', mode='w')
 
 def append_ema(df, entry_signal=False, entry_signal_mode='Uptrend'):
     ema_indicator_5 = ema(

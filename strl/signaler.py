@@ -1,7 +1,7 @@
-import strl.GLOBAL as GLOBAL
-import strl.kucoinMarkets as kc
-import strl.pivot_helper as pivh
-import strl.helper as helper
+import GLOBAL
+import kucoinMarkets as kc
+import pivot_helper as pivh
+import helper as helper
 import datetime
 from pathlib import Path
 import time
@@ -309,7 +309,7 @@ def double_bot_check(Coin, tf, exch, candles=7, local=False):
     try:
         df = DF(Coin, exch, tf, local)
         print(f'Checking for Double Bot: {Coin}')
-        df= pivh.find_pivots(df, candles, candles, wn=3,quick=True)
+        df= pivh.find_pivots(df, candles, candles, wn=2,quick=True)
 
         pivots = pd.DataFrame(data=df[np.logical_or(df['pivot'] == 1, df['pivot'] == 2)], columns=[
                               'timestamp', 'low', 'high', 'pivot'])
@@ -339,6 +339,7 @@ def double_bot_check(Coin, tf, exch, candles=7, local=False):
                             if (last_close >= last_high_pivot and last_timestamp > last_low_timestamp and last_close>max_latest_candles_close and max_latest_candles_close<last_high_pivot):
                                 del df
                                 del pivots
+                                gc.collect()
                                 return "Double Bot Breakout Entry"
                             if (last_close < last_high_pivot and last_close > last_low_pivot and max_latest_candles_close<last_high_pivot and max_latest_candles_close>last_low_pivot):
                                 helper.append_sma(df,entry_signal=True,entry_signal_mode='All')
@@ -347,10 +348,12 @@ def double_bot_check(Coin, tf, exch, candles=7, local=False):
                                 if (len(lates_sma_cheks) > 0):
                                     del df
                                     del pivots
+                                    gc.collect()
                                     return "Possible Double Bot Breakout"
 
         del df
         del pivots
+        gc.collect()
         return ''
     except:
         return "Error in Double Bot Check"
@@ -396,22 +399,30 @@ def rsi_check(Coin, tf, exch, timeperiod=20, local=False):
             last_rsi = round(df[-1:]['rsi'].values[0], 1)
             last_adx_entry_signal = df[-1:]['adx_signal'].values[0]
             one_to_last_adx_entry_signal = df[-2:-1]['adx_signal'].values[0]
+            del rsi_indicator
+            del adx_indicator
+            gc.collect()
             if (last_rsi <= 30):
                 if (math.isnan(last_adx_entry_signal) and math.isnan(one_to_last_adx_entry_signal)):
                     del df
+                    gc.collect()
                     return 'Entry rsi: {}'.format(last_rsi)
                 else:
                     del df
+                    gc.collect()
                     return 'Entry Uptrend rsi: {}'.format(last_rsi)
 
             if (last_rsi >= 70):
                 del df
+                gc.collect()
                 return 'Exit rsi: {}'.format(last_rsi)
             else:
                 del df
+                gc.collect()
                 return 'No rsi Signal: {}'.format(last_rsi)
     except:
         del df
+        gc.collect()
         return 'Error on rsi Signal'
 
 
@@ -474,30 +485,38 @@ def boll_check(Coin, tf, exch, timeperiod=20, nstdv=2, local=False):
                     if (math.isnan(last_adx_entry_signal) and math.isnan(one_to_last_adx_entry_signal)):
                         if (one_to_last_pband <= 0.05):
                             del df
+                            gc.collect()
                             return "BB Entry Signal"
                     else:
                         del df
+                        gc.collect()
                         return "BB Entry Uptrend Signal"
                 if (last_close < last_lowerband and one_to_last_pband < 0):
                     del df
+                    gc.collect()
                     return "BB Squeez Exit Signal"
 
             elif (one_to_last_close > one_to_last_upperband):
                 if (last_close > last_upperband and one_to_last_pband >= 1):
                     if (math.isnan(last_adx_entry_signal) and math.isnan(one_to_last_adx_entry_signal)):
                         del df
+                        gc.collect()
                         return "BB Squeez Signal"
                     else:
                         del df
+                        gc.collect()
                         return "BB Squeez Uptrend Signal"
 
                 if (last_close < last_upperband):
                     del df
+                    gc.collect()
                     return "BB Exit Signal"
         del df
+        gc.collect()
         return "No BB Signal"
     except:
        del df
+       gc.collect()
        return "Error on BB Signal"
 
 
@@ -556,14 +575,14 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
 
             # signalsdf['breaking out'] = signalsdf[f'{sym}'].apply(
             #     br_check, exch=exchangeName, tf=timeframes[i], candles=brout_candles, percentage=brout_percentage, local=local)
-            signalsdf['bollinger'] = signalsdf[f'{sym}'].apply(
-                boll_check, exch=exchangeName, tf=timeframes[i], timeperiod=20, nstdv=2, local=local)
-            # signalsdf['rsi'] = signalsdf[f'{sym}'].apply(
-            #     rsi_check, exch=exchangeName, tf=timeframes[i], timeperiod=14, local=local)
+            # signalsdf['bollinger'] = signalsdf[f'{sym}'].apply(
+            #     boll_check, exch=exchangeName, tf=timeframes[i], timeperiod=20, nstdv=2, local=local)
+            signalsdf['rsi'] = signalsdf[f'{sym}'].apply(
+                rsi_check, exch=exchangeName, tf=timeframes[i], timeperiod=14, local=local)
             # signalsdf['ema'] = signalsdf[f'{sym}'].apply(
             #     ema_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, local=local)
             signalsdf['sma'] = signalsdf[f'{sym}'].apply(
-                sma_2_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, local=local)
+                sma_2_check, exch=exchangeName, tf=timeframes[i], timeperiod=50, local=local)
             # signalsdf['force'] = signalsdf[f'{sym}'].apply(
             #     fi_check, exch=exchangeName, tf=timeframes[i], timeperiod=100, local=local)
             # signalsdf['ML'] = signalsdf[f'{sym}'].apply(

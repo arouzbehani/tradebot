@@ -1,4 +1,4 @@
-import strl.MarketReader as mr
+import MarketReader as mr
 import signaler as sg
 
 testdata = False

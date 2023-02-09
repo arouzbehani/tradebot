@@ -2,7 +2,7 @@ import ccxt
 import config
 import pandas as pd
 import os
-import GLOBAL
+import GLOBAL as GLOBAL
 
 exchange = ccxt.kucoin({
     'apikey': config.Kucoin_API_Key,

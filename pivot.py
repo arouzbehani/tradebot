@@ -1,7 +1,6 @@
 
 import numpy as np
-import ta
-import talib
+
 import pandas as pd
 from scipy.signal import argrelextrema
 import scipy.signal as sig
