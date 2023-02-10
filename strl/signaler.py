@@ -309,7 +309,7 @@ def double_bot_check(Coin, tf, exch, candles=7, local=False):
     try:
         df = DF(Coin, exch, tf, local)
         print(f'Checking for Double Bot: {Coin}')
-        df= pivh.find_pivots(df, candles, candles, wn=2,quick=True)
+        df= pivh.find_pivots(df, candles, candles, wn=2,short=True)
 
         pivots = pd.DataFrame(data=df[np.logical_or(df['pivot'] == 1, df['pivot'] == 2)], columns=[
                               'timestamp', 'low', 'high', 'pivot'])
