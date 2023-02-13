@@ -305,7 +305,7 @@ def pivot_check(Coin, tf, exch,  local=False):
         return "Error in Pivot Check"
 
 
-def double_bot_check(Coin, tf, exch, candles=7, local=False):
+def double_bot_check_0(Coin, tf, exch, candles=7, local=False):
     try:
         df = DF(Coin, exch, tf, local)
         print(f'Checking for Double Bot: {Coin}')
@@ -357,6 +357,55 @@ def double_bot_check(Coin, tf, exch, candles=7, local=False):
         return ''
     except:
         return "Error in Double Bot Check"
+def twins_cehck(df):
+    print(f'______________Finding Twins ...')
+    try:
+        pivots = pd.DataFrame(data=df[np.logical_or(df['pivot'] == 1, df['pivot'] == 2)], columns=[
+                              'timestamp', 'low', 'high', 'pivot'])
+        if (len(pivots) >= 5):
+            last_pivot = pivots[-1:]
+            if (last_pivot['pivot'].values[0] == 1):
+                last_low_pivot = last_pivot['low'].values[0]
+                last_high_pivot = pivots[-2:-1]['high'].values[0]
+                pre_last_low_pivot = pivots[-3:-2]['low'].values[0]
+                pre_last_high_pivot = pivots[-4:-3]['high'].values[0]
+                pre_pre_last_low_pivot = pivots[-5:-4]['low'].values[0]
+
+                last_close = df[-1:]['close'].values[0]
+                last_timestamp = df[-1:]['timestamp'].values[0]
+                last_high_timestamp = pivots[-2:-1]['timestamp'].values[0]
+                last_low_timestamp = pivots[-1:]['timestamp'].values[0]
+                latest_candles=df[np.logical_and(df['timestamp']> last_low_timestamp , df['timestamp']<last_timestamp)]
+                max_latest_candles_close=df[np.logical_and(df['timestamp']> last_low_timestamp , df['timestamp']<last_timestamp)]['close'].max()
+
+                if (pre_pre_last_low_pivot>pre_last_low_pivot and last_high_pivot < pre_last_high_pivot):
+                    back_pct = round(
+                        (last_high_pivot-pre_last_low_pivot)/(pre_last_high_pivot-pre_last_low_pivot)*100)
+                    if back_pct >= 30:
+                        low_pct = abs((last_low_pivot-pre_last_low_pivot) /
+                                    ((pre_last_low_pivot+last_low_pivot)/2)*100)
+                        if low_pct <= 1.2:
+                            if (last_close >= last_high_pivot and last_timestamp > last_low_timestamp and last_close>max_latest_candles_close and max_latest_candles_close<last_high_pivot):
+                                del df
+                                del pivots
+                                gc.collect()
+                                return "Bot Twins Breakout Entry"
+                            if (last_close < last_high_pivot and last_close > last_low_pivot and max_latest_candles_close<last_high_pivot and max_latest_candles_close>last_low_pivot):
+                                helper.append_sma(df,entry_signal=True,entry_signal_mode='All')
+                                latest_candles=df[np.logical_and(df['timestamp']> last_low_timestamp , df['timestamp']<last_timestamp)]
+                                lates_sma_cheks = latest_candles[~pd.isnull(latest_candles['sma_entry_signal'])]
+                                if (len(lates_sma_cheks) > 0):
+                                    del df
+                                    del pivots
+                                    gc.collect()
+                                    return "Possible Bot Twins Breakout"
+
+        del df
+        del pivots
+        gc.collect()
+        return 'None'
+    except:
+        return "Error on Twins Status"
 
 
 def PPSR(df):
@@ -424,7 +473,79 @@ def rsi_check(Coin, tf, exch, timeperiod=20, local=False):
         del df
         gc.collect()
         return 'Error on rsi Signal'
+def rsi_dvg_check(df, timeperiod=14):
+    try:
+        print(f'______________Rsi Divergence')
+        if (len(df) > timeperiod):
+            dvg_res,_,_,_,_=helper.Rsi_Divergence(df)
+            if(dvg_res):
+                del df
+                gc.collect()
+                return 'Rsi Divergence'
+            else:
+                return 'None'
+    except:
+        del df
+        gc.collect()
+        print(f'Error occured')
+        return 'Error on rsi Status'
 
+def ichi_check(df):
+    try:
+        print(f'______________Ichi Status')
+        last_close = df[-1:]['close'].values[0]
+        last_high = df[-1:]['high'].values[0]
+        last_low = df[-1:]['low'].values[0]
+        last_ichi_a=df[-1:]['ich_a'].values[0]
+        last_ichi_b=df[-1:]['ich_b'].values[0]
+        last_ichi_color=df[-1:]['ich_moku_color'].values[0]
+        if(last_ichi_color<0): #red
+            if(last_close<=last_ichi_a):
+                return 'below red cloud'
+            if last_close >= last_ichi_b:
+                return 'above red cloud'
+            if last_close>=last_ichi_a and last_close<= last_ichi_b:
+                return 'close inside red cloud'
+            else:
+                return 'None'
+        elif(last_ichi_color>0): #green
+            if(last_close>=last_ichi_a):
+                return 'above green cloud'
+            if last_close <= last_ichi_b:
+                return 'below green cloud'
+            if last_close<=last_ichi_a and last_close>= last_ichi_b:
+                return 'close inside green cloud'
+            else:
+                return 'None'
+    except:
+        del df
+        gc.collect()
+        print(f'Error occured')
+        return 'Error on ichi Status'
+
+
+        
+
+def signals_check(Coin, tf, exch, timeperiod=14, candles=6, local=False):
+    try:
+        print(f'Finding Signals for {Coin}')
+        df = DF(Coin, exch, tf, local)
+        print(f'______________Discovering Pivots')
+        df= pivh.find_pivots(df, candles, candles, wn=2,short=True)
+        helper.append_rsi(df)
+        helper.append_ichi(df)
+        rsi_dvg=rsi_dvg_check(df=df,timeperiod=14)
+        twins=twins_cehck(df=df)
+        ichi_stat=ichi_check(df=df)
+
+        return rsi_dvg ,twins,ichi_stat
+
+            
+    except:
+        del df
+        gc.collect()
+        print(f'Error occured while finding Signals ... for {Coin}')
+        return 'Error on rsi' , 'Error on twins' ,'Error on ichi stat'
 
 def fi_check(Coin, tf, exch, timeperiod=100, local=False):
     try:
@@ -538,8 +659,8 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
         now = datetime.datetime.now()
 
         for m in markets:
-            print("Finding Signals for Market : {} __ Timeframe:{}".format(
-                m, timeframes[i]))
+            # print("Finding Signals for Market : {} __ Timeframe:{}".format(
+            #     m, timeframes[i]))
             df = markets[m]
             if (read_patterns):
                 try:
@@ -562,7 +683,7 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
 
         rel_path = "TA-Lib Signals/{}/{}/{}__{}.csv".format(
             exchangeName, timeframes[i], timeframes[i], now.strftime("%d_%m_%Y__%H_%M_%S"))
-        abs_path = GLOBAL.ABSOLUTE(rel_path)
+        abs_path = GLOBAL.ABSOLUTE(rel_path,local=local)
 
         if (len(latestSignals) > 0):
             signalsdf = pd.concat(latestSignals)
@@ -570,26 +691,27 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
             if 'Symbol' in signalsdf.columns:
                 sym = 'Symbol'
 
-            signalsdf['double_bot'] = signalsdf[f'{sym}'].apply(
-                double_bot_check, tf=timeframes[i], exch=exchangeName,  candles=7, local=local)
+            signalsdf['rsi_dvg','twins','ichi_stat'] = signalsdf[f'{sym}'].apply(
+                signals_check, exch=exchangeName, tf=timeframes[i], timeperiod=14, candles=6, local=local)
+            signalsdf[['rsi_dvg', 'twins','ichi_stat']]=pd.DataFrame(signalsdf['rsi_dvg','twins','ichi_stat'].tolist(), index=signalsdf.index)
+            # signalsdf['double_bot'] = signalsdf[f'{sym}'].apply(
+            #     double_bot_check, tf=timeframes[i], exch=exchangeName,  candles=7, local=local)
 
             # signalsdf['breaking out'] = signalsdf[f'{sym}'].apply(
             #     br_check, exch=exchangeName, tf=timeframes[i], candles=brout_candles, percentage=brout_percentage, local=local)
             # signalsdf['bollinger'] = signalsdf[f'{sym}'].apply(
             #     boll_check, exch=exchangeName, tf=timeframes[i], timeperiod=20, nstdv=2, local=local)
-            signalsdf['rsi'] = signalsdf[f'{sym}'].apply(
-                rsi_check, exch=exchangeName, tf=timeframes[i], timeperiod=14, local=local)
             # signalsdf['ema'] = signalsdf[f'{sym}'].apply(
             #     ema_check, exch=exchangeName, tf=timeframes[i], timeperiod=30, local=local)
-            signalsdf['sma'] = signalsdf[f'{sym}'].apply(
-                sma_2_check, exch=exchangeName, tf=timeframes[i], timeperiod=50, local=local)
+            # signalsdf['sma'] = signalsdf[f'{sym}'].apply(
+            #     sma_2_check, exch=exchangeName, tf=timeframes[i], timeperiod=50, local=local)
             # signalsdf['force'] = signalsdf[f'{sym}'].apply(
             #     fi_check, exch=exchangeName, tf=timeframes[i], timeperiod=100, local=local)
             # signalsdf['ML'] = signalsdf[f'{sym}'].apply(
             #     ml_check, tf=timeframes[i], exch=exchangeName, minsize=30, forecast_out=20, local=local)
 
             # scols=['breaking out','bollinger','rsi','ema','sma','force','ML','last_pivot']
-            scols = [ 'rsi', 'sma', 'double_bot']
+            scols = [ 'rsi_dvg', 'twins','ichi_stat']
             signalsdf['entry'] = 0
             for s in scols:
                 signalsdf['entry'] += signalsdf[s].map(count_entry)

@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+import gc
 
 def pivotid(df1, l, n1, n2):
     if l-n1 < 0 or l+n2 >= len(df1):
@@ -190,9 +190,9 @@ def powerstat(df1, l, wn=3):
             if (uptrend_cond):
                 velocity_point , depth_point, dist_point= calcualte_power_points_up(df1,l,wn,pivot=1)
                 if (dist_point+depth_point+velocity_point > 0):
-                    return "stronging up"
+                    return "strong up"
                 elif dist_point+depth_point+velocity_point < 0:
-                    return "weaking up"
+                    return "weak up"
                 else:
                     return np.nan
 
@@ -209,9 +209,9 @@ def powerstat(df1, l, wn=3):
                 if (downtrend_cond):
                     velocity_point , depth_point, dist_point= calcualte_power_points_down(df1,l,wn,pivot=1)
                     if (dist_point+depth_point+velocity_point > 0):
-                        return "stronging down"
+                        return "strong down"
                     elif dist_point+depth_point+velocity_point < 0:
-                        return "weaking down"
+                        return "weak down"
                     else:
                         return np.nan
                 else:
@@ -229,9 +229,9 @@ def powerstat(df1, l, wn=3):
             if (uptrend_cond):
                 velocity_point , depth_point, dist_point= calcualte_power_points_up(df1,l,wn,pivot=2)
                 if (dist_point+depth_point+velocity_point > 0):
-                    return "stronging up"
+                    return "strong up"
                 elif dist_point+depth_point+velocity_point < 0:
-                    return "weaking up"
+                    return "weak up"
                 else:
                     return np.nan
 
@@ -247,9 +247,9 @@ def powerstat(df1, l, wn=3):
                 if (downtrend_cond):
                     velocity_point , depth_point, dist_point= calcualte_power_points_down(df1,l,wn,pivot=1)
                     if (dist_point+depth_point+velocity_point > 0):
-                        return "stronging down"
+                        return "strong down"
                     elif dist_point+depth_point+velocity_point < 0:
-                        return "weaking down"
+                        return "weak down"
                     else:
                         return np.nan
                 else:
@@ -296,25 +296,32 @@ def find_pivots(df, left_candles=7, right_candles=7,wn=2,short=False):
         else:
             i += 1
             
-    if short : return df
 
     df2 = df.loc[np.logical_or(
         df['pivot'] == 1, df['pivot'] == 2)].reset_index()
-    df2['pivot_trend'] = df2.apply(lambda x: trendstat(df2, x.name), axis=1)
-    df2['pivot_power']=df2.apply(lambda x:powerstat(df2,x.name,wn),axis=1)
-    df['pivot_trend'] = np.nan
-    df['pivot_power'] = np.nan
 
     for r in range(0, len(df2)):
         df.loc[df2.loc[r]['index']] = df2.loc[r]
     df['pointpos'] = df.apply(lambda row: pointpos(row), axis=1)
 
+    if short :
+        del df2
+        gc.collect()
+        return df
+
+    df2['pivot_trend'] = df2.apply(lambda x: trendstat(df2, x.name), axis=1)
+    df2['pivot_power']=df2.apply(lambda x:powerstat(df2,x.name,wn),axis=1)
+    df['pivot_trend'] = np.nan
+    df['pivot_power'] = np.nan
+
+
+
     up_points = np.where(df['pivot_trend'] == 'up', df['pointpos'], np.nan)
     down_points = np.where(df['pivot_trend'] == 'down', df['pointpos'], np.nan)
     sidepoints = np.where(df['pivot_trend'] == 'side', df['pointpos'], np.nan)
-    power_up_points=np.where(df['pivot_power']=='stronging up',df['pointpos'],np.nan)
-    power_down_points=np.where(df['pivot_power']=='stronging down',df['pointpos'],np.nan)
-    power_weaking_up_points=np.where(df['pivot_power']=='weaking up',df['pointpos'],np.nan)
-    power_weaking_down_points=np.where(df['pivot_power']=='weaking down',df['pointpos'],np.nan)
+    power_up_points=np.where(df['pivot_power']=='strong up',df['pointpos'],np.nan)
+    power_down_points=np.where(df['pivot_power']=='strong down',df['pointpos'],np.nan)
+    power_weaking_up_points=np.where(df['pivot_power']=='weak up',df['pointpos'],np.nan)
+    power_weaking_down_points=np.where(df['pivot_power']=='weak down',df['pointpos'],np.nan)
 
     return df, up_points, down_points, sidepoints , power_up_points , power_down_points,power_weaking_up_points,power_weaking_down_points

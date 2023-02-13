@@ -1,7 +1,7 @@
 import ccxt
 import config
 import pandas as pd
-import os
+import os,gc
 import GLOBAL as GLOBAL
 
 exchange = ccxt.kucoin({
@@ -33,10 +33,19 @@ def GetMarketData(markets,tf='1d', coin='All', lim=500, paircoin='/USDT',local=F
                     df0=pd.read_csv(abs_path)
                     fdf=pd.concat([df[:-1],df0]).drop_duplicates().sort_values(by=['timestamp'])
                     fdf.to_csv(abs_path, header=True, index=False, sep=',', mode='w')
+                    del df0
+                    del fdf
+                    gc.collect()
                 else:
                     fdf=df[:-1]
                     fdf.to_csv(abs_path, header=True, index=False, sep=',', mode='w')
+                    del fdf
+                    gc.collect()
+
                 marketData.append(df)
+                del df
+                gc.collect()
+
             except:
                 print('error in fetching market data for: ' + m + ' --- tf:'+tf)
                 errordata.append(m + ':' + tf)

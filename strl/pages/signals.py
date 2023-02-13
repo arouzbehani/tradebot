@@ -24,7 +24,7 @@ def GetData(market):
         if(os.path.exists(abs_dir)):
             paths = sorted(Path(abs_dir).iterdir(), key=os.path.getmtime)
             if(paths.__len__()>0):
-                df=pd.read_csv(paths[0])
+                df=pd.read_csv(paths[-1:][0])
                 data[tf].append(df)
                 del df
                 gc.collect()
@@ -73,6 +73,8 @@ def tables(data,exchange='Kucoin',sq='sma entry'):
                 pretty ['bollinger']=df[['bollinger']]
             if('rsi' in df.columns):
                 pretty ['rsi']=df[['rsi']]
+            if('rsi_dvg' in df.columns):
+                pretty ['rsi_dvg']=df[['rsi_dvg']]
             if('ema' in df.columns):
                 pretty ['ema']=df[['ema']]
             if('sma' in df.columns):
@@ -83,6 +85,10 @@ def tables(data,exchange='Kucoin',sq='sma entry'):
                 pretty ['ML']=df[['ML']]
             if('double_bot' in df.columns):
                 pretty ['double_bot']=df[['double_bot']]
+            if('twins' in df.columns):
+                pretty ['twins']=df[['twins']]
+            if('ichi_stat' in df.columns):
+                pretty ['ichi_stat']=df[['ichi_stat']]
 
             pretty['url']=pretty[f'{sym}'].apply(makelink,streaml=streaml,exch=exchange,tf=d)
             pretty[f'{sym}'] = pretty.apply(lambda x: make_clickable(x['url'],x[f'{sym}']), axis=1)
@@ -114,7 +120,7 @@ def tables(data,exchange='Kucoin',sq='sma entry'):
 def crypto_signals():
     data = GetData(market='Kucoin')
     if (len(data) > 0):
-        sq=st.text_input(label='',placeholder='Serch Coin or method ...')
+        sq=st.text_input(label='',placeholder='Serch Coin/Symbol Name or keywords like "divergence" , "twins"')
         all_tables=tables(data,exchange='Kucoin',sq=sq)
         for table in all_tables:
             if(len(all_tables[table])>0):
@@ -128,7 +134,7 @@ def crypto_signals():
 def stocks_signals():
     data = GetData(market='Yahoo')
     if (len(data) > 0):
-        sq=st.text_input(label='',placeholder='Serch Symbol or method ...')
+        sq=st.text_input(label='',placeholder='Serch Coin/Symbol Name or keywords like "divergence" , "twins"')
         all_tables=tables(data,exchange='Yahoo',sq=sq)
         for table in all_tables:
             if(len(all_tables[table])>0):

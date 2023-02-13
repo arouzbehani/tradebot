@@ -2,7 +2,7 @@ import os , gc
 import pandas as pd
 import numpy as np
 from sklearn.metrics import r2_score
-
+import datetime , calendar
 
 def clean(obj):
     del obj
@@ -183,22 +183,28 @@ def getTestData(exch='kucoin',coin='BTC_USDT',tf='1h'):
 # # # # plt.plot(xs, regression_line, label='regression line')
 # # # # plt.legend(loc=4)
 # # # # plt.show()
-record = { 
+
+# record = { 
   
- 'Name' : ['Ankit', 'Swapnil', 'Aishwarya', 
-          'Priyanka', 'Shivangi', 'Shaurya' ],
+#  'Name' : ['Ankit', 'Swapnil', 'Aishwarya', 
+#           'Priyanka', 'Shivangi', 'Shaurya' ],
     
 
- 'Stream' : ['Priyanka', 'Ankit', 'Science', 
-            'Math', 'Math', 'Shivangi'] } 
+#  'Stream' : ['Priyanka', 'Ankit', 'Science', 
+#             'Math', 'Math', 'Shivangi'] } 
     
 # create a dataframe 
-df = pd.DataFrame(record,
-                         columns = ['Name',  
-                                    'Stream']) 
-all=[]
-for c in df.columns:
-        filtered=df[df[c].str.lower().str.contains('priyanka')]
-        if(len(filtered)>0):
-            all.append(filtered)
-print(pd.concat(all).drop_duplicates().sort_index())
+# df = pd.DataFrame(record,
+#                          columns = ['Name',  
+#                                     'Stream']) 
+# all=[]
+# for c in df.columns:
+#         filtered=df[df[c].str.lower().str.contains('priyanka')]
+#         if(len(filtered)>0):
+#             all.append(filtered)
+# print(pd.concat(all).drop_duplicates().sort_index())
+weekday=datetime.datetime.now().weekday()
+dayname=calendar.day_name[weekday]
+if (dayname !='Saturday' or dayname!='Sunday'):
+    print (dayname)
+

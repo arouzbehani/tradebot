@@ -16,7 +16,12 @@ import plotly.figure_factory as ff
 import MarketReader as mr
 
 local = False
-st. set_page_config(layout="wide")
+def getTilte():
+    q = st.experimental_get_query_params()
+    if (q.__contains__('symbol')):
+        return q['symbol'][0]
+    return "Chart"
+st. set_page_config(layout="wide",page_title=getTilte())
 st.markdown("""
 
         <style>
@@ -100,10 +105,10 @@ def fillcol(label):
 
 def DrawChart(limit=500, read_patterns=False, read_rsi=False, read_bb=True, read_sma=False, read_ichi=True, read_ema=False, read_vol=True, read_fi=False, chart_height=800,
               entry_signals=True, exit_signals=False, entry_signal_mode='All', left_candles=3, right_candles=3, waves_number=3):
-    symbol='WIN_USDT'
-    read_rsi=True
-    exch='Kucoin'
-    tf='1h'
+    # symbol='WIN_USDT'
+    # read_rsi=True
+    # exch='Kucoin'
+    # tf='1h'
     if (symbol != None and tf != None and exch != None):
 
         read_bull_patterns = read_patterns
@@ -177,7 +182,7 @@ def DrawChart(limit=500, read_patterns=False, read_rsi=False, read_bb=True, read
                 helper.append_ichi(df)
                 df_copy=df.copy()
 
-                df_copy['label']=np.where(df['ich_komo_color']>0,1,0)
+                df_copy['label']=np.where(df['ich_moku_color']>0,1,0)
                 df_copy['group'] = df_copy['label'].ne(df_copy['label'].shift()).cumsum()
                 df_copy=df_copy.groupby('group')
                 dfs=[]
@@ -278,16 +283,16 @@ def DrawChart(limit=500, read_patterns=False, read_rsi=False, read_bb=True, read
                 helper.append_rsi(df, entry_signal=entry_signals,
                                   entry_signal_mode=entry_signal_mode)
                 fig.add_trace(
-                    go.Scatter(x=df['time'], y=df['rsi'], name='rsi'), row=rownum, col=1
+                    go.Scatter(x=df['time'], y=df['rsi'], name='rsi', line=dict(width=2,color='#d5dae5')), row=rownum, col=1
                 )
                 if (entry_signals):
-                    dvg_res,px,py,rsi_x,rsi_y=Rsi_Divergance(df)
+                    dvg_res,px,py,rsi_x,rsi_y=helper.Rsi_Divergence(df)
                     if(dvg_res):
                         fig.add_trace(
-                            go.Scatter(x=px, y=py, name='divergance on graph'), row=1, col=1
+                            go.Scatter(x=px, y=py, name='divergence on graph',line=dict(width=3,color='#ff6c00')), row=1, col=1
                         )      
                         fig.add_trace(
-                            go.Scatter(x=rsi_x, y=rsi_y, name='divergance on rsi'), row=rownum, col=1
+                            go.Scatter(x=rsi_x, y=rsi_y, name='divergence on rsi',line=dict(width=2,color='#ff6c00')), row=rownum, col=1
                         )                                                
                     fig.add_trace(
                         go.Scatter(x=df['time'], y=df['rsi_entry_signal'], mode='markers', marker=dict(size=8, symbol="diamond", line=dict(width=2, color=1.5)), name='rsi entry signal'), row=1, col=1
@@ -420,39 +425,6 @@ def DrawTheChart():
               read_ema=ema_check, read_sma=sma_check, read_ichi=ichi_check, read_patterns=patterns_check, read_rsi=rsi_check,
               entry_signals=entry_signals_check, entry_signal_mode=entry_signal_mode, left_candles=pivot_candle_left, right_candles=pivot_candle_right, waves_number=waves_number)
 
-def Rsi_Divergance(df):
-    x= np.where(df['pivot'] == 2, df['timestamp'], np.nan)
-    xs_up=x[~np.isnan(x)]
-    y= np.where(df['pivot'] == 2, df['pointpos'], np.nan)
-    ys_up=y[~np.isnan(y)]
-    last_up=ys_up[-1:][0]
-    last_xs_up=xs_up[-1:][0]
-    one_to_last_up=ys_up[-2:-1][0]
-    one_to_last_xs_up=xs_up[-2:-1][0]
-    r=np.where(df['timestamp']==last_xs_up,df['rsi'],np.nan)
-    last_rsi_up=r[~np.isnan(r)][-1:][0]
-    r=np.where(df['timestamp']==one_to_last_xs_up,df['rsi'],np.nan)
-    one_to_last_rsi_up=r[~np.isnan(r)][-1:][0]
-
-    x= np.where(df['pivot'] == 1, df['timestamp'], np.nan)
-    xs_down=x[~np.isnan(x)]
-    y= np.where(df['pivot'] == 1, df['pointpos'], np.nan)
-    ys_down=y[~np.isnan(y)]
-    last_down=ys_down[-1:][0]
-    last_xs_down=xs_down[-1:][0]
-    r=np.where(df['timestamp']==last_xs_down,df['rsi'],np.nan)
-    last_rsi_down=r[~np.isnan(r)][-1:][0]
-    one_to_last_down=ys_down[-2:-1][0]
-    one_to_last_xs_down=xs_down[-2:-1][0]
-    r=np.where(df['timestamp']==one_to_last_xs_down,df['rsi'],np.nan)
-    one_to_last_rsi_down=r[~np.isnan(r)][-1:][0]
-
-    if (last_up<one_to_last_up and last_rsi_up>one_to_last_rsi_up) or (last_up>one_to_last_up and last_rsi_up<one_to_last_rsi_up):
-        return True,[pd.to_datetime(one_to_last_xs_up,unit="ms"),pd.to_datetime(last_xs_up,unit="ms")],[one_to_last_up,last_up],[pd.to_datetime(one_to_last_xs_up,unit="ms"),pd.to_datetime(last_xs_up,unit="ms")],[one_to_last_rsi_up,last_rsi_up]
-    if (last_down<one_to_last_down and last_rsi_down>one_to_last_rsi_down) or (last_down>one_to_last_down and last_rsi_down<one_to_last_rsi_down):
-        return True,[pd.to_datetime(one_to_last_xs_down,unit="ms"),pd.to_datetime(last_xs_down,unit="ms")],[one_to_last_down,last_down],[pd.to_datetime(one_to_last_xs_down,unit="ms"),pd.to_datetime(last_xs_down,unit="ms")],[one_to_last_rsi_down,last_rsi_down]
-
-    return False,None,None,None,None
 
         
 st.sidebar.title("Chart parameters: ")
@@ -461,14 +433,14 @@ st.sidebar.title("Chart parameters: ")
 with st.sidebar:
     limit = st.number_input("Data Limit:", min_value=100, value=200)
     st.write("Pivot Settings:")
-    pivot_candle_left = st.number_input("Left Camndles:", min_value=2, value=7)
+    pivot_candle_left = st.number_input("Left Camndles:", min_value=2, value=6)
     pivot_candle_right = st.number_input(
-        "Right Camndles:", min_value=2, value=7)
+        "Right Camndles:", min_value=2, value=6)
     st.write('Price Action Settings:')
-    waves_number = st.number_input("Number of Waves:", min_value=2, value=3)
+    waves_number = st.number_input("Number of Waves:", min_value=2, value=2)
 
     st.write("Indicators")
-    ichi_check = st.checkbox("Ichi Komo", value=True)
+    ichi_check = st.checkbox("Ichi Moku", value=True)
     sma_check = st.checkbox("SMA", value=False)
     rsi_check = st.checkbox("RSI", value=True)
     bb_check = st.checkbox("Bollinger bands", value=False)

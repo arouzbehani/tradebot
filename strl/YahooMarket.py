@@ -4,7 +4,7 @@ from datetime import datetime
 from datetime import timedelta
 import calendar
 import GLOBAL as GLOBAL
-import os
+import os,gc
 
 
 # data = yf.download(tickers="MSFT", period="1d", interval="1m")
@@ -86,13 +86,22 @@ def GetMarketData(markets,period=60, tf='1d' , symbol='All',local=False):
                 # fdf=pd.concat([df[:-1],df0]).drop_duplicates().sort_values(by=['timestamp'])
                 fdf=pd.concat([df,df0]).drop_duplicates().sort_values(by=['timestamp'])
                 fdf.to_csv(abs_path, header=True, index=False, sep=',', mode='w')
+
             else:
                 #fdf=df[:-1]
                 fdf=df
                 fdf.to_csv(abs_path, header=True, index=False, sep=',', mode='w')
-                
-            marketData.append(df)
 
+
+            marketData.append(df)
+            del stock
+            del dict
+            del hist
+            del hist_df
+            del df
+            del df0
+            del fdf
+            gc.collect()
         except:
             print('error in fetching market data for: ' + m + ' --- tf:'+tf)
             errordata.append(m + ':' + tf)

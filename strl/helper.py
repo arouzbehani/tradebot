@@ -12,7 +12,7 @@ from ta.trend import IchimokuIndicator as ichi
 from ta.volume import ForceIndexIndicator as fi
 
 
-local = True
+local = False
 
 
 def GetData(tf, symbol, exch):
@@ -93,7 +93,8 @@ def append_ichi(df):
     df['ich_b'] = ich_indicator.ichimoku_b()
     df['ich_base_line'] = ich_indicator.ichimoku_base_line()
     df['ich_conversion_line'] = ich_indicator.ichimoku_conversion_line()
-    df['ich_komo_color'] = df['ich_a'] - df['ich_b']
+    df['ich_moku_color'] = df['ich_a'] - df['ich_b']
+    
     return df
 
 
@@ -282,3 +283,37 @@ def append_macd(df):
     df['macd'] = macd_indicator.macd()
     df['macd_diff'] = macd_indicator.macd_diff()
     df['macd_signal'] = macd_indicator.macd_signal()
+
+def Rsi_Divergence(df):
+    x= np.where(df['pivot'] == 2, df['timestamp'], np.nan)
+    xs_up=x[~np.isnan(x)]
+    y= np.where(df['pivot'] == 2, df['pointpos'], np.nan)
+    ys_up=y[~np.isnan(y)]
+    last_up=ys_up[-1:][0]
+    last_xs_up=xs_up[-1:][0]
+    one_to_last_up=ys_up[-2:-1][0]
+    one_to_last_xs_up=xs_up[-2:-1][0]
+    r=np.where(df['timestamp']==last_xs_up,df['rsi'],np.nan)
+    last_rsi_up=r[~np.isnan(r)][-1:][0]
+    r=np.where(df['timestamp']==one_to_last_xs_up,df['rsi'],np.nan)
+    one_to_last_rsi_up=r[~np.isnan(r)][-1:][0]
+
+    x= np.where(df['pivot'] == 1, df['timestamp'], np.nan)
+    xs_down=x[~np.isnan(x)]
+    y= np.where(df['pivot'] == 1, df['pointpos'], np.nan)
+    ys_down=y[~np.isnan(y)]
+    last_down=ys_down[-1:][0]
+    last_xs_down=xs_down[-1:][0]
+    r=np.where(df['timestamp']==last_xs_down,df['rsi'],np.nan)
+    last_rsi_down=r[~np.isnan(r)][-1:][0]
+    one_to_last_down=ys_down[-2:-1][0]
+    one_to_last_xs_down=xs_down[-2:-1][0]
+    r=np.where(df['timestamp']==one_to_last_xs_down,df['rsi'],np.nan)
+    one_to_last_rsi_down=r[~np.isnan(r)][-1:][0]
+
+    if (last_up<one_to_last_up and last_rsi_up>one_to_last_rsi_up) or (last_up>one_to_last_up and last_rsi_up<one_to_last_rsi_up):
+        return True,[pd.to_datetime(one_to_last_xs_up,unit="ms"),pd.to_datetime(last_xs_up,unit="ms")],[one_to_last_up,last_up],[pd.to_datetime(one_to_last_xs_up,unit="ms"),pd.to_datetime(last_xs_up,unit="ms")],[one_to_last_rsi_up,last_rsi_up]
+    if (last_down<one_to_last_down and last_rsi_down>one_to_last_rsi_down) or (last_down>one_to_last_down and last_rsi_down<one_to_last_rsi_down):
+        return True,[pd.to_datetime(one_to_last_xs_down,unit="ms"),pd.to_datetime(last_xs_down,unit="ms")],[one_to_last_down,last_down],[pd.to_datetime(one_to_last_xs_down,unit="ms"),pd.to_datetime(last_xs_down,unit="ms")],[one_to_last_rsi_down,last_rsi_down]
+
+    return False,None,None,None,None

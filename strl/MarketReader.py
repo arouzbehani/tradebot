@@ -1,4 +1,4 @@
-import GLOBAL
+import GLOBAL,gc
 from pathlib import Path
 import kucoinMarkets as kc
 import YahooMarket as ym
@@ -36,8 +36,18 @@ def ReadKucoinMarket(timeframes,testdata=False,local=False,symbol=''):
 
         if(testdata):
             datframes, e = kc.GetMarketData(marketsegment, timeframes[i], 'All', 1200,local=local)
+            del datframes
+            del e
+            gc.collect()
         else :
             datframes, e = kc.GetMarketData(markets, timeframes[i], 'All', 1200,local=local)
+            del datframes
+            del e
+            gc.collect()
+        del marketsegment
+        gc.collect()
+    del markets
+    gc.collect()
 
 def ReadYahooMarket(timeframes,testdata=False,local=False,symbol=''):
     markets = []
@@ -50,6 +60,16 @@ def ReadYahooMarket(timeframes,testdata=False,local=False,symbol=''):
             marketsegment = [x for x in markets if x.lower().__contains__(symbol.lower())]
         if(testdata):
             datframes, e = ym.GetMarketData(marketsegment,period=dict[timeframes[i]],symbol='All', tf= timeframes[i],local=local)
+            del datframes
+            del e
+            gc.collect()
+       
         else :
             datframes, e = ym.GetMarketData(markets, period=dict[timeframes[i]],symbol='All', tf= timeframes[i],local=local)
+            del datframes
+            del e
+            gc.collect()
+      
+        del markets
+        gc.collect()
 
