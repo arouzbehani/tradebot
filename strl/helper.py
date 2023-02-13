@@ -12,7 +12,7 @@ from ta.trend import IchimokuIndicator as ichi
 from ta.volume import ForceIndexIndicator as fi
 
 
-local = False
+local = True
 
 
 def GetData(tf, symbol, exch):

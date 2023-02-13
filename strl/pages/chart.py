@@ -15,7 +15,7 @@ import datetime
 import plotly.figure_factory as ff
 import MarketReader as mr
 
-local = True
+local = False
 st. set_page_config(layout="wide")
 st.markdown("""
 
@@ -100,6 +100,10 @@ def fillcol(label):
 
 def DrawChart(limit=500, read_patterns=False, read_rsi=False, read_bb=True, read_sma=False, read_ichi=True, read_ema=False, read_vol=True, read_fi=False, chart_height=800,
               entry_signals=True, exit_signals=False, entry_signal_mode='All', left_candles=3, right_candles=3, waves_number=3):
+    symbol='WIN_USDT'
+    read_rsi=True
+    exch='Kucoin'
+    tf='1h'
     if (symbol != None and tf != None and exch != None):
 
         read_bull_patterns = read_patterns
@@ -120,11 +124,7 @@ def DrawChart(limit=500, read_patterns=False, read_rsi=False, read_bb=True, read
             df, up_points, down_points, sidepoints, power_ups, power_downs, power_weaking_ups, power_weaking_downs = pivot_helper.find_pivots(
                 df, left_candles, right_candles, waves_number)
 
-            xs_up= np.where(df['pivot_trend'] == 'up', df['timestamp'], np.nan)
-            ys_up= np.where(df['pivot_trend'] == 'up', df['pointpos'], np.nan)
-            
-            xs_down= np.where(df['pivot_trend'] == 'down', df['timestamp'], np.nan)
-            ys_down= np.where(df['pivot_trend'] == 'down', df['pointpos'], np.nan)
+
 
             if (read_bull_patterns):
                 try:
@@ -281,6 +281,14 @@ def DrawChart(limit=500, read_patterns=False, read_rsi=False, read_bb=True, read
                     go.Scatter(x=df['time'], y=df['rsi'], name='rsi'), row=rownum, col=1
                 )
                 if (entry_signals):
+                    dvg_res,px,py,rsi_x,rsi_y=Rsi_Divergance(df)
+                    if(dvg_res):
+                        fig.add_trace(
+                            go.Scatter(x=px, y=py, name='divergance on graph'), row=1, col=1
+                        )      
+                        fig.add_trace(
+                            go.Scatter(x=rsi_x, y=rsi_y, name='divergance on rsi'), row=rownum, col=1
+                        )                                                
                     fig.add_trace(
                         go.Scatter(x=df['time'], y=df['rsi_entry_signal'], mode='markers', marker=dict(size=8, symbol="diamond", line=dict(width=2, color=1.5)), name='rsi entry signal'), row=1, col=1
                     )
@@ -412,7 +420,41 @@ def DrawTheChart():
               read_ema=ema_check, read_sma=sma_check, read_ichi=ichi_check, read_patterns=patterns_check, read_rsi=rsi_check,
               entry_signals=entry_signals_check, entry_signal_mode=entry_signal_mode, left_candles=pivot_candle_left, right_candles=pivot_candle_right, waves_number=waves_number)
 
+def Rsi_Divergance(df):
+    x= np.where(df['pivot'] == 2, df['timestamp'], np.nan)
+    xs_up=x[~np.isnan(x)]
+    y= np.where(df['pivot'] == 2, df['pointpos'], np.nan)
+    ys_up=y[~np.isnan(y)]
+    last_up=ys_up[-1:][0]
+    last_xs_up=xs_up[-1:][0]
+    one_to_last_up=ys_up[-2:-1][0]
+    one_to_last_xs_up=xs_up[-2:-1][0]
+    r=np.where(df['timestamp']==last_xs_up,df['rsi'],np.nan)
+    last_rsi_up=r[~np.isnan(r)][-1:][0]
+    r=np.where(df['timestamp']==one_to_last_xs_up,df['rsi'],np.nan)
+    one_to_last_rsi_up=r[~np.isnan(r)][-1:][0]
 
+    x= np.where(df['pivot'] == 1, df['timestamp'], np.nan)
+    xs_down=x[~np.isnan(x)]
+    y= np.where(df['pivot'] == 1, df['pointpos'], np.nan)
+    ys_down=y[~np.isnan(y)]
+    last_down=ys_down[-1:][0]
+    last_xs_down=xs_down[-1:][0]
+    r=np.where(df['timestamp']==last_xs_down,df['rsi'],np.nan)
+    last_rsi_down=r[~np.isnan(r)][-1:][0]
+    one_to_last_down=ys_down[-2:-1][0]
+    one_to_last_xs_down=xs_down[-2:-1][0]
+    r=np.where(df['timestamp']==one_to_last_xs_down,df['rsi'],np.nan)
+    one_to_last_rsi_down=r[~np.isnan(r)][-1:][0]
+
+    if (last_up<one_to_last_up and last_rsi_up>one_to_last_rsi_up) or (last_up>one_to_last_up and last_rsi_up<one_to_last_rsi_up):
+        return True,[pd.to_datetime(one_to_last_xs_up,unit="ms"),pd.to_datetime(last_xs_up,unit="ms")],[one_to_last_up,last_up],[pd.to_datetime(one_to_last_xs_up,unit="ms"),pd.to_datetime(last_xs_up,unit="ms")],[one_to_last_rsi_up,last_rsi_up]
+    if (last_down<one_to_last_down and last_rsi_down>one_to_last_rsi_down) or (last_down>one_to_last_down and last_rsi_down<one_to_last_rsi_down):
+        return True,[pd.to_datetime(one_to_last_xs_down,unit="ms"),pd.to_datetime(last_xs_down,unit="ms")],[one_to_last_down,last_down],[pd.to_datetime(one_to_last_xs_down,unit="ms"),pd.to_datetime(last_xs_down,unit="ms")],[one_to_last_rsi_down,last_rsi_down]
+
+    return False,None,None,None,None
+
+        
 st.sidebar.title("Chart parameters: ")
 
 

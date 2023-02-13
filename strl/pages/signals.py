@@ -23,10 +23,11 @@ def GetData(market):
         abs_dir =GLOBAL.ABSOLUTE(rel_path,local)
         if(os.path.exists(abs_dir)):
             paths = sorted(Path(abs_dir).iterdir(), key=os.path.getmtime)
-            for path in paths:
-                df = pd.read_csv(path)
+            if(paths.__len__()>0):
+                df=pd.read_csv(paths[0])
                 data[tf].append(df)
                 del df
+                gc.collect()
     return data
 def sq_match(c,sq):
     if(c=='Coin' or c=='Symbol'):
