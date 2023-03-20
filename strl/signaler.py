@@ -1,3 +1,4 @@
+import itertools
 import GLOBAL
 import kucoinMarkets as kc
 import pivot_helper as pivh
@@ -406,6 +407,7 @@ def twins_cehck(df):
         return 'None'
     except:
         return "Error on Twins Status"
+ 
 
 
 def PPSR(df):
@@ -422,12 +424,10 @@ def PPSR(df):
     df = df.join(PSR)
     return df
 
-
 def br_check(c, tf, exch, candles, percentage, relp):
     if bro.is_coin_breaking_out(c, tf, exch, candles, percentage, relp):
         return 'Breaking Out Entry'
     return ''
-
 
 def rsi_check(Coin, tf, exch, timeperiod=20, local=False):
     try:
@@ -473,6 +473,7 @@ def rsi_check(Coin, tf, exch, timeperiod=20, local=False):
         del df
         gc.collect()
         return 'Error on rsi Signal'
+
 def rsi_dvg_check(df, timeperiod=14):
     try:
         print(f'______________Rsi Divergence')
@@ -499,46 +500,156 @@ def ichi_check(df):
         last_ichi_a=df[-1:]['ich_a'].values[0]
         last_ichi_b=df[-1:]['ich_b'].values[0]
         last_ichi_color=df[-1:]['ich_moku_color'].values[0]
+        ichi_str=''
         if(last_ichi_color<0): #red
             if(last_close<=last_ichi_a):
-                return 'below red cloud'
-            if last_close >= last_ichi_b:
-                return 'above red cloud'
-            if last_close>=last_ichi_a and last_close<= last_ichi_b:
-                return 'close inside red cloud'
+                ichi_str= 'below red cloud'
+            elif last_close >= last_ichi_b:
+                ichi_str= 'above red cloud'
+            elif last_close>=last_ichi_a and last_close<= last_ichi_b:
+                ichi_str= 'close inside red cloud'
             else:
-                return 'None'
+                ichi_str= 'None'
         elif(last_ichi_color>0): #green
             if(last_close>=last_ichi_a):
-                return 'above green cloud'
-            if last_close <= last_ichi_b:
-                return 'below green cloud'
-            if last_close<=last_ichi_a and last_close>= last_ichi_b:
-                return 'close inside green cloud'
+                ichi_str= 'above green cloud'
+            elif last_close <= last_ichi_b:
+                ichi_str= 'below green cloud'
+            elif last_close<=last_ichi_a and last_close>= last_ichi_b:
+                ichi_str= 'close inside green cloud'
             else:
-                return 'None'
+                ichi_str= 'None'
+            
+        del df
+        gc.collect()
+        return ichi_str
     except:
         del df
         gc.collect()
         print(f'Error occured')
         return 'Error on ichi Status'
 
+def trend_check(df,wn=120,n=3):
+    try:
+        print(f'______________Trend Status')
+        pointpos_df = pd.DataFrame(
+        data=df[~pd.isnull(df['pointpos'])], columns=['time', 'pointpos', 'pivot', 'timestamp'])
+        trend_str=''
+        down_xs = (pointpos_df[pointpos_df['pivot'] == 1]['timestamp']).reset_index(drop=True)
+        down_ys = (pointpos_df[pointpos_df['pivot'] == 1]['pointpos']).reset_index(drop=True)
+        _,trend_down_ys=helper.ReturnTrend(down_xs,down_ys)
 
+        m=n
+            
+
+        up_xs = (pointpos_df[pointpos_df['pivot'] == 2]['timestamp']).reset_index(drop=True)
+        up_ys = (pointpos_df[pointpos_df['pivot'] == 2]['pointpos']).reset_index(drop=True)
+        _,trend_up_ys=helper.ReturnTrend(up_xs,up_ys)
+        if trend_up_ys[-1]>trend_up_ys[0] and trend_down_ys[-1]>trend_down_ys[0]:
+            trend_str= 'Bullish'
+        elif trend_up_ys[-1]<trend_up_ys[0] and trend_down_ys[-1]<trend_down_ys[0]:
+            trend_str= 'Bearish'
+        elif trend_up_ys[-1]>trend_up_ys[0] and trend_down_ys[-1]<trend_down_ys[0]:
+            trend_str= 'Widening Side'
+        elif trend_up_ys[-1]<trend_up_ys[0] and trend_down_ys[-1]>trend_down_ys[0]:
+            trend_str= 'Narrowing Side'
+
+        df_1=df[-wn:].reset_index(drop=True)
+        pointpos_df_1 = pd.DataFrame(data=df_1[~pd.isnull(df_1[-wn:]['pointpos'])], columns=['time', 'pointpos', 'pivot', 'timestamp'])
+        support_xs = list((pointpos_df_1[pointpos_df_1['pivot'] == 1]['timestamp']).reset_index(drop=True))
+        support_ys = list((pointpos_df_1[pointpos_df_1['pivot'] == 1]['pointpos']).reset_index(drop=True))
+        if n==0: m=len(support_ys)
+        boudry_xs=[df_1[0:1]['timestamp'].values[0],df_1[-1:]['timestamp'].values[0]]
+
+        r2_supp,support_trend_x,support_trend_y=helper.ReturnTrend_From_Comb(helper.Return_Combo(xs=support_xs,ys=support_ys,n=m,r_min=0.92),bounds=boudry_xs)
+        m_sup=(support_trend_y[-1]-support_trend_y[0])/(support_trend_x[-1]-support_trend_x[0])
+        supp_last=m_sup*(df_1[-1:]['timestamp'].values[0]-support_trend_x[0])+support_trend_y[0]
+        dist_from_support=((df_1[-1:]['close'].values[0]/supp_last)-1)*100
+
+        resist_xs = list((pointpos_df_1[pointpos_df_1['pivot'] == 2]['timestamp']).reset_index(drop=True))
+        resist_ys = list((pointpos_df_1[pointpos_df_1['pivot'] == 2]['pointpos']).reset_index(drop=True))
+        if n==0: m=len(resist_ys)
+        r2_resist,resist_trend_x,resist_trend_y=helper.ReturnTrend_From_Comb(helper.Return_Combo(xs=resist_xs,ys=resist_ys,n=m,r_min=0.92),bounds=boudry_xs)
+        m_resist=(resist_trend_y[-1]-resist_trend_y[0])/(resist_trend_x[-1]-resist_trend_x[0])
+        resist_last=m_resist*(df_1[-1:]['timestamp'].values[0]-resist_trend_x[0])+resist_trend_y[0]
+        dist_from_resist=(1-(df_1[-1:]['close'].values[0]/resist_last))*100
+
+        supp_rise= False
+        supp_breakdown=False
+        resist_back=False
+        resist_breakup=False
+
+        if r2_supp>= 0.92:
+            trend_str +=' _(fs)'
+            if dist_from_support>=1 and dist_from_support<=1.025 or dist_from_support<=1 and dist_from_support >=0.975:
+                supp_rise=True
+            elif dist_from_support<0 and dist_from_support >=-0.025:
+                supp_breakdown=True
+        if r2_resist>=0.92:
+            trend_str +=' _(fr)'
+            if dist_from_resist <=1 and dist_from_resist >=0.975:
+                resist_back=True
+            elif dist_from_resist<0 and dist_from_resist>=-0.025:
+                resist_breakup=True
+
+
+        del df
+        del df_1
+        del pointpos_df_1
+        del pointpos_df
+        del up_xs
+        del up_ys
+        del down_xs
+        del down_ys
+        del trend_down_ys
+        del trend_up_ys
+        del support_xs
+        del support_ys
+        del support_trend_x
+        del support_trend_y
+        del resist_xs
+        del resist_ys
+        del resist_trend_x
+        del resist_trend_y
         
+        gc.collect()
+        return trend_str,supp_rise,resist_back,supp_breakdown,resist_breakup
+
+    except:
+        del df
+        gc.collect()
+        print(f'Error occured')
+        return 'Error on Trend Status'
 
 def signals_check(Coin, tf, exch, timeperiod=14, candles=6, local=False):
     try:
         print(f'Finding Signals for {Coin}')
-        df = DF(Coin, exch, tf, local)
+        df = DF(Coin, exch, tf, local)[-260:].reset_index(drop=True)
         print(f'______________Discovering Pivots')
+        
         df= pivh.find_pivots(df, candles, candles, wn=2,short=True)
-        helper.append_rsi(df)
-        helper.append_ichi(df)
-        rsi_dvg=rsi_dvg_check(df=df,timeperiod=14)
         twins=twins_cehck(df=df)
+        helper.append_rsi(df)
+        rsi_dvg=rsi_dvg_check(df=df,timeperiod=14)
+        # del df
+        # gc.collect()
+        # df = DF(Coin, exch, tf, local)[-260:].reset_index()
+        helper.append_ichi(df)
         ichi_stat=ichi_check(df=df)
+        trend_stat,supp_rise,rsist_back,supp_breakdown,resist_breakup=trend_check(df=df,wn=120)
+        closeness=''
+        if supp_rise:
+            closeness='Support Rise'
+        if rsist_back:
+            closeness='Resist Back'
+        if supp_breakdown:
+            closeness='Support Breakdown'    
+        if resist_breakup:
+            closeness='Resist Breakup'
+        del df
+        gc.collect()
 
-        return rsi_dvg ,twins,ichi_stat
+        return rsi_dvg ,twins,ichi_stat,trend_stat,closeness
 
             
     except:
@@ -568,7 +679,6 @@ def fi_check(Coin, tf, exch, timeperiod=100, local=False):
     except:
         del df
         return 'Error on force Signal'
-
 
 def boll_check(Coin, tf, exch, timeperiod=20, nstdv=2, local=False):
     try:
@@ -640,7 +750,6 @@ def boll_check(Coin, tf, exch, timeperiod=20, nstdv=2, local=False):
        gc.collect()
        return "Error on BB Signal"
 
-
 def count_entry(s: str):
     try:
         if (s.lower().__contains__('entry')):
@@ -649,7 +758,6 @@ def count_entry(s: str):
         print('Error in counting Entry: {}'.format(str(s)))
         return 0
     return 0
-
 
 def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin', local=False, brout_candles=15, brout_percentage=2, read_patterns=False):
     latestSignals = []
@@ -691,9 +799,9 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
             if 'Symbol' in signalsdf.columns:
                 sym = 'Symbol'
 
-            signalsdf['rsi_dvg','twins','ichi_stat'] = signalsdf[f'{sym}'].apply(
+            signalsdf['rsi_dvg','twins','ichi_stat','trend','closeness'] = signalsdf[f'{sym}'].apply(
                 signals_check, exch=exchangeName, tf=timeframes[i], timeperiod=14, candles=6, local=local)
-            signalsdf[['rsi_dvg', 'twins','ichi_stat']]=pd.DataFrame(signalsdf['rsi_dvg','twins','ichi_stat'].tolist(), index=signalsdf.index)
+            signalsdf[['rsi_dvg', 'twins','ichi_stat','trend','closeness']]=pd.DataFrame(signalsdf['rsi_dvg','twins','ichi_stat','trend','closeness'].tolist(), index=signalsdf.index)
             # signalsdf['double_bot'] = signalsdf[f'{sym}'].apply(
             #     double_bot_check, tf=timeframes[i], exch=exchangeName,  candles=7, local=local)
 
@@ -711,14 +819,14 @@ def TALibPattenrSignals(maxdelay_min, timeframes, markets, exchangeName='Kucoin'
             #     ml_check, tf=timeframes[i], exch=exchangeName, minsize=30, forecast_out=20, local=local)
 
             # scols=['breaking out','bollinger','rsi','ema','sma','force','ML','last_pivot']
-            scols = [ 'rsi_dvg', 'twins','ichi_stat']
-            signalsdf['entry'] = 0
-            for s in scols:
-                signalsdf['entry'] += signalsdf[s].map(count_entry)
-            signalsdf = signalsdf.sort_values(by=['entry'], ascending=False)
+            # # # scols = [ 'rsi_dvg', 'twins','ichi_stat']
+            # # # signalsdf['entry'] = 0
+            # # # for s in scols:
+            # # #     signalsdf['entry'] += signalsdf[s].map(count_entry)
+            # # # signalsdf = signalsdf.sort_values(by=['entry'], ascending=False)
             signalsdf.to_csv(abs_path, header=True,
                              index=True, sep=',', mode='w')
-            del scols
+            # del scols
             del signalsdf
             del latestSignals
 

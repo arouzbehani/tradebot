@@ -203,8 +203,368 @@ def getTestData(exch='kucoin',coin='BTC_USDT',tf='1h'):
 #         if(len(filtered)>0):
 #             all.append(filtered)
 # print(pd.concat(all).drop_duplicates().sort_index())
-weekday=datetime.datetime.now().weekday()
-dayname=calendar.day_name[weekday]
-if (dayname !='Saturday' or dayname!='Sunday'):
-    print (dayname)
+# # weekday=datetime.datetime.now().weekday()
+# # dayname=calendar.day_name[weekday]
+# # if (dayname !='Saturday' or dayname!='Sunday'):
+# #     print (dayname)
+
+# import requests
+# import re
+
+# # The target website
+# url = "https://pouyanroohi.co/"
+
+# # A list of payloads to test for SQL injection
+# payloads = ["'", "\"", "AND 1=1", "OR 1=1"]
+
+# # A regular expression to match common database errors
+# error_regex = r"(SQL syntax|MySQL|database|syntax error)"
+
+# # A loop that iterates over each payload
+# for payload in payloads:
+#     # Append the payload to the url as a query parameter
+#     test_url = url + "?q=" + payload
+    
+#     # Send a GET request to the test_url
+#     response = requests.get(test_url)
+    
+#     # Check if the response status code is 200 (OK)
+#     if response.status_code == 200:
+#         # Get the response content as text
+#         content = response.text
+        
+#         # Search for database errors in the content using error_regex
+#         match = re.search(error_regex, content, re.IGNORECASE)
+        
+#         # If there is a match, print a message indicating SQL injection vulnerability
+#         if match:
+#             print(f"SQL injection vulnerability found with payload: {payload}")
+#             print(f"Error message: {match.group()}")
+            
+#         # Otherwise, print a message indicating no vulnerability found
+#         else:
+#             print(f"No vulnerability found with payload: {payload}")
+            
+#     # Otherwise, print an error message indicating request failure
+#     else:
+#         print(f"Request failed with status code: {response.status_code}")
+
+# s=''
+# arr=[5,8,9,0,66,18]
+# for a in range(1,len(arr)):
+#     if arr[a]%2==0 and arr[a-1] % 3 ==0:
+#         s +=str(round(arr[a]/2))
+#     else:
+#         s +=str(round(arr[a] *2))
+
+# print (s)
+
+# import pandas as pd
+# import mplfinance as mpf
+# def pivot(df):
+#     data = df.copy()
+#     data['d1'] = data.high.shift(-1)
+#     data['d2'] = data.high.shift(1)
+#     data['d3'] = data.low.shift(-1)
+#     data['d4'] = data.low.shift(1)
+#     # find high pivots
+#     cond_h = (data.high > data.d1) & (data.high > data.d2)
+#     # find low pivots
+#     cond_l = (data.low < data.d3) & (data.low < data.d4)
+#     # mark pivots with 1 for high and -1 for low
+#     data['pivots'] = 0
+#     data.loc[cond_h,'pivots'] = 1
+#     data.loc[cond_l,'pivots'] = -1
+#     # return only the rows with pivots
+#     return data[data.pivots != 0]
+# # load the data
+# #data = pd.read_csv("AAPL.csv", index_col=0, parse_dates=True)
+# data=getTestData()
+# # find the pivots
+
+# print(data)
+# import situations
+# s1d=situations.Situation()
+# s1d.above_sma_21_4h=True
+
+# s4h=situations.Situation()
+# s4h.above_sma_50_4h=True
+
+# if s1d.above_sma_21_4h and s4h.above_sma_50_4h:
+#     print ('yes')
+
+#import modules
+
+#import modules
+# import numpy as np
+
+# #define input arrays
+# x = np.array([1, 2, 3, 4, 5, 6])
+# y = np.array([2.1, 4.2, 3, 8.3, 18, 12])
+
+# #calculate IQR for y values
+# q1 = np.percentile(y, 35)
+# q3 = np.percentile(y, 65)
+# iqr = q3 - q1
+
+# #set threshold for outliers
+# threshold = 1 * iqr
+
+# #filter out outliers
+# x_clean = x[(y > q1 - threshold) & (y < q3 + threshold)]
+# y_clean = y[(y > q1 - threshold) & (y < q3 + threshold)]
+
+# #fit a line using numpy.polyfit
+# coeffs = np.polyfit(x_clean, y_clean, deg=1)
+
+# #print output
+# print("Input x:", x)
+# print("Input y:", y)
+# print("Output x:", x_clean)
+# print("Output y:", y_clean)
+# print("Line coefficients:", coeffs)
+
+# # # import numpy as np
+# # # from scipy import stats
+
+# # # def filter_outliers(x, y):
+# # #     data = np.column_stack((x,y))
+# # #     data_f = data[(np.abs(stats.zscore(data)) < 1).all(axis=1)]
+# # #     x_f = data_f[:,0]
+# # #     y_f = data_f[:,1]
+# # #     return x_f, y_f
+
+# # # def filter_outliers2(x, y):
+# # #     data = np.column_stack((x,y))
+    
+# # #     # calculate IQR for each column
+# # #     Q1 = np.quantile(data, 0.25, axis=0)
+# # #     Q3 = np.quantile(data, 0.75, axis=0)
+# # #     IQR = Q3 - Q1
+    
+# # #     # filter out outliers based on IQR
+# # #     data_f = data[((data >= (Q1 - 1.5 * IQR)) & (data <= (Q3 + 1.5 * IQR))).all(axis=1)]
+    
+# # #     x_f = data_f[:,0]
+# # #     y_f = data_f[:,1]
+# # #     return x_f, y_f
+# # # x = np.array([1, 2, 3, 4,5])
+# # # y = np.array([2.1, 4.2, 8.3, 18,12])
+# # # # y = np.array([0.4715, 0.4558, 0.4579, 0.4363])
+
+# # # x_f,y_f=filter_outliers(x,y)
+# # # print(x_f, y_f)
+
+
+#import libraries
+# # import numpy as np
+# # import matplotlib.pyplot as plt
+
+# # #define x and y arrays
+# # x = [1, 2, 3, 4, 5]
+# # y = [2.1, 4.2, 8.3, 18, 12]
+
+# # #create a list of lists of 3 points from x and y arrays
+# # points = [[(x[i], y[i]) for i in range(j,j+3)] for j in range(len(x)-2)]
+
+# # #create an empty list to store slope, intercept, r-squared value, and list of 3 points as a tuple
+# # results = []
+
+# # #loop through each list of 3 points
+# # for p in points:
+# #     #extract x and y values from each point
+# #     px = [q[0] for q in p]
+# #     py = [q[1] for q in p]
+# #     #find slope, intercept, and r-squared value of best fit line using np.polyfit function with degree=1 (linear)
+# #     slope, intercept = np.polyfit(px ,py ,1)
+# #     #calculate r-squared value using np.corrcoef function which returns a matrix of correlation coefficients 
+# #     #and take the element at index (0 ,1) or (1 ,0) which is the same 
+# #     r_squared = np.corrcoef(px ,py)[0 ,1]**2 
+# #     #store slope ,intercept ,r-squared value ,and list of 3 points as a tuple in results list 
+# #     results.append((slope ,intercept ,r_squared ,p))
+
+# # #sort results list by r-squared value in descending order using sorted function with key=lambda x: x[2] (third element) 
+# # #and reverse=True 
+# # results = sorted(results ,key=lambda x: x[2] ,reverse=True)
+
+# # #print results list 
+# # print(results)
+
+# # #plot each list of 3 points and their best fit line using plt.scatter and plt.plot functions 
+# # for result in results:
+# #     #unpack result tuple into slope ,intercept ,r_squared ,and p variables 
+# #     slope ,intercept ,r_squared ,p = result 
+# #     #extract x and y values from each point 
+# #     px = [q[0] for q in p]
+# #     py = [q[1] for q in p]
+# #     #add points to plot using plt.scatter function with marker='o' (circle) 
+# #     plt.scatter(px ,py ,marker='o')
+# #     #add line of best fit to plot using plt.plot function with color='red' 
+# #     plt.plot(px ,[slope*x + intercept for x in px] ,'red')
+    
+# # #show plot using plt.show function     
+# # plt.show()
+
+# # # # # import numpy as np
+# # # # # import itertools
+# # # # # # define a function to calculate r squared using numpy
+# # # # # def r_squared(y1, y2):
+# # # # #   # get the correlation matrix for y1 and y2
+# # # # #   corr_matrix = np.corrcoef(y1,y2)
+  
+# # # # #   # slice the matrix with indexes [0,1] to get the value of R
+# # # # #   R = corr_matrix[0][1]
+  
+# # # # #   # square the value of R to get R squared
+# # # # #   return R**2
+# # # # # def r2(comb):
+# # # # #     xs = [x[0] for x in comb]    
+# # # # #     ys = [y[1] for y in comb]    
+# # # # #     coeff=np.polyfit(x=xs,y=ys,deg=1)
+# # # # #     yn=np.poly1d(coeff)
+# # # # #     r2 = r2_score(ys, yn(xs))
+# # # # #     return r2
+
+# # # # # x = [1, 2, 3, 4, 5]
+# # # # # y = [12, 18, 8.3, 4.2, 2.1]
+# # # # # # print(y)
+# # # # # # points=[(1,2.1),(2,4.2),(3,8.3),(4,18),(5,12)]
+# # # # # # concatenate x and y into one list
+# # # # # points=list(zip(x,y))
+# # # # # # get all combinations of 3 elements from z
+# # # # # combs = list(itertools.combinations(points, 3))
+
+
+# # # # # # sort the combinations by their r squared values in descending order
+# # # # # sorted_combs = sorted(combs,key=lambda c: r2(c),reverse=True)
+
+# # # # # # print the result
+# # # # # print(sorted_combs[0])
+
+# class MyClass:
+#     def __init__(self):
+#         self.my_variable = 10
+
+#     def my_function(self):
+#         print(self.my_variable)
+
+# my_instance = MyClass()
+# my_instance.my_function() # prints 10
+# print(my_instance.my_variable) # prints 10
+from datetime import datetime
+
+df = pd.read_csv(f"https://query1.finance.yahoo.com/v7/finance/download/BTC-USD?period1={datetime.now()-230*3600}&period2={datetime.now()}&interval=1h&events=history&includeAdjustedClose=true")
+print (df)
+
+import pandas as pd
+import numpy as np
+import gc
+
+def pivotid(df1, l, n1, n2):
+    if l-n1 < 0 or l+n2 >= len(df1):
+        return 0
+    pividlow = 1
+    pividhigh = 1
+    for i in range(l-n1, l+n2+1):
+        if (df1.low[l] > df1.low[i]):
+            pividlow = 0
+        if (df1.high[l] < df1.high[i]):
+            pividhigh = 0
+    if pividhigh and pividlow:
+        return 3
+    elif pividlow:
+        return 1
+    elif pividhigh:
+        return 2
+    else:
+        return 0
+
+
+def pointpos(x):
+
+    if x['pivot'] == 1:
+        return x['low']
+    if x['pivot'] == 2:
+        return x['high']
+    else:
+        return np.nan
+
+
+def trendstat(df1, l,short=False):
+    if(short) : return np.nan
+    if (l >= 3):
+        if (df1.loc[l].pivot == 1):
+            if (df1.loc[l].low > df1.loc[l-2].low and df1.loc[l-1].high > df1.loc[l-3].high):
+
+                return "up"
+            elif df1.loc[l].low < df1.loc[l-2].low and df1.loc[l-1].high < df1.loc[l-3].high:
+                return "down"
+            else:
+                return 'side'
+        if (df1.loc[l].pivot == 2):
+            if (df1.loc[l].high > df1.loc[l-2].high and df1.loc[l-1].low > df1.loc[l-3].low):
+                return "up"
+            if (df1.loc[l].high < df1.loc[l-2].high and df1.loc[l-1].low < df1.loc[l-3].low):
+                return "down"
+            else:
+                return 'side'
+    else:
+        return np.nan
+
+def find_pivots(df, left_candles=7, right_candles=7,wn=2,short=False):
+
+    df['init_pivot'] = df.apply(lambda x: pivotid(
+        df, x.name, left_candles, right_candles), axis=1)
+
+    df['pivot'] = np.nan
+    i = 0
+    while i < len(df)-1:
+
+        if (df['init_pivot'][i] == 1):
+            df['pivot'][i] = 1
+            for j in range(i+1, len(df)):
+                if df['init_pivot'][j] == 1:
+                    if df['low'][j] <= df['low'][i]:
+                        df['pivot'][i:j] = np.nan
+                        df['pivot'][j] = 1
+                elif df['init_pivot'][j] == 2:
+                    i = j
+                    break
+            if j == len(df)-1:
+                break
+        elif df['init_pivot'][i] == 2:
+            df['pivot'][i] = 2
+            for j in range(i+1, len(df)):
+                if df['init_pivot'][j] == 2:
+                    if df['high'][j] >= df['high'][i]:
+                        df['pivot'][i:j] = np.nan
+                        df['pivot'][j] = 2
+                elif df['init_pivot'][j] == 1:
+                    i = j
+                    break
+            if j == len(df)-1:
+                break
+
+        else:
+            i += 1
+            
+
+    df2 = df.loc[np.logical_or(
+        df['pivot'] == 1, df['pivot'] == 2)].reset_index()
+
+   
+    df2['pivot_trend'] = df2.apply(lambda x: trendstat(df2, x.name,short=short), axis=1)
+    df2['pivot_power']=df2.apply(lambda x:powerstat(df2,x.name,wn,short=short),axis=1)
+    
+    df['pivot_trend'] = np.nan
+    df['pivot_power'] = np.nan
+
+    for r in range(0, len(df2)):
+        df.loc[df2.loc[r]['index']] = df2.loc[r]
+    df['pointpos'] = df.apply(lambda row: pointpos(row), axis=1)
+
+    del df2
+    gc.collect()
+    return df
+
 

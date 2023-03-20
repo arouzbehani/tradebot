@@ -12,18 +12,19 @@ def GetMarkets(tf,exchangeName='Kucoin',local=False, testdata=False):
     abs_dir =GLOBAL.ABSOLUTE(rel_dir,local)
     paths = Path(abs_dir).iterdir()
     for path in paths:
-        try:
-            df=pd.read_csv(path)
-            if(df.size>0):
-                t +=1
-                if(testdata) : 
-                    if(t>6): break
-                if('Coin' in df.columns):
-                    markets[df['Coin'][0]]=df
-                elif('Symbol' in df.columns):
-                    markets[df['Symbol'][0]]=df
-        except:
-            continue
+        # if path.name.__contains__('NFT_USDT__30m'):
+            try:
+                df=pd.read_csv(path)
+                if(df.size>0):
+                    t +=1
+                    if(testdata) : 
+                        if(t>6): break
+                    if('Coin' in df.columns):
+                        markets[df['Coin'][0]]=df
+                    elif('Symbol' in df.columns):
+                        markets[df['Symbol'][0]]=df
+            except:
+                continue
     return markets 
 def ReadKucoinMarket(timeframes,testdata=False,local=False,symbol=''):
     markets = []

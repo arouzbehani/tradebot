@@ -107,7 +107,7 @@ def GetMarketData(markets,period=60, tf='1d' , symbol='All',local=False):
             errordata.append(m + ':' + tf)
     return (marketData, errordata)
 
-# data = yf.download('MSFT',start='2023-01-01',end='2023-01-21', interval='30m')
+# data = yf.download('EURUSD',start='2023-01-01',end='2023-01-21', interval='1d')
 # print(data.tail(20))
 
 
@@ -119,4 +119,5 @@ def GetMarketData(markets,period=60, tf='1d' , symbol='All',local=False):
 # print(data)
 # data.to_csv('all_stocks_1m.csv', header=True, index=False, sep=',', mode='w')
 
-#GetMarketData(GetMarkets(True),period=30,tf='30m',symbol='WRB',relp=True)
+# m,_=GetMarketData(GetMarkets(True),period=30,tf='1d',symbol='All',local=True)
+# print(m)

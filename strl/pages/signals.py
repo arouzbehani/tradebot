@@ -29,15 +29,23 @@ def GetData(market):
                 del df
                 gc.collect()
     return data
-def sq_match(c,sq):
-    if(c=='Coin' or c=='Symbol'):
-        t=str(c).split('>')[1].split('<')[0]
-        if(t.lower().__contains__(sq.lower())):
-            return 1
-    else:
-        if(str(c).lower().__contains__(sq.lower())):
-            return 1
-
+def sq_match(row,sq):
+    words=sq.split(',')
+    # if(c=='Coin' or c=='Symbol'):
+    #     t=str(c).split('>')[1].split('<')[0]
+    #     # if(t.lower().__contains__(sq.lower())):
+    #     #     return last+1
+    # else:
+    #     t=str(c)
+    #     # if(str(c).lower().__contains__(sq.lower())):
+    #     #     return last+1
+    res=[]
+    for w in words:
+        for item in row.items():
+            if(str(row[item[0]]).lower().__contains__(w.strip().lower())):
+                res.append(1)
+    if(len(res)>=len(words)):
+        return 1
     return 0
 def tables(data,exchange='Kucoin',sq='sma entry'):
     # streaml='http://localhost:8501/'
@@ -57,7 +65,8 @@ def tables(data,exchange='Kucoin',sq='sma entry'):
             sym='Coin'
             if 'Symbol' in df.columns: sym='Symbol'
             pretty = df[[
-                    f'{sym}', 'date time','volume']].sort_values(by=['volume'], ascending=False)
+                    # f'{sym}', 'date time']].sort_values(by=['volume'], ascending=False)
+                    f'{sym}', 'date time']]
             if('entry' in df.columns):
                 pretty = df[[
                         f'{sym}', 'date time','entry']].sort_values(by=['entry'], ascending=False)
@@ -89,19 +98,27 @@ def tables(data,exchange='Kucoin',sq='sma entry'):
                 pretty ['twins']=df[['twins']]
             if('ichi_stat' in df.columns):
                 pretty ['ichi_stat']=df[['ichi_stat']]
+            if('trend' in df.columns):
+                pretty ['trend']=df[['trend']]
+            if('closeness' in df.columns):
+                pretty ['closeness']=df[['closeness']]
 
             pretty['url']=pretty[f'{sym}'].apply(makelink,streaml=streaml,exch=exchange,tf=d)
             pretty[f'{sym}'] = pretty.apply(lambda x: make_clickable(x['url'],x[f'{sym}']), axis=1)
             # pretty.style
             pretty.__delitem__('url')
+            #sq='twins,Bearish'
             if(sq!=''): 
                 all=[]
-                for c in pretty.columns:
-                    pretty['sq']=pretty[c].apply(sq_match,sq=sq)
-                    filtered=pretty[pretty['sq']==1]
-                    if(len(filtered)>0):
-                        all.append(filtered)
+                #for c in pretty.columns:
+                    # pretty['sq']=pretty[c].apply(sq_match,sq=sq)
+                pretty['sq']=pretty.apply(lambda row: sq_match(row,sq=sq), axis=1)
 
+                filtered=pretty[pretty['sq'] ==1]
+                if(len(filtered)>0):
+                    all.append(filtered)
+                    
+                    
                 if len(all)>0:
                     pretty=pd.concat(all).drop_duplicates().sort_index()
                 else:

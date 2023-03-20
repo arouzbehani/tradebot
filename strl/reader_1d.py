@@ -17,7 +17,7 @@ sg.TALibPattenrSignals(delay, [tf], markets=mr.GetMarkets(tf, exchangeName='Kuco
 weekday=datetime.datetime.now().weekday()
 dayname=calendar.day_name[weekday]
 
-if (dayname !='Saturday' or dayname!='Sunday'):
+if (dayname !='Saturday' and dayname!='Sunday'):
     mr.ReadYahooMarket(['1d', '1wk'], testdata=testdata, local=local)
     sg.TALibPattenrSignals(delay, ['1d'], markets=mr.GetMarkets('1d', exchangeName='Yahoo', local=local, testdata=testdata),
                         exchangeName='Yahoo', local=local, brout_candles=brout_candles, brout_percentage=brout_percentage, read_patterns=read_patterns)
