@@ -18,7 +18,7 @@ from ta.volume import ForceIndexIndicator as fi
 from statistics import mean
 
 
-local = False
+local = True
 
 
 def GetData(tf, symbol, exch):
@@ -607,8 +607,8 @@ def Return_Combo(xs, ys, n, r_min):
 
 
 def Return_Trend_From_DF(df, r_min, n, mode=1):
-    boudry_xs = [df[0:1]['timestamp'].values[0],
-                 df[-1:]['timestamp'].values[0]]
+    boudry_xs = [df.iloc[0].timestamp,
+                 df.iloc[-1].timestamp]
     pointpos_df = pd.DataFrame(data=df[~pd.isnull(df['pointpos'])], columns=[
                                'time', 'pointpos', 'pivot', 'timestamp'])
     xs = list(
@@ -618,9 +618,8 @@ def Return_Trend_From_DF(df, r_min, n, mode=1):
     r2, trend_x, trend_y = ReturnTrend_From_Comb(
         Return_Combo(xs=xs, ys=ys, n=n, r_min=r_min), bounds=boudry_xs)
     m = (trend_y[-1]-trend_y[0]) / (trend_x[-1]-trend_x[0])
+    del boudry_xs
     del pointpos_df
-    del xs
-    del ys
     del xs
     del ys
     del df
@@ -635,50 +634,50 @@ def Candle_Dynamic_Trend_Stat(candle, supp_data,res_data, threshold=0.01, r_min=
     if supp_data['r2'] >= r_min:
         supp_last = supp_data['m']*(candle.timestamp - supp_data['p0_x'])+supp_data['p0_y']
 
-        open_from_support = ((candle.open/supp_last)-1)*100
-        close_from_support = ((candle.close.values[0]/supp_last)-1)*100
-        high_from_support = ((candle.high.values[0]/supp_last)-1)*100
-        low_from_support = ((candle.low.values[0]/supp_last)-1)*100
+        open_from_support = ((candle.open/supp_last))
+        close_from_support = ((candle.close/supp_last))
+        high_from_support = ((candle.high/supp_last))
+        low_from_support = ((candle.low/supp_last))
 
         if close_from_support >= 1 and close_from_support <= (1+threshold):
             candle_support_stat = c.Candle_Dynamic_SR_Stat.Close_Above_Support
-        elif close_from_support < 0 and close_from_support >= -threshold:
+        elif close_from_support < 1 and close_from_support >= 1-threshold:
             candle_support_stat = c.Candle_Dynamic_SR_Stat.Close_Below_Support
         elif open_from_support >= 1 and open_from_support <= (1+threshold):
             candle_support_stat = c.Candle_Dynamic_SR_Stat.Open_Above_Support
-        elif open_from_support < 0 and open_from_support >= -threshold:
+        elif open_from_support < 1 and open_from_support >= 1-threshold:
             candle_support_stat = c.Candle_Dynamic_SR_Stat.Open_Below_Support
         elif high_from_support >= 1 and high_from_support <= (1+threshold):
             candle_support_stat = c.Candle_Dynamic_SR_Stat.High_Above_Support
-        elif high_from_support < 0 and high_from_support >= -threshold:
+        elif high_from_support < 1 and high_from_support >= 1-threshold:
             candle_support_stat = c.Candle_Dynamic_SR_Stat.High_Below_Support
         elif low_from_support >= 1 and low_from_support <= (1+threshold):
             candle_support_stat = c.Candle_Dynamic_SR_Stat.Low_Above_Support
-        elif low_from_support < 0 and low_from_support >= -threshold:
+        elif low_from_support < 1 and low_from_support >= 1-threshold:
             candle_support_stat = c.Candle_Dynamic_SR_Stat.Low_Below_Support
     if res_data['r2'] >= r_min:
         res_last = res_data['m']*(candle.timestamp - res_data['p0_x'])+res_data['p0_y']
 
         open_from_resist = ((candle.open/res_last)-1)*100
-        close_from_resist = ((candle.close.values[0]/res_last)-1)*100
-        high_from_resist = ((candle.high.values[0]/res_last)-1)*100
-        low_from_resist = ((candle.low.values[0]/res_last)-1)*100
+        close_from_resist = ((candle.close/res_last)-1)*100
+        high_from_resist = ((candle.high/res_last)-1)*100
+        low_from_resist = ((candle.low/res_last)-1)*100
 
         if close_from_resist >= 1 and close_from_resist <= (1+threshold):
             candle_resist_stat = c.Candle_Dynamic_SR_Stat.Close_Above_Resist
-        elif close_from_resist < 0 and close_from_resist >= -threshold:
+        elif close_from_resist < 1 and close_from_resist >= 1-threshold:
             candle_resist_stat = c.Candle_Dynamic_SR_Stat.Close_Below_Resist
         elif open_from_resist >= 1 and open_from_resist <= (1+threshold):
             candle_resist_stat = c.Candle_Dynamic_SR_Stat.Open_Above_Resist
-        elif open_from_resist < 0 and open_from_resist >= -threshold:
+        elif open_from_resist < 1 and open_from_resist >= 1-threshold:
             candle_resist_stat = c.Candle_Dynamic_SR_Stat.Open_Below_Resist
         elif high_from_resist >= 1 and high_from_resist <= (1+threshold):
             candle_resist_stat = c.Candle_Dynamic_SR_Stat.High_Above_Resist
-        elif high_from_resist < 0 and high_from_resist >= -threshold:
+        elif high_from_resist < 1 and high_from_resist >= 1-threshold:
             candle_resist_stat = c.Candle_Dynamic_SR_Stat.High_Below_Resist
         elif low_from_resist >= 1 and low_from_resist <= (1+threshold):
             candle_resist_stat = c.Candle_Dynamic_SR_Stat.Low_Above_Resist
-        elif low_from_resist < 0 and low_from_resist >= -threshold:
+        elif low_from_resist < 1 and low_from_resist >= 1-threshold:
             candle_resist_stat = c.Candle_Dynamic_SR_Stat.Low_Below_Resist
 
     return candle_support_stat, candle_resist_stat
@@ -699,7 +698,7 @@ def Dynamic_SR(df, threshold=0.01, r_min=0.92, n=3):
             df, r_min, n, 2)
         dict_res={'p0_x':p0_res_x,'p0_y':p0_res_y,'m':m_res,'r2':r2_res}
 
-        candle_support_stat, candle_resist_stat = Candle_Dynamic_Trend_Stat(candle=df[-1:], supp_data=dict_sup,res_data=dict_res, r_min=r_min, threshold=threshold)
+        candle_support_stat, candle_resist_stat = Candle_Dynamic_Trend_Stat(candle=df.iloc[-1], supp_data=dict_sup,res_data=dict_res, r_min=r_min, threshold=threshold)
 
         if r2_sup >= r_min:
             S_stat = c.Trend_SR_Stat.Fit_Support
@@ -783,7 +782,7 @@ def Candle_level_stat(level_top, level_bot, candle, threshold=0.015):
     elif (candle.low > level_top and candle.low <= level_top+threshold):
         return c.Candle_Level_Area_Stat.Near_to_Support
     else:
-        return c.Candle_Channel_Stat.Nothing
+        return c.Candle_Level_Area_Stat.Nothing
 
 def Candle_fibo_levle_stat(candle, levels,tf,thb=1):
     stat=c.Candle_Fibo_Stat.Nothing
@@ -795,14 +794,13 @@ def Candle_fibo_levle_stat(candle, levels,tf,thb=1):
             stat = c.Candle_Fibo_Stat(f)
             return stat
     return stat
-def threshold(tf,th=1):
+def threshold(tf,thb=1):
     tfs={'1w':10,'1d':5,'4h':2.0,'90m':1.2,'1h':1.0,'60m':1.0,'15m':0.5,'5m':0.2,'1m':0.1}
-    return tfs[tf]*th/100
+    return tfs[tf]*thb/100
 
-def Candle_Shapes(candle,tf='1d',thb=1):
-    th=threshold(tf,th=thb)
+def Candle_Shapes(candle,th=0.01):
     shapes=[]
-    if candle.high/candle.close<= th : 
+    if abs(1-candle.high/candle.low)<=th : 
         shapes.append(c.Candle_Shape.Small)
     if abs(1-candle.close/candle.open)<=th:
         shapes.append(c.Candle_Shape.Point)
@@ -818,7 +816,7 @@ def Candle_Shapes(candle,tf='1d',thb=1):
     else:
         if candle.close-candle.low>h_2_3:
             shapes.append(c.Candle_Shape.PinBar_Up)
-        elif candle.high-candle.close>h_2_3:
+        elif candle.high-candle.open>h_2_3:
             shapes.append(c.Candle_Shape.PinBar_Down)
     
     return shapes

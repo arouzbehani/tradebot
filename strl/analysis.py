@@ -17,7 +17,7 @@ import plotly.figure_factory as ff
 import MarketReader as mr
 import situations as s
 
-local = False
+local = True
 
 
 def getTilte():
@@ -38,7 +38,7 @@ st.markdown("""
         </style>
         """, unsafe_allow_html=True)
 
-symbol = 'BTC_USDT'
+symbol = 'MATIC_USDT'
 exch = 'Kucoin'
 # symbol = None
 # exch = None
@@ -64,12 +64,15 @@ with st.sidebar:
         trend_limit_long = st.number_input(
             "Long Term Trend Limit:", min_value=70, value=280)
         trend_limit_short = st.number_input(
-            "Short Term Trend Limit:", min_value=20, value=70)
+            "Short Term Trend Limit:", min_value=20, value=80)
         st.write("1d Pivot Settings:")
         long_term_pivot_candles = st.number_input(
             "Long Term Candles:", min_value=2, value=16)
         short_term_pivot_candles = st.number_input(
             "Short Term Candles:", min_value=2, value=6)
+        pvt_trend_number = st.number_input(
+            "Pivot Trend Number:", min_value=2, value=2)
+        
         waves_number = st.number_input(
             "PA Power Calc. Waves:", min_value=2, value=2)
         sr_limit = st.number_input("S/R Limit:", min_value=70, value=120)
@@ -87,7 +90,7 @@ if analysis == '1.0':
         df_long, up_points, down_points, sidepoints, power_ups, power_downs, power_weaking_ups, power_weaking_downs = pivot_helper.find_pivots(
             df_long, long_term_pivot_candles, long_term_pivot_candles, waves_number, short=False)
         df_short, _, _, _, _, _, _, _ = pivot_helper.find_pivots(
-            df_short, 2, 2, 2, short=False)
+            df_short, short_term_pivot_candles, short_term_pivot_candles, 2, short=False)
 
         trend_long = helper.TrendDirection(df_long)
         trend_short = helper.TrendDirection(df_short)
@@ -97,9 +100,9 @@ if analysis == '1.0':
         important_levels = helper.GetImportantLevels(
             df_long, threshold=0.01, combined=True)
 
-        helper.append_ichi(df)
-        ichi_status = helper.GetIchiStatus(df)
-        db_bot, db_top = helper.double_levels(df, threshold=0.01)
+        helper.append_ichi(df_short)
+        ichi_status = helper.GetIchiStatus(df_short)
+        db_bot, db_top = helper.double_levels(df_long, threshold=helper.threshold(tf=tf,thb=1))
 
         current_trend=c.Trend.Nothing
         if trend_long == c.Trend.Bullish:
@@ -114,16 +117,18 @@ if analysis == '1.0':
                 current_trend=c.Trend.Bullish
 
         
-        S_stat,candle_S_stat,R_stat,candle_R_stat=helper.Dynamic_SR(df_short,threshold=0.015,n=3)
-        p0_sup_x,p0_sup_y,m_sup,r2_sup=helper.Return_Trend_From_DF(df_short,r_min=0.95,n=3,mode=1)
-        p0_res_x,p0_res_y,m_res,r2_res=helper.Return_Trend_From_DF(df_short,r_min=0.95,n=3,mode=2)
+        S_stat,candle_S_stat,R_stat,candle_R_stat=helper.Dynamic_SR(df_short,helper.threshold(tf=tf,thb=1),n=pvt_trend_number)
+        p0_sup_x,p0_sup_y,m_sup,r2_sup=helper.Return_Trend_From_DF(df_short,r_min=0.95,n=pvt_trend_number,mode=1)
+        p0_res_x,p0_res_y,m_res,r2_res=helper.Return_Trend_From_DF(df_short,r_min=0.95,n=pvt_trend_number,mode=2)
 
-        fibo_dir_retrace,fibo_stat_retrace,fibo_retrace_levels=helper.FiboStat(df=df_short,fibomode=c.Fibo_Mode.Retracement,threshold=0.015)
-        fibo_dir_trend,fibo_stat_trend,fibo_trend_levels=helper.FiboStat(df=df_long,fibomode=c.Fibo_Mode.Trend_Base_Extension,threshold=0.015)
+        fibo_dir_retrace,fibo_stat_retrace,fibo_retrace_levels=helper.FiboStat(df=df_short,fibomode=c.Fibo_Mode.Retracement,threshold=helper.threshold(tf=tf,thb=1.5))
+        fibo_dir_trend,fibo_stat_trend,fibo_trend_levels=helper.FiboStat(df=df_long,fibomode=c.Fibo_Mode.Trend_Base_Extension,threshold=helper.threshold(tf=tf,thb=1.5))
         fibo_data_retrace={'dir':fibo_dir_retrace,'stat':fibo_stat_retrace,'levels':fibo_retrace_levels}
-        fibo_data_trend={'dir':fibo_data_trend, 'stat':fibo_stat_trend,'levels':fibo_trend_levels}
+        fibo_data_trend={'dir':fibo_dir_trend, 'stat':fibo_stat_trend,'levels':fibo_trend_levels}
         last_candle_color=c.Candle_Color.Red
-        if df_short[-1:]['close'].values[0]>df_short[-1:]['open'].values[0]:
+        last_candle=df_short.iloc[-1]
+
+        if last_candle.close>last_candle.open:
             last_candle_color=c.Candle_Color.Green
 
 
@@ -140,16 +145,16 @@ if analysis == '1.0':
     
     situations={}
     for tf in dict:
-        candle=dict[tf]['df_short'][-1:]
+        candle=dict[tf]['df_short'].iloc[-1]
         sit=s.Situation()
         sit.tf=tf
         sit.candle_color=dict[tf]['last_candle_color']
         sit.ichi_stat=dict[tf]['ichi_stat']
-        sit.long_trend_stat=dict[tf]['trend_long']
+        sit.long_trend_stat=dict[tf]['long_trend']
         sit.short_trend_stat=dict[tf]['short_trend']
         sit.current_trend_stat=dict[tf]['current_trend']
-        sit.dynamic_support_stat=dict[tf]['support_closeness'][1]
-        sit.dynamic_resist_stat=dict[tf]['resist_closeness'][1]
+        sit.dynamic_support_stat=dict[tf]['dynamic_support']['candle_stat']
+        sit.dynamic_resist_stat=dict[tf]['dynamic_resist']['candle_stat']
         sit.fibo_level_retrace_stat=dict[tf]['fibo']['retrace']['stat']
         sit.fibo_level_trend_stat=dict[tf]['fibo']['trend']['stat']
 
@@ -163,29 +168,27 @@ if analysis == '1.0':
                 if candle_stat!=c.Candle_Level_Area_Stat.Nothing:
                     sit.parent_level_stat=candle_stat
                     break
-            sit.parent_dynamic_support_stat,sit.parent_dynamic_resist_stat=helper.Candle_Dynamic_Trend_Stat(candle=candle,supp_data=dict[tf_p]['support_dynamic_trend'],res_data=dict[tf_p]['resist_dynamic_trend'],r_min=0.95,threshold=0.01)
+            sit.parent_dynamic_support_stat,sit.parent_dynamic_resist_stat=helper.Candle_Dynamic_Trend_Stat(candle=candle,supp_data=dict[tf_p]['support_dynamic_trend'],res_data=dict[tf_p]['resist_dynamic_trend'],r_min=0.95,threshold=helper.threshold(tf=tf,thb=1))
 
             sit.fibo_parent_level_retrace_stat=helper.Candle_fibo_levle_stat(candle=candle,levels=dict[tf_p]['fibo']['retrace']['levels'],tf=tf_p,thb=1)
             sit.fibo_parent_level_retrace_dir=dict[tf_p]['fibo']['retrace']['dir']
             sit.fibo_parent_level_trend_stat=helper.Candle_fibo_levle_stat(candle=candle,levels=dict[tf_p]['fibo']['trend']['levels'],tf=tf_p, thb=1)
             sit.fibo_parent_level_trend_dir=dict[tf_p]['fibo']['trend']['dir']
             
-        sit.candle_shapes=helper.Candle_Shapes(candle=candle,tf=tf,thb=1)
+        sit.candle_shapes=helper.Candle_Shapes(candle=candle,th=helper.threshold(tf=tf,thb=2))
         sit.double_bot_happened=dict[tf]['double_bot_level'] 
         sit.double_top_happened=dict[tf]['double_top_level'] 
 
         situations[tf]=sit
 
+        sit_1h_buy=sit.buy_position_01()
+        st.header(f'{tf} - {sit_1h_buy[1]-sit_1h_buy[3]}')
+        st.write(f"Opportunities with point:{sit_1h_buy[1]}")
+        st.write(sit_1h_buy[0])
+        st.write(f"Threats with point:{sit_1h_buy[3]}")
+        st.write(sit_1h_buy[2])
 
 
 
-                    
 
-
-
-
-        
-
-    
-
-    st.write(dict)
+      
