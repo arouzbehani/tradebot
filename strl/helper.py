@@ -16,10 +16,14 @@ from ta.trend import MACD as macd
 from ta.trend import IchimokuIndicator as ichi
 from ta.volume import ForceIndexIndicator as fi
 from statistics import mean
-
-
-local = True
-
+local=True
+try:
+    import subprocess
+    interface = "eth0"
+    ip = subprocess.check_output("ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True).decode().strip()
+    local = ip !=GLOBAL.SERVER_IP
+except:
+    local=True
 
 def GetData(tf, symbol, exch):
     df = None
@@ -745,7 +749,7 @@ def FiboStat(df, fibomode=c.Fibo_Mode.Retracement, threshold=0.01):
                 ratio = last_close/level
                 if abs(1-ratio) <= threshold:
                     stat = c.Candle_Fibo_Stat(f)
-                    break
+                    dir=c.Fibo_Direction.Up
         else:
             if fibomode == c.Fibo_Mode.Retracement:
                 h = last_low_pivot-last_high_pivot
@@ -759,7 +763,6 @@ def FiboStat(df, fibomode=c.Fibo_Mode.Retracement, threshold=0.01):
                 if abs(1-ratio) <= threshold:
                     stat = c.Candle_Fibo_Stat(f)
                     dir=c.Fibo_Direction.Down
-                    break
 
     del fibs
     del pivots
@@ -778,9 +781,9 @@ def Candle_level_stat(level_top, level_bot, candle, threshold=0.015):
     elif (candle.low <= level_top and candle.low >= level_bot):
         return c.Candle_Level_Area_Stat.Touched_Support
     elif (candle.high < level_bot and candle.high >= level_bot-threshold):
-        return c.Candle_Level_Area_Stat.Near_to_Resist
+        return c.Candle_Level_Area_Stat.Near_Resist
     elif (candle.low > level_top and candle.low <= level_top+threshold):
-        return c.Candle_Level_Area_Stat.Near_to_Support
+        return c.Candle_Level_Area_Stat.Near_Support
     else:
         return c.Candle_Level_Area_Stat.Nothing
 

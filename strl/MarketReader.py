@@ -4,6 +4,14 @@ import kucoinMarkets as kc
 import YahooMarket as ym
 import pandas as pd
 
+def GetSymbols(exch='Kucoin',local=False):
+    symbols=[]
+    rel_dir = 'Market Data/{}/{}/'.format(exch,'1h')
+    abs_dir =GLOBAL.ABSOLUTE(rel_dir,local)
+    paths = Path(abs_dir).iterdir()
+    for path in paths:
+        symbols.append(path.name.split('__')[0])
+    return symbols
 
 def GetMarkets(tf,exchangeName='Kucoin',local=False, testdata=False):
     t=0

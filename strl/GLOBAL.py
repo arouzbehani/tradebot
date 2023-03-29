@@ -2,7 +2,7 @@ import os
 
 local_base_dir = 'C:\\Users\\Ahmad\\Desktop\\tradebot\\'
 server_base_dir = '/root/trader_webapp/'
-
+SERVER_IP='51.89.178.202'
 def BASE_DIR(local=False):
     if local : return local_base_dir
     return server_base_dir

@@ -5,7 +5,14 @@ from pathlib import Path
 from streamlit.components.v1 import html
 import streamlit.components.v1 as components
 
-local =False
+local=True
+try:
+    import subprocess
+    interface = "eth0"
+    ip = subprocess.check_output("ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True).decode().strip()
+    local = ip !=GLOBAL.SERVER_IP
+except:
+    local=True
 
 def makelink(c,streaml,exch,tf):
     symbol=c.replace('/','_')

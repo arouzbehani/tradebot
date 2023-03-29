@@ -451,120 +451,33 @@ def getTestData(exch='kucoin',coin='BTC_USDT',tf='1h'):
 # my_instance = MyClass()
 # my_instance.my_function() # prints 10
 # print(my_instance.my_variable) # prints 10
-from datetime import datetime
+# from datetime import datetime
 
-df = pd.read_csv(f"https://query1.finance.yahoo.com/v7/finance/download/BTC-USD?period1={datetime.now()-230*3600}&period2={datetime.now()}&interval=1h&events=history&includeAdjustedClose=true")
-print (df)
+# df = pd.read_csv(f"https://query1.finance.yahoo.com/v7/finance/download/BTC-USD?period1={datetime.now()-230*3600}&period2={datetime.now()}&interval=1h&events=history&includeAdjustedClose=true")
+# print (df)
 
 import pandas as pd
 import numpy as np
-import gc
 
-def pivotid(df1, l, n1, n2):
-    if l-n1 < 0 or l+n2 >= len(df1):
-        return 0
-    pividlow = 1
-    pividhigh = 1
-    for i in range(l-n1, l+n2+1):
-        if (df1.low[l] > df1.low[i]):
-            pividlow = 0
-        if (df1.high[l] < df1.high[i]):
-            pividhigh = 0
-    if pividhigh and pividlow:
-        return 3
-    elif pividlow:
-        return 1
-    elif pividhigh:
-        return 2
-    else:
-        return 0
-
-
-def pointpos(x):
-
-    if x['pivot'] == 1:
-        return x['low']
-    if x['pivot'] == 2:
-        return x['high']
-    else:
-        return np.nan
-
-
-def trendstat(df1, l,short=False):
-    if(short) : return np.nan
-    if (l >= 3):
-        if (df1.loc[l].pivot == 1):
-            if (df1.loc[l].low > df1.loc[l-2].low and df1.loc[l-1].high > df1.loc[l-3].high):
-
-                return "up"
-            elif df1.loc[l].low < df1.loc[l-2].low and df1.loc[l-1].high < df1.loc[l-3].high:
-                return "down"
-            else:
-                return 'side'
-        if (df1.loc[l].pivot == 2):
-            if (df1.loc[l].high > df1.loc[l-2].high and df1.loc[l-1].low > df1.loc[l-3].low):
-                return "up"
-            if (df1.loc[l].high < df1.loc[l-2].high and df1.loc[l-1].low < df1.loc[l-3].low):
-                return "down"
-            else:
-                return 'side'
-    else:
-        return np.nan
-
-def find_pivots(df, left_candles=7, right_candles=7,wn=2,short=False):
-
-    df['init_pivot'] = df.apply(lambda x: pivotid(
-        df, x.name, left_candles, right_candles), axis=1)
-
-    df['pivot'] = np.nan
-    i = 0
-    while i < len(df)-1:
-
-        if (df['init_pivot'][i] == 1):
-            df['pivot'][i] = 1
-            for j in range(i+1, len(df)):
-                if df['init_pivot'][j] == 1:
-                    if df['low'][j] <= df['low'][i]:
-                        df['pivot'][i:j] = np.nan
-                        df['pivot'][j] = 1
-                elif df['init_pivot'][j] == 2:
-                    i = j
-                    break
-            if j == len(df)-1:
-                break
-        elif df['init_pivot'][i] == 2:
-            df['pivot'][i] = 2
-            for j in range(i+1, len(df)):
-                if df['init_pivot'][j] == 2:
-                    if df['high'][j] >= df['high'][i]:
-                        df['pivot'][i:j] = np.nan
-                        df['pivot'][j] = 2
-                elif df['init_pivot'][j] == 1:
-                    i = j
-                    break
-            if j == len(df)-1:
-                break
-
-        else:
-            i += 1
-            
-
-    df2 = df.loc[np.logical_or(
-        df['pivot'] == 1, df['pivot'] == 2)].reset_index()
-
-   
-    df2['pivot_trend'] = df2.apply(lambda x: trendstat(df2, x.name,short=short), axis=1)
-    df2['pivot_power']=df2.apply(lambda x:powerstat(df2,x.name,wn,short=short),axis=1)
-    
-    df['pivot_trend'] = np.nan
-    df['pivot_power'] = np.nan
-
-    for r in range(0, len(df2)):
-        df.loc[df2.loc[r]['index']] = df2.loc[r]
-    df['pointpos'] = df.apply(lambda row: pointpos(row), axis=1)
-
-    del df2
-    gc.collect()
-    return df
-
-
+df=getTestData()
+def pivots(df, n):
+    """
+    This function finds pivots of a candlestick chart in a dataframe with high, low, close,
+    open, and timestamp columns. The code finds pivots that are higher or lower from high/low
+    of n candles left and right. The pivots are arranged in a way that after each high pivot,
+    you see the low pivot and after a low pivot, you see a high pivot.
+    """
+    df['Pivot High'] = df.iloc[:, 1].rolling(window=n).max()
+    df['Pivot Low'] = df.iloc[:, 2].rolling(window=n).min()
+    df['Pivot High'].fillna(value=pd.Series(df['high'].rolling(window=n,
+                        min_periods=1).max()), inplace=True)
+    df['Pivot Low'].fillna(value=pd.Series(df['low'].rolling(window=n,
+                        min_periods=1).min()), inplace=True)
+    df['Pivot'] = np.nan
+    condition = (df['high'] >= df['Pivot High'].shift(1)) & (df['high'] >= df['Pivot High'].shift(-1))
+    df.loc[condition, 'Pivot'] = 'high'
+    condition = (df['low'] <= df['Pivot Low'].shift(1)) & (df['low'] <= df['Pivot Low'].shift(-1))
+    df.loc[condition, 'Pivot'] = 'low'
+    return df[['timestamp', 'open', 'high', 'low', 'close', 'Pivot High', 'Pivot Low', 'Pivot']]
+df2=(pivots(df,6))
+print(df2.tail(20))

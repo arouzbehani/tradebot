@@ -2,7 +2,7 @@ import itertools
 from statistics import mean
 import streamlit as st
 import pandas as pd
-import helper
+import helper,GLOBAL
 import pivot_helper
 import numpy as np
 import plotly.graph_objects as go
@@ -17,8 +17,14 @@ import datetime
 import plotly.figure_factory as ff
 import MarketReader as mr
 
-local = False
-
+local=True
+try:
+    import subprocess
+    interface = "eth0"
+    ip = subprocess.check_output("ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True).decode().strip()
+    local = ip !=GLOBAL.SERVER_IP
+except:
+    local=True
 
 def getTilte():
     q = st.experimental_get_query_params()
