@@ -375,14 +375,14 @@ def TrendDirection(df):
         trend = c.Trend.Narrowing_Side
     del pointpos_df
     del df
-    del down_xs
-    del down_ys
-    del up_xs
-    del up_ys
-    del trend_up_ys
-    del trend_down_ys
+    # del down_xs
+    # del down_ys
+    # del up_xs
+    # del up_ys
+    # del trend_up_ys
+    # del trend_down_ys
     gc.collect()
-    return trend
+    return trend,((down_xs[0],trend_down_ys[0]),(list(down_xs)[-1],trend_down_ys[-1]) ),((up_xs[0],trend_up_ys[0]) ,(list(up_xs)[-1], trend_up_ys[-1]))
 
 
 def PA_Break(df, trend_0, trend_1):
@@ -390,25 +390,28 @@ def PA_Break(df, trend_0, trend_1):
                                'pivot', 'low', 'high'])
     pa_stat = c.PA_Break.Nothing
     isbreak = False
+    break_level=0
 
     if trend_0 == c.Trend.Bearish and trend_1 == c.Trend.Bullish:
         min_low = pointpos_df['low'].values.min()
         high_before_minlow = np.where(np.logical_and(
-            pointpos_df['pivot'] == 1, pointpos_df['low'] == min_low), pointpos_df.shift(-1)['high'], -1).max()
+            pointpos_df['pivot'] == 1, pointpos_df['low'] == min_low), pointpos_df.shift(1)['high'], -1).max()
+        break_level=high_before_minlow
         if df[-1:]['close'].values[0] > high_before_minlow:
             pa_stat = c.PA_Break.Bearish_Break_Up
             isbreak = True
     elif trend_0 == c.Trend.Bullish and trend_1 == c.Trend.Bearish:
         max_high = pointpos_df['high'].values.max()
         min_befor_max_high = np.where(np.logical_and(
-            pointpos_df['pivot'] == 2, pointpos_df['high'] == max_high), pointpos_df.shift(-1)['low'], -1).max()
+            pointpos_df['pivot'] == 2, pointpos_df['high'] == max_high), pointpos_df.shift(1)['low'], -1).max()
+        break_level=min_befor_max_high
         if df[-1:]['close'].values[0] < min_befor_max_high:
             pa_stat = c.PA_Break.Bullish_Break_Down
             isbreak = True
     del pointpos_df
     del df
     gc.collect()
-    return pa_stat, isbreak
+    return pa_stat, isbreak,break_level
 
 
 def are_close(num1, num2, threshold):
@@ -597,11 +600,11 @@ def ReturnTrend_From_Comb(comb, bounds):
 
 def Return_Combo(xs, ys, n, r_min):
     last_x = xs[-1]
-    # one_last_x=xs[-2:-1].values[0]
+    one_last_x=xs[-2:-1][0]
     # two_last_x=xs[-2:-1].values[0]
     combs = list(itertools.combinations(list(zip(xs, ys)), n))
     sorted_combs = sorted(combs, key=lambda c: r2(c), reverse=True)
-    filtered_combs = [c for c in combs if c[-1][0] == last_x and r2(c) > r_min]
+    filtered_combs = [c for c in combs if c[-1][0] == last_x and one_last_x==c[-2][0] and r2(c) > r_min]
     if filtered_combs:
         # return the first element of filtered_combs as the best fitting combination
         return filtered_combs[0]

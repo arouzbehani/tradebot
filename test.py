@@ -481,3 +481,5 @@ def pivots(df, n):
     return df[['timestamp', 'open', 'high', 'low', 'close', 'Pivot High', 'Pivot Low', 'Pivot']]
 df2=(pivots(df,6))
 print(df2.tail(20))
+
+

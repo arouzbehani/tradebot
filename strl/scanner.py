@@ -14,23 +14,29 @@ except:
 
 def Scan(exch='Kucoin'):
     results={}
-    counter=0
     symbols=mr.GetSymbols(local=local)
+    tfs=['1d','4h','1h','15m']
+    if exch=='Yahoo':
+        tfs=['1d','90m','60m','15m']
+
     for s in symbols:
         try:
+            results[s]=[]
             analyzer=a.Analyzer()
-            analyzer.init_data(tfs=['1d','4h','1h','15m'], symbol=s,exch=exch)
-            buy_data_4h=analyzer.report_buy('4h')
-            buy_data_1h=analyzer.report_buy('1h')
-            buy_data_15m=analyzer.report_buy('15m')
-            results[s]=[buy_data_4h[5],buy_data_1h[5],buy_data_15m[5]]
-            print(f'{s} 1h points: {buy_data_1h[5]} ---- 15m points: {buy_data_15m[5]}')
+            analyzer.init_data(tfs=tfs, symbol=s,exch=exch)
+            str=''
+            for x in range(len(tfs)):
+                buy_sell_data=analyzer.buy_sell(tfs[x])
+                total_point=buy_sell_data['buy'].calc_points()-buy_sell_data['sell'].calc_points()
+                results[s].append(total_point)
+                str +=f'{s} {tfs[x]} points: {total_point} ---- '
+            print(str)
             # counter +=1
             # if counter>1 : break
         except:
             print(f'Error on {s}')
     df = pd.DataFrame.from_dict(results,orient='index')
-    df.columns = ['4h point', '1h point', '15m point']
+    df.columns = [tf + ' point' for tf in tfs]
     df.index.name = 'Symbol'
     df = df.sort_values(by='1h point', ascending=False)
     now = datetime.datetime.now()

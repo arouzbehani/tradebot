@@ -47,7 +47,7 @@ def table(df,exchange='Kucoin',sq='sma entry'):
     # streaml='http://localhost:8501/'
     streaml='http://trader.baharsoft.com:8100/'
 
-    pretty = df[['Symbol', '4h point','1h point','15m point']]
+    pretty = df[['Symbol', '1d point', '4h point','1h point','15m point']]
     pretty['url']=pretty['Symbol'].apply(makelink,streaml=streaml,exch=exchange)
     pretty['Symbol'] = pretty.apply(lambda x: make_clickable(x['url'],x['Symbol']), axis=1)
     # pretty.style

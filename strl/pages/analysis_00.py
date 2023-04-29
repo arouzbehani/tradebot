@@ -7,7 +7,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 # from statistics import mean
 # import plotly.graph_objects as go
-import numpy as np
+# import numpy as np
 import pandas as pd
 # from talibHelper import AllPatterns as alp
 # from sklearn.linear_model import LinearRegression
@@ -38,7 +38,7 @@ st.markdown("""
         </style>
         """, unsafe_allow_html=True)
 
-tf='1h'
+tf='1d'
 symbol = 'FTM_USDT'
 exch = 'Kucoin'
 
@@ -122,35 +122,26 @@ def DrawCandleSticks(df,df2,both=True):
             return fig
 
 
-def fillcol(label):
-    if label >= 1:
-        return 'rgba(236,245,236,0.4)'
-    else:
-        return 'rgba(232,178,178,0.4)'
 
 def DoAnalysis():
     #tf='1h'
     analyzer=a.Analyzer()
     analyzer.init_data(tfs=tfs,exch=exch,symbol=symbol,trend_limit_long=trend_limit_long,trend_limit_short=trend_limit_short,long_term_pivot_candles=long_term_pivot_candles,short_term_pivot_candles=short_term_pivot_candles,
                     pvt_trend_number=pvt_trend_number,waves_number=waves_number)
-    sit=s.Situation()
+    #sit_1h=s.Situation()
     sit=analyzer.situations[tf]
-    dict_buy_sell=analyzer.buy_sell(tf)
-    buy_pars=s.Parametrs()
-    sell_pars=s.Parametrs()
-    buy_pars=dict_buy_sell['buy']
-    sell_pars=dict_buy_sell['sell']
-    total_point=buy_pars.calc_points()-sell_pars.calc_points()
-    st.header(f'{tf} Total Point: {total_point}')
-    st.markdown("""---""")
-   
+    header,op_point,op,thr_point,thr,point=analyzer.report_buy(tf)
+    st.header(header)
     df=sit.long_term_df
     df2=sit.short_term_df
-    ################################################################## Price Action Trend ######################################################################################
-    st.subheader('Price Action Trend')
-    st.write(f'Buy Point: {buy_pars.price_action_trend[0]*buy_pars.price_action_trend[1]}')
-    st.write(f'Sell Point: {sell_pars.price_action_trend[0] * sell_pars.price_action_trend[1]}')
-    
+    ################################################################## Current Trend ######################################################################################
+    if op['Bullish Trend'] : 
+        st.subheader('Bullish Trend')
+        st.write('1 Point')
+    if thr['Bearish Trend'] : 
+        st.subheader('Bearish Trend')
+        st.write('-1 Point')
+
 
     fig=DrawCandleSticks(df,df2)
     trend_points=[sit.short_trend_points,sit.long_trend_points]
@@ -185,14 +176,11 @@ def DoAnalysis():
     fig.update_layout(xaxis_rangeslider_visible=False,
                         height=450)
     st.plotly_chart(fig, use_container_width=True)
-    st.markdown("""---""")
 
     ################################################################## Static Levels ######################################################################################
-
     hraders_levels=['Current Static Levels','Parent Static Levels']
+    ops_levels=['Candle Above Static Level','Candle Above Parent Static Level']
     static_levels=[sit.static_levels]
-    static_buy_points=[buy_pars.static_SR_closeness[0]*buy_pars.static_SR_closeness[1],buy_pars.static_SR_closeness_parent[0]*buy_pars.static_SR_closeness_parent[1]]
-    static_sell_points=[sell_pars.static_SR_closeness[0]*sell_pars.static_SR_closeness[1],sell_pars.static_SR_closeness_parent[0]*sell_pars.static_SR_closeness_parent[1]]
     if sit.parent_static_levels !=[]:
         static_levels.append(sit.parent_static_levels)
     max_level=df2['high'].values.max()
@@ -200,9 +188,10 @@ def DoAnalysis():
 
     for i in range(0,len(static_levels)):
         st.subheader(hraders_levels[i])
-        st.write(f'Buy Point: {static_buy_points[i]}')
-        st.write(f'Sell Point: {static_sell_points[i]}')
-
+        if op[ops_levels[i]]:
+            st.write('0.5 Point')
+        else:
+            st.write('0 Point')
         fig=DrawCandleSticks(df,df2,both=False)
         for l in static_levels[i]:
             if l[1]<=max_level and l[0]>=min_level:
@@ -218,90 +207,40 @@ def DoAnalysis():
         fig.update_layout(xaxis_rangeslider_visible=False,
                             height=450)
         st.plotly_chart(fig, use_container_width=True)
-    st.markdown("""---""")
 
     ################################################################## Dynamic Support/Resistant ######################################################################################
 
-    hraders_SR=['Dynamic SR','Parent Dynamic SR']
-    dynamic_sr_buy_points=[buy_pars.dynamic_SR_closeness[0]*buy_pars.dynamic_SR_closeness[1],buy_pars.dynamic_SR_closeness_parrent[0]*buy_pars.dynamic_SR_closeness_parrent[1]]
-    dynamic_sr_sell_points=[sell_pars.dynamic_SR_closeness[0]*sell_pars.dynamic_SR_closeness[1],sell_pars.dynamic_SR_closeness_parrent[0]*sell_pars.dynamic_SR_closeness_parrent[1]]
+    st.subheader('Candle Above Dynamic Support')
+    if op['Near Support']:
+        st.write('1.5 point')
+    else:
+        st.write('0 point')
 
-    lines=[[sit.dynamic_support_line,sit.dynamic_resist_line]]
-    if sit.dynamic_support_line_parent!={} and sit.dynamic_resist_line_parent!={}:
-          lines.append([sit.dynamic_support_line_parent,sit.dynamic_resist_line_parent])
-    legends=['Dynamic Support','Dynamic Resist']
-    colors=['#52b47f','#e05293']
-    xs=[df2.iloc[0].timestamp,df2.iloc[-1].timestamp]
-    for i in range(0,len(lines)):
-        st.subheader(hraders_SR[i])
-        st.write(f'Buy Point: {dynamic_sr_buy_points[i]}')
-        st.write(f'Sell Point: {dynamic_sr_sell_points[i]}')
+    fig=DrawCandleSticks(df,df2,both=False)
+    sup_xs=[df2.iloc[0].timestamp,df2.iloc[-1].timestamp]
+    sup_ys_start=sit.dynamic_support_line['p0_y']-(sit.dynamic_support_line['p0_x']-sup_xs[0])*sit.dynamic_support_line['m']
+    sup_ys_end=sit.dynamic_support_line['p0_y']+(sup_xs[1]-sit.dynamic_support_line['p0_x'])*sit.dynamic_support_line['m']
+    sup_ys=[sup_ys_start,sup_ys_end]
+    sup_xs_time=pd.to_datetime(sup_xs,unit='ms')
+    fig.add_trace(
+    go.Scatter(x=sup_xs_time, y=sup_ys, line=dict(
+        color="#e05293",width=0.55), name=f'Dynamic Support, R2={sit.dynamic_support_line["r2"]}'), row=1, col=1
+    )
 
-        fig=DrawCandleSticks(df,df2,both=False)
-        for j in range(0,2):
-            ys_start=lines[i][j]['p0_y']-(lines[i][j]['p0_x']-xs[0])*lines[i][j]['m']
-            ys_end=lines[i][j]['p0_y']+(xs[1]-lines[i][j]['p0_x'])*lines[i][j]['m']
-            ys=[ys_start,ys_end]
-            xs_time=pd.to_datetime(xs,unit='ms')
-            fig.add_trace(
-            go.Scatter(x=xs_time, y=ys, line=dict(
-                color=f"{colors[j]}",width=0.55), name=f'{legends[j]}, R2={lines[i][j]["r2"]}'), row=1, col=1
-            )
-
-        fig.update_layout(xaxis_rangeslider_visible=False,
-                            height=450)
-        st.plotly_chart(fig, use_container_width=True)
+    fig.update_layout(xaxis_rangeslider_visible=False,
+                        height=450)
+    st.plotly_chart(fig, use_container_width=True)
 
     ################################################################## Current Ichi Moko ######################################################################################
-    hraders_ichi=['Ichi Moku Status','Parent Ichi Moku Status']
-    ichi_buy_points=[buy_pars.ichi_location[0]*buy_pars.ichi_location[1],buy_pars.ichi_location_parent[0]*buy_pars.ichi_location_parent[1]]
-    ichi_sell_points=[sell_pars.ichi_location[0]*sell_pars.ichi_location[1],sell_pars.ichi_location_parent[0]*sell_pars.ichi_location_parent[1]]
-    dfs=[[df2,df2.copy()]]
-    if len(sit.short_term_df_parent)>0:
-        dfs.append([sit.short_term_df_parent, sit.short_term_df_parent.copy()])
-    for i in range(len(dfs)):
-        st.subheader(hraders_ichi[i])
-        st.write(f'Buy Point: {ichi_buy_points[i]}')
-        st.write(f'Sell Point: {ichi_sell_points[i]}')
-        fig=DrawCandleSticks(dfs[i][0],dfs[i][0],both=False)
-        df_copy = dfs[i][1]
-        helper.append_ichi(dfs[i][0])
+    st.subheader('Ichi Moko Status')
 
-        df_copy['label'] = np.where(dfs[i][0]['ich_moku_color'] > 0, 1, 0)
-        df_copy['group'] = df_copy['label'].ne(
-            df_copy['label'].shift()).cumsum()
-        df_copy = df_copy.groupby('group')
-        all_dfs = []
-        for name, data in df_copy:
-            all_dfs.append(data)
-        for d in all_dfs:
-            fig.add_trace(
-                go.Scatter(x=d['time'], y=d['ich_a'], name='trace', line=dict(color="white", width=0), mode='lines'), row=1, col=1,
-            )
-            fig.add_trace(
-                go.Scatter(x=d['time'], y=d['ich_b'], fill='tonexty', fillcolor=fillcol(d['label'].iloc[0]), name='trace', line=dict(color="white", width=0), mode='lines'), row=1, col=1
-            )
-        for trace in fig['data']:
-            if (trace['name'] == 'trace'):
-                trace['showlegend'] = False
+    if (op['Above Ichi']==True):
+        st.write('0.3 point')
+    else:
+        st.write('0 point')
 
-        fig.add_trace(
-            go.Scatter(x=dfs[i][0]['time'], y=dfs[i][0]['ich_a'], name='span a', line=dict(color="green", width=0.7)), row=1, col=1
-        )
-        fig.add_trace(
-            go.Scatter(x=dfs[i][0]['time'], y=dfs[i][0]['ich_b'], name='span b', line=dict(color="red", width=0.7)), row=1, col=1
-        )
 
-        fig.add_trace(
-            go.Scatter(x=dfs[i][0]['time'], y=dfs[i][0]['ich_base_line'], name='ichi_base_line', line=dict(color="blue", width=1)), row=1, col=1
-        )
-        fig.add_trace(
-            go.Scatter(x=dfs[i][0]['time'], y=dfs[i][0]['ich_conversion_line'], name='ichi_conversion_line', line=dict(color="red", width=1)), row=1, col=1
-        )
-        fig.update_layout(xaxis_rangeslider_visible=False,
-                            height=450)
-        st.plotly_chart(fig, use_container_width=True)
-
+    # if st.button("Draw Points"):
         
         
 
