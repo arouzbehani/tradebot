@@ -55,13 +55,13 @@ class Situation:
         self.short_trend_stat=c.Trend.Nothing
         
 
-        self.dynamic_support_stat=c.Candle_Dynamic_SR_Stat.Nothing
+        self.dynamic_support_stats=[]
         self.dynamic_support_line={}
-        self.dynamic_resist_stat=c.Candle_Dynamic_SR_Stat.Nothing
+        self.dynamic_resist_stats=[]
         self.dynamic_resist_line={}
-        self.parent_dynamic_support_stat=c.Candle_Dynamic_SR_Stat.Nothing
+        self.parent_dynamic_support_stats=[]
         self.dynamic_support_line_parent={}
-        self.parent_dynamic_resist_stat=c.Candle_Dynamic_SR_Stat.Nothing
+        self.parent_dynamic_resist_stats=[]
         self.dynamic_resist_line_parent={}
 
         self.ichi_stat=c.Ichi_Stat.Nothing
@@ -71,11 +71,11 @@ class Situation:
         self.sma_21_stat=c.SMA_Stat.Above
         self.sma_10_stat=c.SMA_Stat.Above
 
-        self.static_level_stat=c.Candle_Level_Area_Stat.Nothing
-        self.parent_level_stat=c.Candle_Level_Area_Stat.Nothing
+        self.static_level_stats=[]
+        self.parent_level_stats=[]
         self.static_levels=[]
         self.parent_static_levels=[]
-
+        self.last_candles_diection=c.Candles_Direction.Side
         self.fibo_level_retrace_stat=c.Candle_Fibo_Stat.Nothing
         self.fibo_level_trend_stat=c.Candle_Fibo_Stat.Nothing
         self.fibo_level_retrace_dir=c.Fibo_Direction.Up
@@ -109,7 +109,8 @@ class Situation:
         self.rsi_convergence_down=False
         self.rsi_below_35_happened=False
         self.rsi_above_65_happened=False
-    
+
+        
     def break_important_level_up(self):
         return self.parent_level_stat==c.Candle_Level_Area_Stat.Broke_Resist
     def break_important_level_down(self):
@@ -194,28 +195,45 @@ class Situation:
         buy_pars=Parametrs()
         sell_pars=Parametrs()
         
+##      Trend Status
+
         if self.current_trend_stat==c.Trend.Bullish:
             buy_pars.price_action_trend[1]=True
         if self.current_trend_stat==c.Trend.Bearish:
             sell_pars.price_action_trend[1]=True
 
-        if self.dynamic_support_stat==c.Candle_Dynamic_SR_Stat.Low_Above_Support and self.candle_shapes.__contains__(c.Candle_Shape.Small):
+##      Dynamic Support/Resistance Closeness
+        
+        dcst=c.Candle_Dynamic_SR_Stat
+        dynamic_support_rules=[dcst.Close_Near_Support,dcst.Open_Near_Support,dcst.Shadow_Near_Support]
+        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.dynamic_support_stats for i in dynamic_support_rules):
             buy_pars.dynamic_SR_closeness[1]=True
-        if self.parent_dynamic_support_stat==c.Candle_Dynamic_SR_Stat.Low_Above_Support and self.candle_shapes.__contains__(c.Candle_Shape.Small):
+        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.parent_dynamic_support_stats for i in dynamic_support_rules):
             buy_pars.dynamic_SR_closeness_parrent[1]=True
-        if self.dynamic_resist_stat==c.Candle_Dynamic_SR_Stat.High_Below_Resist and self.candle_shapes.__contains__(c.Candle_Shape.Small):
+
+        dynamic_resist_rules=[dcst.Close_Near_Resist,dcst.Open_Near_Resist,dcst.Shadow_Near_Resist]
+        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.dynamic_resist_stats for i in dynamic_resist_rules):
             sell_pars.dynamic_SR_closeness[1]=True
-        if self.parent_dynamic_resist_stat==c.Candle_Dynamic_SR_Stat.High_Below_Resist and self.candle_shapes.__contains__(c.Candle_Shape.Small):
+        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.parent_dynamic_resist_stats for i in dynamic_resist_rules):
             sell_pars.dynamic_SR_closeness_parrent[1]=True
 
-        if self.static_level_stat==c.Candle_Level_Area_Stat.Near_Support or self.static_level_stat==c.Candle_Level_Area_Stat.Closed_In_Support:
+
+##      Static Support/Resistance Closeness
+
+        cst=c.Candle_Level_Area_Stat
+        static_support_rules=[cst.Closed_Near_Support,cst.Closed_In_Support,cst.Shadow_In_Support,cst.Shadow_Near_Support,cst.Opened_In_Support,cst.Opened_Near_Support]
+        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.static_level_stats for i in static_support_rules):
             buy_pars.static_SR_closeness[1]=True
-        if self.parent_level_stat==c.Candle_Level_Area_Stat.Near_Support or self.parent_level_stat==c.Candle_Level_Area_Stat.Closed_In_Support:
+        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.parent_level_stats for i in static_support_rules):
             buy_pars.static_SR_closeness_parent[1]=True
-        if self.static_level_stat==c.Candle_Level_Area_Stat.Near_Resist or self.static_level_stat==c.Candle_Level_Area_Stat.Closed_In_Resist:
+
+        static_resist_rules=[cst.Closed_Near_Resist,cst.Closed_In_Resist,cst.Shadow_In_Resist,cst.Shadow_Near_Resist,cst.Opened_In_Resist,cst.Opened_Near_Resist]
+        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.static_level_stats for i in static_resist_rules):
             sell_pars.static_SR_closeness[1]=True
-        if self.parent_level_stat==c.Candle_Level_Area_Stat.Near_Resist or self.parent_level_stat==c.Candle_Level_Area_Stat.Closed_In_Resist:
+        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.parent_level_stats for i in static_resist_rules):
             sell_pars.static_SR_closeness_parent[1]=True
+
+##      Ichi Status
 
         if self.ichi_stat==c.Ichi_Stat.Above_Green :
             buy_pars.ichi_location[1]=True
@@ -225,11 +243,15 @@ class Situation:
             sell_pars.ichi_location[1]=True
         if self.ichi_parent_stat==c.Ichi_Stat.Below_Green :
             sell_pars.ichi_location_parent[1]=True
+
+ ##     Double Bot/Top Status
         
         if self.double_bot_happened !=0:
             buy_pars.double_hits[1]=True
         if self.double_top_happened !=0:
             sell_pars.double_hits[1]=True
+
+##      SMA 10 / 50 Status
 
         if self.sma_10_50_cross_up_happened:
             buy_pars.sma_50_10[1]=True

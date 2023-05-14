@@ -459,27 +459,40 @@ def getTestData(exch='kucoin',coin='BTC_USDT',tf='1h'):
 import pandas as pd
 import numpy as np
 
-df=getTestData()
-def pivots(df, n):
-    """
-    This function finds pivots of a candlestick chart in a dataframe with high, low, close,
-    open, and timestamp columns. The code finds pivots that are higher or lower from high/low
-    of n candles left and right. The pivots are arranged in a way that after each high pivot,
-    you see the low pivot and after a low pivot, you see a high pivot.
-    """
-    df['Pivot High'] = df.iloc[:, 1].rolling(window=n).max()
-    df['Pivot Low'] = df.iloc[:, 2].rolling(window=n).min()
-    df['Pivot High'].fillna(value=pd.Series(df['high'].rolling(window=n,
-                        min_periods=1).max()), inplace=True)
-    df['Pivot Low'].fillna(value=pd.Series(df['low'].rolling(window=n,
-                        min_periods=1).min()), inplace=True)
-    df['Pivot'] = np.nan
-    condition = (df['high'] >= df['Pivot High'].shift(1)) & (df['high'] >= df['Pivot High'].shift(-1))
-    df.loc[condition, 'Pivot'] = 'high'
-    condition = (df['low'] <= df['Pivot Low'].shift(1)) & (df['low'] <= df['Pivot Low'].shift(-1))
-    df.loc[condition, 'Pivot'] = 'low'
-    return df[['timestamp', 'open', 'high', 'low', 'close', 'Pivot High', 'Pivot Low', 'Pivot']]
-df2=(pivots(df,6))
-print(df2.tail(20))
+# df=getTestData()
+# def pivots(df, n):
+#     """
+#     This function finds pivots of a candlestick chart in a dataframe with high, low, close,
+#     open, and timestamp columns. The code finds pivots that are higher or lower from high/low
+#     of n candles left and right. The pivots are arranged in a way that after each high pivot,
+#     you see the low pivot and after a low pivot, you see a high pivot.
+#     """
+#     df['Pivot High'] = df.iloc[:, 1].rolling(window=n).max()
+#     df['Pivot Low'] = df.iloc[:, 2].rolling(window=n).min()
+#     df['Pivot High'].fillna(value=pd.Series(df['high'].rolling(window=n,
+#                         min_periods=1).max()), inplace=True)
+#     df['Pivot Low'].fillna(value=pd.Series(df['low'].rolling(window=n,
+#                         min_periods=1).min()), inplace=True)
+#     df['Pivot'] = np.nan
+#     condition = (df['high'] >= df['Pivot High'].shift(1)) & (df['high'] >= df['Pivot High'].shift(-1))
+#     df.loc[condition, 'Pivot'] = 'high'
+#     condition = (df['low'] <= df['Pivot Low'].shift(1)) & (df['low'] <= df['Pivot Low'].shift(-1))
+#     df.loc[condition, 'Pivot'] = 'low'
+#     return df[['timestamp', 'open', 'high', 'low', 'close', 'Pivot High', 'Pivot Low', 'Pivot']]
+# df2=(pivots(df,6))
+# print(df2.tail(20))
+
+# tfs = ['1d', '4h', '1h', '15m']
+# tfs = ['1d', '4h', '1h', '15m']
+# index = tfs.index('1h')
+# result = tfs[index-1:index+1] if index > 0 else [tfs[0]]
+# print(result)
 
 
+a = [1,2,3,4,5,6,7,8,9]
+b = [40,50,60,80,0]
+
+if any(i in b for i in a):
+    print("b contains an element of a")
+else:
+    print("b does not contain any element of a")

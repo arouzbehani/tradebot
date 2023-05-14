@@ -122,6 +122,7 @@ def fillcol(label):
         return 'rgba(232,178,178,0.4)'
 
 
+
 def DrawChart(limit=500, read_patterns=False, read_rsi=False, read_bb=True, read_sma=False, read_ichi=True, read_ema=False, read_vol=True, read_fi=False, chart_height=800,
               entry_signals=True, exit_signals=False, entry_signal_mode='All', left_candles=3, right_candles=3, waves_number=3,resistance_trend=False,support_trend=False,npiv=3):
     # symbol = 'BTC_USDT'

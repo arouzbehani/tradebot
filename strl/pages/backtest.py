@@ -1,9 +1,13 @@
 import streamlit as st
 import helper
+import pivot_helper
 import pandas as pd
 import trader_model as tm
 import numpy as np
-
+import analaysis_constants as ac
+import analyzer as a
+import situations as s
+import chart_helper as chh
 st. set_page_config(layout="wide")
 st.markdown("""
 
@@ -30,25 +34,29 @@ end_test=400
 
 st.sidebar.title("Settings: ")
 with st.sidebar:
-    strategy=st.selectbox("Choose Strategy:",['sma','ema'])
+    strategy=st.selectbox("Choose Strategy:",['SMA','Analysis'])
     match strategy:
-        case 'sma':
+        case 'SMA':
             take_proft_opt=st.radio('Taking Profit Method:',['By Strategy','Manually'])
             if(take_proft_opt=='Manually'):
                 takeprofit=st.number_input('Take Profit (%):',value=7,min_value=1)
             else:
                 takeprofit=0
             stoploss=st.number_input('Stop Loss (%):',value=7,min_value=1)
-
+        case 'Analysis':
+            candles_back=st.number_input("Candles Back:",min_value=10,max_value=100,value=50)
 q = st.experimental_get_query_params()
-coin='BTC_USDT'
+symbol='BTC_USDT'
 tf='1h'
 if (q.__contains__('symbol')):
-    coin = q['symbol'][0]
+    symbol = q['symbol'][0]
 if (q.__contains__('tf')):
     tf=q['tf'][0]
 exch='Kucoin'
-init_df=helper.GetData(tf,coin,exch)
+init_df=helper.GetData(tf,symbol,exch)
+
+
+
 def Run_sma_Strategy(x)-> tm.TradingEnv:
     fee=0.99875
     env=tm.TradingEnv(balance_amount=100,balance_unit='USDT',trading_fee_multiplier=fee)
@@ -77,8 +85,8 @@ def Run_sma_Strategy(x)-> tm.TradingEnv:
         open_price = df_crop.loc[i,"open"]
         if(buying==False):
             if not pd.isna(df_crop.loc[i,"sma_entry_signal"]):
-                env.buy(symbol=coin,buy_price=open_price,time=time)
-                transaction=tm.Transaction(coin=coin,buy_time=time,buy_price=open_price,signal_time=time)
+                env.buy(symbol==symbol,buy_price=open_price,time=time)
+                transaction=tm.Transaction(coin=symbol,buy_time=time,buy_price=open_price,signal_time=time)
                 buying=True
             else:
                 continue
@@ -118,15 +126,56 @@ def Run_sma_Strategy(x)-> tm.TradingEnv:
 
 
     # st.text(f"fee:{fee} ; profit:{profit} ; stoploss:{stoploss}")
+def DrawAnaylsisChart():
+    tfs = ['1d','4h', '1h','15m']
+    totalpoints={}
+    totalpoints[tf]=[]
+    df=helper.GetData(tf=tf,symbol=symbol,exch=exch)
+    df_long = df[-ac.Long_Term_Trend_Limit-candles_back:-candles_back].reset_index(drop=True)
+    df_short = df[-ac.Short_Term_Trend_Limit-candles_back:-candles_back].reset_index(drop=True)
+    df_long= pivot_helper.find_pivots(
+    df_long, ac.Long_Term_Candles, ac.Long_Term_Candles, ac.PA_Power_Calc_Waves, short=True)
+    df_short= pivot_helper.find_pivots(
+    df_short, ac.Short_Term_Candles, ac.Short_Term_Candles, ac.PA_Power_Calc_Waves, short=True)
+    fig=chh.DrawCandleSticks(df_short,df_short,both=False,symbol=symbol)
+    index = tfs.index(tf)
+    filtered_tfs = tfs[index-1:index+1] if index > 0 else [tfs[0]]
+    # [t for t in tfs if t=='4h' or t=='1h']
+    # for t in tfs:
+    df_short[f'{tf} point']=0
+
+    for i in range(candles_back-1,0,-1):
+        # df_short.iloc[len(df_short)-i, df_short.columns.get_loc(f'{tf} point')]=3
+
+        analyzer=a.Analyzer()
+        analyzer.init_data(tfs=filtered_tfs,exch=exch,symbol=symbol,trend_limit_long=ac.Long_Term_Trend_Limit,
+                            trend_limit_short=ac.Short_Term_Trend_Limit,long_term_pivot_candles=ac.Long_Term_Candles,
+                            short_term_pivot_candles=ac.Short_Term_Candles,
+                            pvt_trend_number=ac.Pivot_Trend_Number,waves_number=ac.PA_Power_Calc_Waves,candles_back=i)
+        sit=s.Situation()
+        sit=analyzer.situations[tf]
+        dict_buy_sell=analyzer.buy_sell(tf)
+        buy_pars=s.Parametrs()
+        sell_pars=s.Parametrs()
+        buy_pars=dict_buy_sell['buy']
+        sell_pars=dict_buy_sell['sell']
+        df_short.iloc[len(df_short)-i, df_short.columns.get_loc(f'{tf} point')]=buy_pars.calc_points()-sell_pars.calc_points()
+    
+    chh.AppendLineChart(fig=fig,xs=df_short['time'],ys=df_short[f'{tf} point'],col=1,row=2)
+    fig.update_layout(xaxis_rangeslider_visible=False,
+                        height=450)
+    st.plotly_chart(fig, use_container_width=True)
+
 st.title(f"{strategy} Strategy")            
-if st.button('Run sma Strategy'):
-    x=[takeprofit,stoploss]
-    env=Run_sma_Strategy(x)
-    st.text(f"Balance: {env.balance_amount} unit:{env.balance_unit}")
-    st.text(f"Total Profit: {round(env.balance_amount-100,2)} %")
-    st.dataframe(env.dataframe())
+if st.button('Run Strategy'):
+    if strategy=='SMA':
+        x=[takeprofit,stoploss]
+        env=Run_sma_Strategy(x)
+        st.text(f"Balance: {env.balance_amount} unit:{env.balance_unit}")
+        st.text(f"Total Profit: {round(env.balance_amount-100,2)} %")
+        st.dataframe(env.dataframe())
+    if strategy=='Analysis':
+        DrawAnaylsisChart()
+    
 
 
-# main.DrawChart(limit=500, read_vol=False, read_bb=False,
-#           read_ema=False, read_sma=True, read_patterns=False, read_rsi=False,
-#           entry_signals=True,entry_signal_mode='All')

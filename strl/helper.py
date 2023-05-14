@@ -384,6 +384,11 @@ def TrendDirection(df):
     gc.collect()
     return trend,((down_xs[0],trend_down_ys[0]),(list(down_xs)[-1],trend_down_ys[-1]) ),((up_xs[0],trend_up_ys[0]) ,(list(up_xs)[-1], trend_up_ys[-1]))
 
+def threshold(tf,thb=1,avg_price=1):
+    return thb
+    tfs={'1w':10,'1d':5,'4h':2.0,'90m':1.2,'1h':1.0,'60m':1.0,'15m':0.5,'5m':0.2,'1m':0.1}
+
+    return tfs[tf]*thb/100*avg_price
 
 def PA_Break(df, trend_0, trend_1):
     pointpos_df = pd.DataFrame(data=df[~pd.isnull(df['pointpos'])], columns=[
@@ -415,10 +420,10 @@ def PA_Break(df, trend_0, trend_1):
 
 
 def are_close(num1, num2, threshold):
-    maxabs = max(abs(num1), abs(num2))
-    if maxabs == 0:
+    minabs = min(abs(num1), abs(num2))
+    if minabs == 0:
         return True
-    return abs(num1 - num2) / maxabs <= threshold
+    return abs(num1 - num2) / minabs <= threshold
 
 
 def close_nums(nums, threshold):
@@ -462,7 +467,7 @@ def GetImportantLevels(df, threshold=0.01, combined=True):
         level_areas = []
         for g in groups:
             mean_g = mean(g)
-            level_areas.append((mean_g-threshold/2, mean_g+threshold/2))
+            level_areas.append((mean_g*(1-threshold/2), mean_g*(1+threshold/2)))
 
         del pointpos_df
         del pivots
@@ -476,11 +481,11 @@ def GetImportantLevels(df, threshold=0.01, combined=True):
         low_level_areas = []
         for g in low_groups:
             mean_g = mean(g)
-            low_level_areas.append((mean_g-threshold/2, mean_g+threshold/2))
+            low_level_areas.append((mean_g*(1-threshold/2), mean_g*(1+threshold/2)))
         high_level_areas = []
         for g in high_groups:
             mean_g = mean(g)
-            high_level_areas.append((mean_g-threshold/2, mean_g+threshold/2))
+            high_level_areas.append((mean_g*(1-threshold/2), mean_g*(1+threshold/2)))
 
         del pointpos_df
         del pivots_low
@@ -634,69 +639,50 @@ def Return_Trend_From_DF(df, r_min, n, mode=1):
     return trend_x[0], trend_y[0], m, r2
 
 
-def Candle_Dynamic_Trend_Stat(candle, supp_data,res_data, threshold=0.01, r_min=0.92):
-    candle_support_stat = c.Candle_Dynamic_SR_Stat.Nothing
-    candle_resist_stat = c.Candle_Dynamic_SR_Stat.Nothing
+def Candle_Dynamic_Trend_Stat(candle, supp_data,res_data,last_candles_diection, threshold=0.01, r_min=0.92):
+    candle_support_stats=[]
+    candle_resist_stats=[] 
+    if last_candles_diection==c.Candles_Direction.Bearish:
+        if supp_data['r2'] >= r_min:
+            supp_last = supp_data['m']*(candle.timestamp - supp_data['p0_x'])+supp_data['p0_y']
 
-    if supp_data['r2'] >= r_min:
-        supp_last = supp_data['m']*(candle.timestamp - supp_data['p0_x'])+supp_data['p0_y']
+            p_open_supp=(max(candle.open,supp_last)-min(candle.open,supp_last))/min(candle.open,supp_last)
+            p_close_supp=(max(candle.close,supp_last)-min(candle.close,supp_last))/min(candle.close,supp_last)
+            p_high_supp=(max(candle.high,supp_last)-min(candle.high,supp_last))/min(candle.high,supp_last)
+            p_low_supp=(max(candle.low,supp_last)-min(candle.low,supp_last))/min(candle.low,supp_last)
 
-        open_from_support = ((candle.open/supp_last))
-        close_from_support = ((candle.close/supp_last))
-        high_from_support = ((candle.high/supp_last))
-        low_from_support = ((candle.low/supp_last))
+            if p_close_supp <= threshold:
+                candle_support_stats.append(c.Candle_Dynamic_SR_Stat.Close_Near_Support)
+            if p_open_supp <= threshold:
+                candle_support_stats.append(c.Candle_Dynamic_SR_Stat.Open_Near_Support)
+            if p_high_supp <= threshold or p_low_supp <=threshold:
+                candle_support_stats.append(c.Candle_Dynamic_SR_Stat.Shadow_Near_Support)
+    elif last_candles_diection==c.Candles_Direction.Bullish:
+        if res_data['r2'] >= r_min:
+            res_last = res_data['m']*(candle.timestamp - res_data['p0_x'])+res_data['p0_y']
 
-        if close_from_support >= 1 and close_from_support <= (1+threshold):
-            candle_support_stat = c.Candle_Dynamic_SR_Stat.Close_Above_Support
-        elif close_from_support < 1 and close_from_support >= 1-threshold:
-            candle_support_stat = c.Candle_Dynamic_SR_Stat.Close_Below_Support
-        elif open_from_support >= 1 and open_from_support <= (1+threshold):
-            candle_support_stat = c.Candle_Dynamic_SR_Stat.Open_Above_Support
-        elif open_from_support < 1 and open_from_support >= 1-threshold:
-            candle_support_stat = c.Candle_Dynamic_SR_Stat.Open_Below_Support
-        elif high_from_support >= 1 and high_from_support <= (1+threshold):
-            candle_support_stat = c.Candle_Dynamic_SR_Stat.High_Above_Support
-        elif high_from_support < 1 and high_from_support >= 1-threshold:
-            candle_support_stat = c.Candle_Dynamic_SR_Stat.High_Below_Support
-        elif low_from_support >= 1 and low_from_support <= (1+threshold):
-            candle_support_stat = c.Candle_Dynamic_SR_Stat.Low_Above_Support
-        elif low_from_support < 1 and low_from_support >= 1-threshold:
-            candle_support_stat = c.Candle_Dynamic_SR_Stat.Low_Below_Support
-    if res_data['r2'] >= r_min:
-        res_last = res_data['m']*(candle.timestamp - res_data['p0_x'])+res_data['p0_y']
+            p_open_res=(max(candle.open,res_last)-min(candle.open,res_last))/min(candle.open,res_last)
+            p_close_res=(max(candle.close,res_last)-min(candle.close,res_last))/min(candle.close,res_last)
+            p_high_res=(max(candle.high,res_last)-min(candle.high,res_last))/min(candle.high,res_last)
+            p_low_res=(max(candle.low,res_last)-min(candle.low,res_last))/min(candle.low,res_last)
 
-        open_from_resist = ((candle.open/res_last)-1)*100
-        close_from_resist = ((candle.close/res_last)-1)*100
-        high_from_resist = ((candle.high/res_last)-1)*100
-        low_from_resist = ((candle.low/res_last)-1)*100
+            if p_close_res <= threshold:
+                candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Close_Near_Resist)
+            if p_open_res <= threshold:
+                candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Open_Near_Resist)
+            if p_high_res<= threshold or p_low_res <=threshold:
+                candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Shadow_Near_Resist)
 
-        if close_from_resist >= 1 and close_from_resist <= (1+threshold):
-            candle_resist_stat = c.Candle_Dynamic_SR_Stat.Close_Above_Resist
-        elif close_from_resist < 1 and close_from_resist >= 1-threshold:
-            candle_resist_stat = c.Candle_Dynamic_SR_Stat.Close_Below_Resist
-        elif open_from_resist >= 1 and open_from_resist <= (1+threshold):
-            candle_resist_stat = c.Candle_Dynamic_SR_Stat.Open_Above_Resist
-        elif open_from_resist < 1 and open_from_resist >= 1-threshold:
-            candle_resist_stat = c.Candle_Dynamic_SR_Stat.Open_Below_Resist
-        elif high_from_resist >= 1 and high_from_resist <= (1+threshold):
-            candle_resist_stat = c.Candle_Dynamic_SR_Stat.High_Above_Resist
-        elif high_from_resist < 1 and high_from_resist >= 1-threshold:
-            candle_resist_stat = c.Candle_Dynamic_SR_Stat.High_Below_Resist
-        elif low_from_resist >= 1 and low_from_resist <= (1+threshold):
-            candle_resist_stat = c.Candle_Dynamic_SR_Stat.Low_Above_Resist
-        elif low_from_resist < 1 and low_from_resist >= 1-threshold:
-            candle_resist_stat = c.Candle_Dynamic_SR_Stat.Low_Below_Resist
-
-    return candle_support_stat, candle_resist_stat
+    return candle_support_stats, candle_resist_stats
 
 
-def Dynamic_SR(df, threshold=0.01, r_min=0.92, n=3):
+def Dynamic_SR(df,last_candles_diection, threshold=0.01, r_min=0.92, n=3):
     try:
 
         R_stat = c.Trend_SR_Stat.Nothing
         S_stat = c.Trend_SR_Stat.Nothing
-        candle_support_stat = c.Candle_Dynamic_SR_Stat.Nothing
-        candle_resist_stat = c.Candle_Dynamic_SR_Stat.Nothing
+        candle_support_stats = []
+        candle_resist_stats = []
 
         p0_sup_x, p0_sup_y, m_sup, r2_sup = Return_Trend_From_DF(
             df, r_min, n, 1)
@@ -705,7 +691,7 @@ def Dynamic_SR(df, threshold=0.01, r_min=0.92, n=3):
             df, r_min, n, 2)
         dict_res={'p0_x':p0_res_x,'p0_y':p0_res_y,'m':m_res,'r2':r2_res}
 
-        candle_support_stat, candle_resist_stat = Candle_Dynamic_Trend_Stat(candle=df.iloc[-1], supp_data=dict_sup,res_data=dict_res, r_min=r_min, threshold=threshold)
+        candle_support_stats, candle_resist_stats = Candle_Dynamic_Trend_Stat(candle=df.iloc[-1], supp_data=dict_sup,res_data=dict_res, r_min=r_min,last_candles_diection=last_candles_diection, threshold=threshold)
 
         if r2_sup >= r_min:
             S_stat = c.Trend_SR_Stat.Fit_Support
@@ -715,7 +701,7 @@ def Dynamic_SR(df, threshold=0.01, r_min=0.92, n=3):
         del df
 
         gc.collect()
-        return S_stat, candle_support_stat, R_stat, candle_resist_stat
+        return S_stat, candle_support_stats, R_stat, candle_resist_stats
 
     except:
         del df
@@ -723,7 +709,7 @@ def Dynamic_SR(df, threshold=0.01, r_min=0.92, n=3):
         print(f'Error occured')
         return 'Error on Trend Status'
 
-
+8
 def FiboStat(df, fibomode=c.Fibo_Mode.Retracement, threshold=0.01):
     stat = c.Candle_Fibo_Stat.Nothing
     dir = c.Fibo_Direction.Up
@@ -772,23 +758,84 @@ def FiboStat(df, fibomode=c.Fibo_Mode.Retracement, threshold=0.01):
     gc.collect()
     return dir,stat,levels
 
-
-def Candle_level_stat(level_top, level_bot, candle, threshold=0.015):
-    if candle.close <= level_top and candle.close >= level_bot:
-        if candle.close > candle.open:
-            return c.Candle_Level_Area_Stat.Closed_In_Resist
-        else:
-            return c.Candle_Level_Area_Stat.Closed_In_Support
-    elif (candle.high <= level_top and candle.high >= level_bot):
-        return c.Candle_Level_Area_Stat.Touched_Resist
-    elif (candle.low <= level_top and candle.low >= level_bot):
-        return c.Candle_Level_Area_Stat.Touched_Support
-    elif (candle.high < level_bot and candle.high >= level_bot-threshold):
-        return c.Candle_Level_Area_Stat.Near_Resist
-    elif (candle.low > level_top and candle.low <= level_top+threshold):
-        return c.Candle_Level_Area_Stat.Near_Support
+def Candles_direction(candles):
+    xs=[]
+    ys=[]
+    for i in range(0,len(candles)):
+        xs.append(candles['timestamp'][i])
+        ys.append(candles['close'][i])
+    _,ys_fit=ReturnTrend(xs,ys)
+    if ys_fit[-1]>ys_fit[0]:
+        return c.Candles_Direction.Bullish
+    elif ys_fit[-1]<ys_fit[0]:
+        return c.Candles_Direction.Bearish
     else:
-        return c.Candle_Level_Area_Stat.Nothing
+        return c.Candles_Direction.Side
+
+
+def Candle_level_stat(level_top, level_bot, candle, last_candles_diection, threshold=0.015):
+    stats=[]
+    if last_candles_diection==c.Candles_Direction.Bullish:
+        if candle.close >= candle.open:  # green candle
+            if candle.close <= level_top and candle.close >= level_bot:
+                stats.append(c.Candle_Level_Area_Stat.Closed_In_Resist)
+            elif candle.close <= level_bot:
+                p=(level_bot-candle.close)/candle.close
+                if p<=threshold/2:
+                    stats.append(c.Candle_Level_Area_Stat.Closed_Near_Resist)
+            elif candle.close >= level_top:
+                p=(candle.close-level_top)/level_top
+                if p<=threshold/2:
+                    stats.append(c.Candle_Level_Area_Stat.Closed_Near_Resist)
+        else:
+            if candle.open <= level_top and candle.open >= level_bot:
+                stats.append(c.Candle_Level_Area_Stat.Closed_In_Resist)
+            elif candle.open <= level_bot:
+                p=(level_bot-candle.open)/candle.open
+                if p<=threshold/2:
+                    stats.append(c.Candle_Level_Area_Stat.Opened_Near_Resist)
+            elif candle.open >= level_top:
+                p=(candle.open-level_top)/level_top
+                if p<=threshold/2:
+                    stats.append(c.Candle_Level_Area_Stat.Opened_Near_Resist)
+        if (candle.high <= level_top and candle.high >= level_bot): 
+            stats.append( c.Candle_Level_Area_Stat.Shadow_In_Resist)
+        elif candle.high < level_bot:
+            p=(level_bot-candle.high)/candle.high
+            if p<=threshold/2:
+                stats.append(c.Candle_Level_Area_Stat.Shadow_Near_Resist)   
+    elif last_candles_diection==c.Candles_Direction.Bearish:
+        if candle.close >= candle.open:  # green candle
+            if candle.open <= level_top and candle.open >= level_bot:
+                stats.append(c.Candle_Level_Area_Stat.Opened_In_Support)
+            elif candle.close <= level_bot:
+                p=(level_bot-candle.close)/candle.close
+                if p<=threshold:
+                    stats.append(c.Candle_Level_Area_Stat.Opened_Near_Support)
+            elif candle.close >= level_top:
+                p=(candle.close-level_top)/level_top
+                if p<=threshold:
+                    stats.append(c.Candle_Level_Area_Stat.Opened_Near_Support)
+        else:
+            if candle.open <= level_top and candle.open >= level_bot:
+                stats.append(c.Candle_Level_Area_Stat.Closed_In_Support)
+            elif candle.open <= level_bot:
+                p=(level_bot-candle.open)/candle.open
+                if p<=threshold/2:
+                    stats.append(c.Candle_Level_Area_Stat.Closed_Near_Support)
+            elif candle.open >= level_top:
+                p=(candle.open-level_top)/level_top
+                if p<=threshold/2:
+                    stats.append(c.Candle_Level_Area_Stat.Closed_Near_Support)
+        if(candle.low <= level_top and candle.low >= level_bot):
+            stats.append( c.Candle_Level_Area_Stat.Shadow_In_Support)
+        elif candle.low > level_top:
+            p=(candle.low-level_top)/level_top
+            if p<=threshold/2:
+                stats.append(c.Candle_Level_Area_Stat.Shadow_Near_Support)
+
+    
+    return stats
 
 def Candle_fibo_levle_stat(candle, levels,tf,thb=1):
     stat=c.Candle_Fibo_Stat.Nothing
@@ -800,14 +847,14 @@ def Candle_fibo_levle_stat(candle, levels,tf,thb=1):
             stat = c.Candle_Fibo_Stat(f)
             return stat
     return stat
-def threshold(tf,thb=1):
-    tfs={'1w':10,'1d':5,'4h':2.0,'90m':1.2,'1h':1.0,'60m':1.0,'15m':0.5,'5m':0.2,'1m':0.1}
-    return tfs[tf]*thb/100
 
 def Candle_Shapes(candle,th=0.01):
     shapes=[]
     if abs(1-candle.high/candle.low)<=th : 
         shapes.append(c.Candle_Shape.Small)
+    if abs(1-candle.high/candle.low)<=3*th : 
+        shapes.append(c.Candle_Shape.Normal)
+
     if abs(1-candle.close/candle.open)<=th:
         shapes.append(c.Candle_Shape.Point)
     

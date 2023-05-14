@@ -44,34 +44,28 @@ class Ichi_Stat(enum.Enum):
    Error=7
 class Candle_Dynamic_SR_Stat(enum.Enum):
    Nothing=0
-   Open_Above_Support=1
-   Close_Above_Support=2
-   High_Above_Support=3
-   Low_Above_Support=4
-   Open_Above_Resist=5
-   Close_Above_Resist=6
-   High_Above_Resist=7
-   Low_Above_Resist=8
-
-   Open_Below_Support=9
-   Close_Below_Support=10
-   High_Below_Support=11
-   Low_Below_Support=12
-   Open_Below_Resist=13
-   Close_Below_Resist=14
-   High_Below_Resist=15
-   Low_Below_Resist=16 
+   Open_Near_Support=1
+   Close_Near_Support=2
+   Shadow_Near_Support=3
+   Open_Near_Resist=4
+   Close_Near_Resist=5
+   Shadow_Near_Resist=6
    
 class Candle_Level_Area_Stat(enum.Enum):
    Nothing=0
    Closed_In_Support=1
    Closed_In_Resist=2
-   Touched_Support=3
-   Touched_Resist=4
-   Broke_Support=5
-   Near_Support=6
-   Broke_Resist=7
-   Near_Resist=8
+   Opened_In_Support=3
+   Opened_In_Resist=4  
+   Shadow_In_Support=5
+   Shadow_In_Resist=6
+   Closed_Near_Support=7
+   Closed_Near_Resist=8
+   Opened_Near_Support=9
+   Opened_Near_Resist=10
+   Shadow_Near_Support=11
+   Shadow_Near_Resist=12
+
 
 class Candle_Cross_Level_Stat(enum.Enum):
    Nothing=0
@@ -95,6 +89,11 @@ class Candle_Fibo_Stat(enum.Enum):
    _1000=5
    _1618=6
    _2618=7
+
+class Candles_Direction(enum.Enum):
+   Side=0
+   Bullish=1
+   Bearish=2
 
 class Fibo_Mode(enum.Enum):
    Retracement=1

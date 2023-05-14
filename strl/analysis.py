@@ -1,7 +1,7 @@
 import situations as s
 import streamlit as st
 import helper , Constants as c
-import pivot_helper
+import analaysis_constants as ac
 import analyzer as a 
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -38,8 +38,8 @@ st.markdown("""
         </style>
         """, unsafe_allow_html=True)
 
-tf='1h'
-symbol = 'FTM_USDT'
+tf='4h'
+symbol = 'TRX_USDT'
 exch = 'Kucoin'
 
 # symbol = None
@@ -66,21 +66,23 @@ st.sidebar.title("Analysis Settings: ")
 with st.sidebar:
     analysis = st.selectbox('Analysis Version', ['1.0'])
     if analysis == '1.0':
+        candles_back=st.number_input("Candles Back:",min_value=0,value=0)
         trend_limit_long = st.number_input(
-            "Long Term Trend Limit:", min_value=70, value=280)
+            "Long Term Trend Limit:", min_value=70, value=ac.Long_Term_Trend_Limit)
         trend_limit_short = st.number_input(
-            "Short Term Trend Limit:", min_value=20, value=80)
+            "Short Term Trend Limit:", min_value=20, value=ac.Short_Term_Trend_Limit)
         st.write("1d Pivot Settings:")
         long_term_pivot_candles = st.number_input(
-            "Long Term Candles:", min_value=2, value=16)
+            "Long Term Candles:", min_value=2, value=ac.Long_Term_Candles)
         short_term_pivot_candles = st.number_input(
-            "Short Term Candles:", min_value=2, value=6)
+            "Short Term Candles:", min_value=2, value=ac.Short_Term_Candles)
         pvt_trend_number = st.number_input(
-            "Pivot Trend Number:", min_value=2, value=2)
+            "Pivot Trend Number:", min_value=2, value=ac.Pivot_Trend_Number)
         
         waves_number = st.number_input(
-            "PA Power Calc. Waves:", min_value=2, value=2)
-        sr_limit = st.number_input("S/R Limit:", min_value=70, value=120)
+            "PA Power Calc. Waves:", min_value=2, value=ac.PA_Power_Calc_Waves)
+        threshold=st.number_input("Closeness Threshold (%):",min_value=0.1,value=ac.Threshold,max_value=5.0,step=0.1)
+        sr_limit = st.number_input("S/R Limit:", min_value=70, value=ac.S_R_Limit)
 
             
 def DrawCandleSticks(df,df2,both=True):
@@ -132,7 +134,7 @@ def DoAnalysis():
     #tf='1h'
     analyzer=a.Analyzer()
     analyzer.init_data(tfs=tfs,exch=exch,symbol=symbol,trend_limit_long=trend_limit_long,trend_limit_short=trend_limit_short,long_term_pivot_candles=long_term_pivot_candles,short_term_pivot_candles=short_term_pivot_candles,
-                    pvt_trend_number=pvt_trend_number,waves_number=waves_number)
+                    pvt_trend_number=pvt_trend_number,waves_number=waves_number,candles_back=candles_back,th=threshold/100)
     sit=s.Situation()
     sit=analyzer.situations[tf]
     dict_buy_sell=analyzer.buy_sell(tf)
@@ -195,8 +197,9 @@ def DoAnalysis():
     static_sell_points=[sell_pars.static_SR_closeness[0]*sell_pars.static_SR_closeness[1],sell_pars.static_SR_closeness_parent[0]*sell_pars.static_SR_closeness_parent[1]]
     if sit.parent_static_levels !=[]:
         static_levels.append(sit.parent_static_levels)
-    max_level=df2['high'].values.max()
-    min_level=df2['low'].values.min()
+    max_level=df2['high'].values.max()*1.1
+    min_level=df2['low'].values.min()*0.9
+    static_level_colors=["#93e2ec","#e05293"]
 
     for i in range(0,len(static_levels)):
         st.subheader(hraders_levels[i])
@@ -212,7 +215,7 @@ def DoAnalysis():
                     level_xs_time=pd.to_datetime(level_xs,unit='ms')
                     fig.add_trace(
                     go.Scatter(x=level_xs_time, y=level_ys, line=dict(
-                        color="#e05293",width=0.55), name=f'Parent Level'), row=1, col=1
+                        color=f"{static_level_colors[i]}",width=0.55), name=f'Static Level {i+1}'), row=1, col=1
         )         
 
         fig.update_layout(xaxis_rangeslider_visible=False,
@@ -325,3 +328,4 @@ with st.container():
             DoAnalysis()
             
 if first: DoAnalysis()
+
