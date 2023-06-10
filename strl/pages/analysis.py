@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 # import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
+import gc
 # from talibHelper import AllPatterns as alp
 # from sklearn.linear_model import LinearRegression
 # from sklearn.metrics import r2_score
@@ -38,8 +39,8 @@ st.markdown("""
         </style>
         """, unsafe_allow_html=True)
 
-tf='4h'
-symbol = 'TRX_USDT'
+tf='1h'
+symbol = 'ANT_USDT'
 exch = 'Kucoin'
 
 # symbol = None
@@ -85,11 +86,11 @@ with st.sidebar:
         sr_limit = st.number_input("S/R Limit:", min_value=70, value=ac.S_R_Limit)
 
             
-def DrawCandleSticks(df,df2,both=True):
+def DrawCandleSticks(df,df2,both=True,cols=1,rows=1,column_width=[1],row_heights=[1]):
         fig = make_subplots(
-        rows=1, cols=1,
-        column_widths=[1],
-        row_heights=[1],
+        rows=rows, cols=cols,
+        column_widths=column_width,
+        row_heights=row_heights,
         shared_xaxes=True, vertical_spacing=0.01)
 
         if both:
@@ -134,7 +135,7 @@ def DoAnalysis():
     #tf='1h'
     analyzer=a.Analyzer()
     analyzer.init_data(tfs=tfs,exch=exch,symbol=symbol,trend_limit_long=trend_limit_long,trend_limit_short=trend_limit_short,long_term_pivot_candles=long_term_pivot_candles,short_term_pivot_candles=short_term_pivot_candles,
-                    pvt_trend_number=pvt_trend_number,waves_number=waves_number,candles_back=candles_back,th=threshold/100)
+                    pvt_trend_number=pvt_trend_number,waves_number=waves_number,candles_back=29,th=threshold/100)
     sit=s.Situation()
     sit=analyzer.situations[tf]
     dict_buy_sell=analyzer.buy_sell(tf)
@@ -225,11 +226,12 @@ def DoAnalysis():
 
     ################################################################## Dynamic Support/Resistant ######################################################################################
 
-    hraders_SR=['Dynamic SR','Parent Dynamic SR']
-    dynamic_sr_buy_points=[buy_pars.dynamic_SR_closeness[0]*buy_pars.dynamic_SR_closeness[1],buy_pars.dynamic_SR_closeness_parrent[0]*buy_pars.dynamic_SR_closeness_parrent[1]]
-    dynamic_sr_sell_points=[sell_pars.dynamic_SR_closeness[0]*sell_pars.dynamic_SR_closeness[1],sell_pars.dynamic_SR_closeness_parrent[0]*sell_pars.dynamic_SR_closeness_parrent[1]]
+    hraders_SR=['Dynamic SR', 'Dynamic SR Long' ,'Parent Dynamic SR']
+    dynamic_sr_buy_points=[buy_pars.dynamic_SR_closeness[0]*buy_pars.dynamic_SR_closeness[1],buy_pars.dynamic_SR_long_closeness[0]*buy_pars.dynamic_SR_long_closeness[1],buy_pars.dynamic_SR_closeness_parrent[0]*buy_pars.dynamic_SR_closeness_parrent[1]]
+    dynamic_sr_sell_points=[sell_pars.dynamic_SR_closeness[0]*sell_pars.dynamic_SR_closeness[1],sell_pars.dynamic_SR_long_closeness[0]*sell_pars.dynamic_SR_long_closeness[1],sell_pars.dynamic_SR_closeness_parrent[0]*sell_pars.dynamic_SR_closeness_parrent[1]]
 
     lines=[[sit.dynamic_support_line,sit.dynamic_resist_line]]
+    lines.append([sit.dynamic_support_long_line,sit.dynamic_resist_long_line])
     if sit.dynamic_support_line_parent!={} and sit.dynamic_resist_line_parent!={}:
           lines.append([sit.dynamic_support_line_parent,sit.dynamic_resist_line_parent])
     legends=['Dynamic Support','Dynamic Resist']
@@ -254,14 +256,32 @@ def DoAnalysis():
         fig.update_layout(xaxis_rangeslider_visible=False,
                             height=450)
         st.plotly_chart(fig, use_container_width=True)
+    ################################################################## SMA 10 , 50 ####################################################################################
 
+    st.subheader('SMA 10 , 50')
+    st.write(f'Buy Point: {buy_pars.sma_50_10[0]*buy_pars.sma_50_10[1]}')
+    st.write(f'Sell Point: {sell_pars.sma_50_10[0] * sell_pars.sma_50_10[1]}')
+    df2_sma=df2.copy()   
+    fig=DrawCandleSticks(df,df2_sma,both=False)
+    fig.add_trace(
+        go.Scatter(x=df2_sma['time'], y=df2_sma['sma_1'], name='sma 10'), row=1, col=1
+    )
+    fig.add_trace(
+        go.Scatter(x=df2_sma['time'], y=df2_sma['sma_2'], name='sma 50'), row=1, col=1
+    )
+    fig.update_layout(xaxis_rangeslider_visible=False,
+                        height=450)
+    st.plotly_chart(fig, use_container_width=True)
+    del df2_sma
+    gc.collect()
     ################################################################## Current Ichi Moko ######################################################################################
     hraders_ichi=['Ichi Moku Status','Parent Ichi Moku Status']
     ichi_buy_points=[buy_pars.ichi_location[0]*buy_pars.ichi_location[1],buy_pars.ichi_location_parent[0]*buy_pars.ichi_location_parent[1]]
     ichi_sell_points=[sell_pars.ichi_location[0]*sell_pars.ichi_location[1],sell_pars.ichi_location_parent[0]*sell_pars.ichi_location_parent[1]]
     dfs=[[df2,df2.copy()]]
-    if len(sit.short_term_df_parent)>0:
-        dfs.append([sit.short_term_df_parent, sit.short_term_df_parent.copy()])
+    if isinstance(sit.short_term_df_parent,pd.DataFrame):
+        if len(sit.short_term_df_parent)>0:
+            dfs.append([sit.short_term_df_parent, sit.short_term_df_parent.copy()])
     for i in range(len(dfs)):
         st.subheader(hraders_ichi[i])
         st.write(f'Buy Point: {ichi_buy_points[i]}')
@@ -305,8 +325,31 @@ def DoAnalysis():
                             height=450)
         st.plotly_chart(fig, use_container_width=True)
 
-        
-        
+    ################################################################## RSI ####################################################################################
+    st.subheader('RSI')
+    st.write(f'Buy Point: {buy_pars.rsi_divergence[0] *buy_pars.rsi_divergence[1]}')
+    st.write(f'Sell Point: {sell_pars.rsi_divergence[0] * sell_pars.rsi_divergence[1]}')
+    df2_rsi=df2.copy()   
+
+    fig=DrawCandleSticks(df,df2_rsi,both=False,cols=1,rows=2,column_width=[1],row_heights=[0.7,0.4])
+    fig.add_trace(
+        go.Scatter(x=df['time'], y=df2_rsi['rsi'], name='rsi', line=dict(width=2, color='#d5dae5')), row=2, col=1
+    )
+    if not sit.rsi_divergance==c.Rsi_Stat.Nothing:
+        fig.add_trace(
+            go.Scatter(x=sit.rsi_chart_line[0], y=sit.rsi_chart_line[1], name='direction on graph', line=dict(width=3, color='#ff6c00')), row=1, col=1
+        )
+        fig.add_trace(
+            go.Scatter(x=sit.rsi_line[0], y=sit.rsi_line[1], name='direction on rsi', line=dict(width=2, color='#ff6c00')), row=2, col=1
+        )
+    fig.update_layout(xaxis_rangeslider_visible=False,
+                        height=450)
+    st.plotly_chart(fig, use_container_width=True)
+    del df2_rsi
+    gc.collect()
+
+
+
 
 
 

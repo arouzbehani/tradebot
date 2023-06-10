@@ -13,7 +13,8 @@ class Parametrs:
         self.fibo_retrace_parent=[0.2,False]
         self.ichi_location=[0.6,False]
         self.ichi_location_parent=[0.2,False]
-        self.dynamic_SR_closeness=[1.5,False]
+        self.dynamic_SR_closeness=[1.5,False] #Short Term Dynamic S/R
+        self.dynamic_SR_long_closeness=[1,False]
         self.dynamic_SR_closeness_parrent=[0.5,False]
         self.static_SR_closeness=[1.5,False]
         self.static_SR_closeness_parent=[0.5,False]    
@@ -34,9 +35,11 @@ class Parametrs:
                 self.ichi_location,
                 self.ichi_location_parent,
                 self.dynamic_SR_closeness,
+                self.dynamic_SR_long_closeness,
                 self.dynamic_SR_closeness_parrent,
                 self.static_SR_closeness,
-                self.static_SR_closeness_parent
+                self.static_SR_closeness_parent,
+                self.sma_50_10
             ]
         return sum(a[0]*a[1] for a in all) 
 class Situation:
@@ -59,6 +62,11 @@ class Situation:
         self.dynamic_support_line={}
         self.dynamic_resist_stats=[]
         self.dynamic_resist_line={}
+        self.dynamic_support_long_stats=[]
+        self.dynamic_support_long_line={}
+        self.dynamic_resist_long_stats=[]
+        self.dynamic_resist_long_line={}
+
         self.parent_dynamic_support_stats=[]
         self.dynamic_support_line_parent={}
         self.parent_dynamic_resist_stats=[]
@@ -67,9 +75,9 @@ class Situation:
         self.ichi_stat=c.Ichi_Stat.Nothing
         self.ichi_parent_stat=c.Ichi_Stat.Nothing
 
-        self.sma_50_stat=c.SMA_Stat.Above
-        self.sma_21_stat=c.SMA_Stat.Above
-        self.sma_10_stat=c.SMA_Stat.Above
+        # self.sma_50_stat=c.SMA_Stat.Above
+        # self.sma_21_stat=c.SMA_Stat.Above
+        # self.sma_10_stat=c.SMA_Stat.Above
 
         self.static_level_stats=[]
         self.parent_level_stats=[]
@@ -103,12 +111,10 @@ class Situation:
         self.double_bot_happened=0
 
         self.sma_10_50_cross_up_happened=False
-        self.sma_10_50_cross_down_happened=False
 
-        self.rsi_convergence_up=False
-        self.rsi_convergence_down=False
-        self.rsi_below_35_happened=False
-        self.rsi_above_65_happened=False
+        self.rsi_divergance=c.Rsi_Stat.Nothing
+        self.rsi_chart_line=[]
+        self.rsi_line=[]
 
         
     def break_important_level_up(self):
@@ -206,15 +212,19 @@ class Situation:
         
         dcst=c.Candle_Dynamic_SR_Stat
         dynamic_support_rules=[dcst.Close_Near_Support,dcst.Open_Near_Support,dcst.Shadow_Near_Support]
-        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.dynamic_support_stats for i in dynamic_support_rules):
+        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(i in self.dynamic_support_stats for i in dynamic_support_rules):
             buy_pars.dynamic_SR_closeness[1]=True
-        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.parent_dynamic_support_stats for i in dynamic_support_rules):
+        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(i in self.dynamic_support_long_stats for i in dynamic_support_rules):
+            buy_pars.dynamic_SR_long_closeness[1]=True
+        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(i in self.parent_dynamic_support_stats for i in dynamic_support_rules):
             buy_pars.dynamic_SR_closeness_parrent[1]=True
 
         dynamic_resist_rules=[dcst.Close_Near_Resist,dcst.Open_Near_Resist,dcst.Shadow_Near_Resist]
-        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.dynamic_resist_stats for i in dynamic_resist_rules):
+        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(i in self.dynamic_resist_stats for i in dynamic_resist_rules):
             sell_pars.dynamic_SR_closeness[1]=True
-        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.parent_dynamic_resist_stats for i in dynamic_resist_rules):
+        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(i in self.dynamic_resist_long_stats for i in dynamic_resist_rules):
+            sell_pars.dynamic_SR_long_closeness[1]=True
+        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(i in self.parent_dynamic_resist_stats for i in dynamic_resist_rules):
             sell_pars.dynamic_SR_closeness_parrent[1]=True
 
 
@@ -222,15 +232,15 @@ class Situation:
 
         cst=c.Candle_Level_Area_Stat
         static_support_rules=[cst.Closed_Near_Support,cst.Closed_In_Support,cst.Shadow_In_Support,cst.Shadow_Near_Support,cst.Opened_In_Support,cst.Opened_Near_Support]
-        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.static_level_stats for i in static_support_rules):
+        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(i in self.static_level_stats for i in static_support_rules):
             buy_pars.static_SR_closeness[1]=True
-        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.parent_level_stats for i in static_support_rules):
+        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(i in self.parent_level_stats for i in static_support_rules):
             buy_pars.static_SR_closeness_parent[1]=True
 
         static_resist_rules=[cst.Closed_Near_Resist,cst.Closed_In_Resist,cst.Shadow_In_Resist,cst.Shadow_Near_Resist,cst.Opened_In_Resist,cst.Opened_Near_Resist]
-        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.static_level_stats for i in static_resist_rules):
+        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(i in self.static_level_stats for i in static_resist_rules):
             sell_pars.static_SR_closeness[1]=True
-        if self.candle_shapes.__contains__(c.Candle_Shape.Normal) and any(i in self.parent_level_stats for i in static_resist_rules):
+        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(i in self.parent_level_stats for i in static_resist_rules):
             sell_pars.static_SR_closeness_parent[1]=True
 
 ##      Ichi Status
@@ -255,10 +265,16 @@ class Situation:
 
         if self.sma_10_50_cross_up_happened:
             buy_pars.sma_50_10[1]=True
-        if self.sma_10_50_cross_down_happened:
+        if not self.sma_10_50_cross_up_happened:
             sell_pars.sma_50_10[1]=True        
-        return {"buy":buy_pars,"sell":sell_pars}
 
+##      RSI Divergence
+        if self.rsi_divergance==c.Rsi_Stat.Up:
+            buy_pars.rsi_divergence[1]=True
+        if self.rsi_divergance==c.Rsi_Stat.Down:
+            sell_pars.rsi_divergence[1]=True
+
+        return {"buy":buy_pars,"sell":sell_pars}
 
 
 

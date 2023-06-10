@@ -1,5 +1,5 @@
 Long_Term_Trend_Limit=280
-Short_Term_Trend_Limit=80
+Short_Term_Trend_Limit=110
 Long_Term_Candles=16
 Short_Term_Candles=6
 Pivot_Trend_Number=2

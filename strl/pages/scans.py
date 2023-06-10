@@ -47,7 +47,7 @@ def table(df,exchange='Kucoin',sq='sma entry'):
     # streaml='http://localhost:8501/'
     streaml='http://trader.baharsoft.com:8100/'
 
-    pretty = df[['Symbol', '1d point', '4h point','1h point','15m point','sum']]
+    pretty = df[['Symbol', '1d point', '4h point','1h point','15m point','sum(4h+1h)']]
     pretty['url']=pretty['Symbol'].apply(makelink,streaml=streaml,exch=exchange)
     pretty['Symbol'] = pretty.apply(lambda x: make_clickable(x['url'],x['Symbol']), axis=1)
     # pretty.style
@@ -75,11 +75,11 @@ def table(df,exchange='Kucoin',sq='sma entry'):
 def crypto_scans():
     df,date_time = GetDF(exch='Kucoin')
     tfs=['1d point','4h point','1h point','15m point']
-    df['sum']=0.0
-    for t in tfs:
-        df['sum'] +=round(df[t],3)
+    df['sum(4h+1h)']=0.0
+    for t in tfs[1:3]:
+        df['sum(4h+1h)'] +=round(df[t],3)
     sq=st.text_input(label='',placeholder='Serch Symbol Name')
-    t=table(df.sort_values(by='sum', ascending=False),exchange='Kucoin',sq=sq)
+    t=table(df.sort_values(by='sum(4h+1h)', ascending=False),exchange='Kucoin',sq=sq)
     st.subheader(date_time)
     st.write(t.to_html(escape=False, index=False), unsafe_allow_html=True)
 def stocks_scans():

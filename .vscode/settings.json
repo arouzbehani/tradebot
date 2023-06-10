@@ -1,5 +1,9 @@
 {
   "python.defaultInterpreterPath": "python",
   "json.schemas": [],
-  "editor.fontSize": 16
+  "editor.fontSize": 16,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "python.formatting.provider": "none"
 }

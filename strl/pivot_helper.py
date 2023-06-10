@@ -1,7 +1,62 @@
 import pandas as pd
 import numpy as np
 import gc
+def lows_highs_1(values, timestamps):
+    lows = []
+    highs = []
+    for i in range(len(values)):
+        if i == 0:
+            lows.append((timestamps[i], values[i]))
+            highs.append((timestamps[i], values[i]))
+        else:
+            if values[i] < lows[-1][1]:
+                lows.append((timestamps[i], values[i]))
+            elif values[i] > highs[-1][1]:
+                highs.append((timestamps[i], values[i]))
+    return lows, highs
+def lows_highs(values, timestamps):
+    lows = []
+    highs = []
+    lows.append(((timestamps[0], values[0]),0))
+    highs.append(((timestamps[0], values[0]),0))
 
+    for i in range(1,len(values)-1):
+        j=3
+        if values[i] < values[i-j:i].min() and values[i]<values[i+1:i+j+1].min():
+            if(i==lows[-1][1]):
+                if(values[i]<lows[-1][0][1]):
+                    lows[-1]=((timestamps[i],values[i]),i)
+                else:
+                    lows.append(((timestamps[i],values[i]),i))
+            else:
+                lows.append(((timestamps[i],values[i]),i))
+        elif values[i] > values[i-j:i].max()  and values[i]>values[i+1:i+j+1].max():
+            if(i==highs[-1][1]):
+                if(values[i]>highs[-1][0][1]):
+                    highs[-1]=((timestamps[i],values[i]),i)
+                else:
+                    highs.append(((timestamps[i],values[i]),i))
+            else:
+                highs.append(((timestamps[i],values[i]),i))
+
+        # if values[i] < values[i-1] and values[i]<values[i+1]:
+        #     if(i==lows[-1][1]):
+        #         if(values[i]<lows[-1][0][1]):
+        #             lows[-1]=((timestamps[i],values[i]),i)
+        #         else:
+        #             lows.append(((timestamps[i],values[i]),i))
+        #     else:
+        #         lows.append(((timestamps[i],values[i]),i))
+        # elif values[i] > values[i-1] and values[i]>values[i+1]:
+        #     if(i==highs[-1][1]):
+        #         if(values[i]>highs[-1][0][1]):
+        #             highs[-1]=((timestamps[i],values[i]),i)
+        #         else:
+        #             highs.append(((timestamps[i],values[i]),i))
+        #     else:
+        #         highs.append(((timestamps[i],values[i]),i))
+    
+    return lows, highs
 
 def pivotid(df1, l, n1, n2):
     if l-n1 < 0 or l+n2 >= len(df1):

@@ -13,8 +13,9 @@ class Candle_Shape(enum.Enum):
    Small=7
 
 class SMA_Stat(enum.Enum):
-   Above=1
-   Below=2
+   Nothing=0
+   CrossUp=1
+   CrossDown=2
 
 
 class Trend(enum.Enum):
@@ -102,3 +103,8 @@ class Fibo_Mode(enum.Enum):
 class Fibo_Direction(enum.Enum):
    Down=1
    Up=2
+
+class Rsi_Stat(enum.Enum):
+   Nothing=0
+   Up=1
+   Down=2
