@@ -60,4 +60,4 @@ def Make(symbol='FTM_USDT',exch='Kucoin',tf='1d'):
     now2 = datetime.datetime.now()
     print(now2-now1)
 
-Make()
+Make(symbol='BTC_USDT')
