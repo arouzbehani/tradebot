@@ -276,6 +276,45 @@ class Situation:
 
         return {"buy":buy_pars,"sell":sell_pars}
 
+    def features(self):
+        dcst=c.Candle_Dynamic_SR_Stat
+        cst=c.Candle_Level_Area_Stat
+        
+        f={"current_trend":[self.current_trend_stat.value],
+           "Candle_Shape_Normal":[int(self.candle_shapes.__contains__(c.Candle_Shape.Normal))],
+           "Candle_Shape_Small":[int(self.candle_shapes.__contains__(c.Candle_Shape.Small))],
+           "Candle_Shape_Strong":[int(self.candle_shapes.__contains__(c.Candle_Shape.Strong))],
+           "Candle_Shape_Slim":[int(self.candle_shapes.__contains__(c.Candle_Shape.Slim))],
+           "Candle_Shape_Point":[int(self.candle_shapes.__contains__(c.Candle_Shape.Point))],
+           "Candle_Shape_PinBar_Up":[int(self.candle_shapes.__contains__(c.Candle_Shape.PinBar_Up))],
+           "Candle_Shape_PinBar_Down":[int(self.candle_shapes.__contains__(c.Candle_Shape.PinBar_Down))],
+           "Close_Near_Support":[int(self.dynamic_support_stats.__contains__(dcst.Close_Near_Support))],
+           "Open_Near_Support":[int(self.dynamic_support_stats.__contains__(dcst.Open_Near_Support))],
+           "Shadow_Near_Support":[int(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Support))],
+           "Close_Near_Resist":[int(self.dynamic_support_stats.__contains__(dcst.Close_Near_Resist))],
+           "Open_Near_Resist":[int(self.dynamic_support_stats.__contains__(dcst.Open_Near_Resist))],
+           "Shadow_Near_Resist":[int(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Resist))],
+           "Closed_Near_Support":[int(self.static_level_stats.__contains__(cst.Closed_Near_Support))],
+           "Closed_In_Support":[int(self.static_level_stats.__contains__(cst.Closed_In_Support))],
+           "Shadow_In_Support":[int(self.static_level_stats.__contains__(cst.Shadow_In_Support))],
+           "Shadow_Near_Support_s":[int(self.static_level_stats.__contains__(cst.Shadow_Near_Support))],
+           "Opened_In_Support":[int(self.static_level_stats.__contains__(cst.Opened_In_Support))],
+           "Opened_Near_Support":[int(self.static_level_stats.__contains__(cst.Opened_Near_Support))],
+           "Closed_In_Resist":[int(self.static_level_stats.__contains__(cst.Closed_In_Resist))],
+           "Closed_Near_Resist":[int(self.static_level_stats.__contains__(cst.Closed_Near_Resist))],
+           "Shadow_In_Resist":[int(self.static_level_stats.__contains__(cst.Shadow_In_Resist))],
+           "Shadow_Near_Resist_s":[int(self.static_level_stats.__contains__(cst.Shadow_Near_Resist))],
+           "Opened_In_Resist":[int(self.static_level_stats.__contains__(cst.Opened_In_Resist))],
+           "Opened_Near_Resist":[int(self.static_level_stats.__contains__(cst.Opened_Near_Resist))],
+           "Ichi_Stat":[self.ichi_stat.value],
+           "double_bot":[self.double_bot_happened],
+           "double_top":[self.double_top_happened],
+           "sma_10_50":[int(self.sma_10_50_cross_up_happened)],
+           "rsi_divergence":[self.rsi_divergance.value]
+
+           }
+
+        return f
 
 
 

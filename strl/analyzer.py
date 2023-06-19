@@ -229,4 +229,5 @@ class Analyzer:
         return header,opp_points,opp,threat_point,threat,total_points
     def buy_sell(self,tf):
         return self.situations[tf].buy_sell_v01()
-
+    def features(self,tf):
+        return self.situations[tf].features()

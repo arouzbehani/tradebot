@@ -14,48 +14,35 @@ def lows_highs_1(values, timestamps):
             elif values[i] > highs[-1][1]:
                 highs.append((timestamps[i], values[i]))
     return lows, highs
-def lows_highs(values, timestamps):
+def lows_highs(values, timestamps,candles=3):
     lows = []
     highs = []
     lows.append(((timestamps[0], values[0]),0))
     highs.append(((timestamps[0], values[0]),0))
+    
+    j=candles
 
     for i in range(1,len(values)-1):
-        j=3
-        if values[i] < values[i-j:i].min() and values[i]<values[i+1:i+j+1].min():
-            if(i==lows[-1][1]):
-                if(values[i]<lows[-1][0][1]):
-                    lows[-1]=((timestamps[i],values[i]),i)
+        if values[i]<values[i+1:i+j+1].min():
+            if i>=j and values[i] < values[i-j:i].min():
+                if(i==lows[-1][1]):
+                    if(values[i]<lows[-1][0][1]):
+                        lows[-1]=((timestamps[i],values[i]),i)
+                    else:
+                        lows.append(((timestamps[i],values[i]),i))
                 else:
                     lows.append(((timestamps[i],values[i]),i))
-            else:
-                lows.append(((timestamps[i],values[i]),i))
-        elif values[i] > values[i-j:i].max()  and values[i]>values[i+1:i+j+1].max():
-            if(i==highs[-1][1]):
-                if(values[i]>highs[-1][0][1]):
-                    highs[-1]=((timestamps[i],values[i]),i)
+        elif values[i]>values[i+1:i+j+1].max():
+            if i>=j and values[i] > values[i-j:i].max():
+                if(i==highs[-1][1]):
+                    if(values[i]>highs[-1][0][1]):
+                        highs[-1]=((timestamps[i],values[i]),i)
+                    else:
+                        highs.append(((timestamps[i],values[i]),i))
                 else:
                     highs.append(((timestamps[i],values[i]),i))
-            else:
-                highs.append(((timestamps[i],values[i]),i))
 
-        # if values[i] < values[i-1] and values[i]<values[i+1]:
-        #     if(i==lows[-1][1]):
-        #         if(values[i]<lows[-1][0][1]):
-        #             lows[-1]=((timestamps[i],values[i]),i)
-        #         else:
-        #             lows.append(((timestamps[i],values[i]),i))
-        #     else:
-        #         lows.append(((timestamps[i],values[i]),i))
-        # elif values[i] > values[i-1] and values[i]>values[i+1]:
-        #     if(i==highs[-1][1]):
-        #         if(values[i]>highs[-1][0][1]):
-        #             highs[-1]=((timestamps[i],values[i]),i)
-        #         else:
-        #             highs.append(((timestamps[i],values[i]),i))
-        #     else:
-        #         highs.append(((timestamps[i],values[i]),i))
-    
+
     return lows, highs
 
 def pivotid(df1, l, n1, n2):
@@ -313,8 +300,48 @@ def powerstat(df1, l, wn=3, short=False):
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def find_pivots(df, left_candles=7, right_candles=7, wn=2, short=False):
+def find_pivots_new(df, left_candles=7, right_candles=7, wn=2, short=False):
+    _,highs=lows_highs(df['high'].values,df['timestamp'],left_candles)
+    lows,_=lows_highs(df['low'].values,df['timestamp'],left_candles)
+    df['init_pivot'] = 0
+    low_t_values = set([x[0][0] for x in lows])
+    high_t_values = set([x[0][0] for x in highs])
+    df['pivot'] = df['timestamp'].apply(lambda x: 1 if x in low_t_values else 2 if x in high_t_values else 0)
 
+    df2 = df.loc[np.logical_or(
+        df['pivot'] == 1, df['pivot'] == 2)].reset_index()
+    df2['pivot_trend'] = df2.apply(
+        lambda x: trendstat(df2, x.name, short=short), axis=1)
+    df2['pivot_power'] = df2.apply(lambda x: powerstat(
+        df2, x.name, wn, short=short), axis=1)
+
+    df['pivot_trend'] = np.nan
+    df['pivot_power'] = np.nan
+
+    for r in range(0, len(df2)):
+        df.loc[df2.loc[r]['index']] = df2.loc[r]
+    df['pointpos'] = df.apply(lambda row: pointpos(row), axis=1)
+
+    if short:
+        del df2
+        gc.collect()
+        return df
+
+    up_points = np.where(df['pivot_trend'] == 'up', df['pointpos'], np.nan)
+    down_points = np.where(df['pivot_trend'] == 'down', df['pointpos'], np.nan)
+    sidepoints = np.where(df['pivot_trend'] == 'side', df['pointpos'], np.nan)
+    power_up_points = np.where(
+        df['pivot_power'] == 'strong up', df['pointpos'], np.nan)
+    power_down_points = np.where(
+        df['pivot_power'] == 'strong down', df['pointpos'], np.nan)
+    power_weaking_up_points = np.where(
+        df['pivot_power'] == 'weak up', df['pointpos'], np.nan)
+    power_weaking_down_points = np.where(
+        df['pivot_power'] == 'weak down', df['pointpos'], np.nan)
+
+    return df, up_points, down_points, sidepoints, power_up_points, power_down_points, power_weaking_up_points, power_weaking_down_points
+
+def find_pivots(df, left_candles=7, right_candles=7, wn=2, short=False):
     df['init_pivot'] = df.apply(lambda x: pivotid(
         df, x.name, left_candles, right_candles), axis=1)
     df['pivot'] = np.nan
