@@ -776,13 +776,13 @@ def FiboStat(df, fibomode=c.Fibo_Mode.Retracement, threshold=0.01):
     if (len(pivots) >= 3):
         last_pivot = pivots[-1:]
 
-        last_low_pivot = last_pivot['low'].values[0]
-        last_high_pivot = pivots[-2:-1]['high'].values[0]
-        pre_last_low_pivot = pivots[-3:-2]['low'].values[0]
-        pre_last_high_pivot = pivots[-4:-3]['high'].values[0]
-        last_close = df[-1:]['close'].values[0]
-
         if (last_pivot['pivot'].values[0] == 1):
+            last_low_pivot = last_pivot['low'].values[0]
+            last_high_pivot = pivots[-2:-1]['high'].values[0]
+            pre_last_low_pivot = pivots[-3:-2]['low'].values[0]
+            pre_last_high_pivot = pivots[-4:-3]['high'].values[0]
+            last_close = df[-1:]['close'].values[0]
+
             if fibomode == c.Fibo_Mode.Retracement:
                 h = last_high_pivot-last_low_pivot
             else:
@@ -796,13 +796,19 @@ def FiboStat(df, fibomode=c.Fibo_Mode.Retracement, threshold=0.01):
                     stat = c.Candle_Fibo_Stat(f)
                     dir=c.Fibo_Direction.Up
         else:
+            last_high_pivot = last_pivot.high.values[0]
+            last_low_pivot = pivots[-2:-1]['low'].values[0]
+            pre_last_high_pivot = pivots[-3:-2]['high'].values[0]
+            pre_last_low_pivot = pivots[-4:-3]['low'].values[0]
+            last_close = df[-1:]['close'].values[0]
+
             if fibomode == c.Fibo_Mode.Retracement:
                 h = last_low_pivot-last_high_pivot
             else:
                 h = last_low_pivot-pre_last_high_pivot
 
             for f in range(0, len(fibs)):
-                level = fibs[f]*h+last_high_pivot
+                level =fibs[f]*h +last_high_pivot
                 levels.append(level)
                 ratio = last_close/level
                 if abs(1-ratio) <= threshold:

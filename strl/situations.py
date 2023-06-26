@@ -11,6 +11,8 @@ class Parametrs:
         self.rsi_divergence=[0.7,False]
         self.fibo_retrace=[0.6,False]
         self.fibo_retrace_parent=[0.2,False]
+        self.fibo_trend=[0.6,False]
+        self.fibo_trend_parent=[0.2,False]
         self.ichi_location=[0.6,False]
         self.ichi_location_parent=[0.2,False]
         self.dynamic_SR_closeness=[1.5,False] #Short Term Dynamic S/R
@@ -32,6 +34,8 @@ class Parametrs:
                 self.rsi_divergence,
                 self.fibo_retrace,
                 self.fibo_retrace_parent,
+                self.fibo_trend,
+                self.fibo_trend_parent,
                 self.ichi_location,
                 self.ichi_location_parent,
                 self.dynamic_SR_closeness,
@@ -111,7 +115,7 @@ class Situation:
         self.double_bot_happened=0
 
         self.sma_10_50_cross_up_happened=False
-
+        self.ema_5_10_30_signal=False
         self.rsi_divergance=c.Rsi_Stat.Nothing
         self.rsi_chart_line=[]
         self.rsi_line=[]
@@ -273,6 +277,17 @@ class Situation:
             buy_pars.rsi_divergence[1]=True
         if self.rsi_divergance==c.Rsi_Stat.Down:
             sell_pars.rsi_divergence[1]=True
+##      Fibo 
+        if self.fibo_level_retrace_stat!=c.Candle_Fibo_Stat.Nothing:
+            if self.fibo_level_retrace_dir==c.Fibo_Direction.Up:
+                buy_pars.fibo_retrace[1]=True
+            elif self.fibo_level_retrace_dir==c.Fibo_Direction.Down:
+                sell_pars.fibo_retrace[1]=True
+        if self.fibo_level_trend_stat!=c.Candle_Fibo_Stat.Nothing:
+            if self.fibo_level_trend_dir==c.Fibo_Direction.Up:
+                buy_pars.fibo_trend[1]=True
+            elif self.fibo_level_trend_dir==c.Fibo_Direction.Down:
+                sell_pars.fibo_trend[1]=True
 
         return {"buy":buy_pars,"sell":sell_pars}
 
@@ -281,36 +296,42 @@ class Situation:
         cst=c.Candle_Level_Area_Stat
         
         f={"current_trend":[self.current_trend_stat.value],
-           "Candle_Shape_Normal":[int(self.candle_shapes.__contains__(c.Candle_Shape.Normal))],
-           "Candle_Shape_Small":[int(self.candle_shapes.__contains__(c.Candle_Shape.Small))],
-           "Candle_Shape_Strong":[int(self.candle_shapes.__contains__(c.Candle_Shape.Strong))],
-           "Candle_Shape_Slim":[int(self.candle_shapes.__contains__(c.Candle_Shape.Slim))],
-           "Candle_Shape_Point":[int(self.candle_shapes.__contains__(c.Candle_Shape.Point))],
-           "Candle_Shape_PinBar_Up":[int(self.candle_shapes.__contains__(c.Candle_Shape.PinBar_Up))],
-           "Candle_Shape_PinBar_Down":[int(self.candle_shapes.__contains__(c.Candle_Shape.PinBar_Down))],
-           "Close_Near_Support":[int(self.dynamic_support_stats.__contains__(dcst.Close_Near_Support))],
-           "Open_Near_Support":[int(self.dynamic_support_stats.__contains__(dcst.Open_Near_Support))],
-           "Shadow_Near_Support":[int(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Support))],
-           "Close_Near_Resist":[int(self.dynamic_support_stats.__contains__(dcst.Close_Near_Resist))],
-           "Open_Near_Resist":[int(self.dynamic_support_stats.__contains__(dcst.Open_Near_Resist))],
-           "Shadow_Near_Resist":[int(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Resist))],
-           "Closed_Near_Support":[int(self.static_level_stats.__contains__(cst.Closed_Near_Support))],
-           "Closed_In_Support":[int(self.static_level_stats.__contains__(cst.Closed_In_Support))],
-           "Shadow_In_Support":[int(self.static_level_stats.__contains__(cst.Shadow_In_Support))],
-           "Shadow_Near_Support_s":[int(self.static_level_stats.__contains__(cst.Shadow_Near_Support))],
-           "Opened_In_Support":[int(self.static_level_stats.__contains__(cst.Opened_In_Support))],
-           "Opened_Near_Support":[int(self.static_level_stats.__contains__(cst.Opened_Near_Support))],
-           "Closed_In_Resist":[int(self.static_level_stats.__contains__(cst.Closed_In_Resist))],
-           "Closed_Near_Resist":[int(self.static_level_stats.__contains__(cst.Closed_Near_Resist))],
-           "Shadow_In_Resist":[int(self.static_level_stats.__contains__(cst.Shadow_In_Resist))],
-           "Shadow_Near_Resist_s":[int(self.static_level_stats.__contains__(cst.Shadow_Near_Resist))],
-           "Opened_In_Resist":[int(self.static_level_stats.__contains__(cst.Opened_In_Resist))],
-           "Opened_Near_Resist":[int(self.static_level_stats.__contains__(cst.Opened_Near_Resist))],
+           "Candle_Shape_Normal":[(self.candle_shapes.__contains__(c.Candle_Shape.Normal))],
+           "Candle_Shape_Small":[(self.candle_shapes.__contains__(c.Candle_Shape.Small))],
+           "Candle_Shape_Strong":[(self.candle_shapes.__contains__(c.Candle_Shape.Strong))],
+           "Candle_Shape_Slim":[(self.candle_shapes.__contains__(c.Candle_Shape.Slim))],
+           "Candle_Shape_Point":[(self.candle_shapes.__contains__(c.Candle_Shape.Point))],
+           "Candle_Shape_PinBar_Up":[(self.candle_shapes.__contains__(c.Candle_Shape.PinBar_Up))],
+           "Candle_Shape_PinBar_Down":[(self.candle_shapes.__contains__(c.Candle_Shape.PinBar_Down))],
+           "Close_Near_Support":[(self.dynamic_support_stats.__contains__(dcst.Close_Near_Support))],
+           "Open_Near_Support":[(self.dynamic_support_stats.__contains__(dcst.Open_Near_Support))],
+           "Shadow_Near_Support":[(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Support))],
+           "Close_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Close_Near_Resist))],
+           "Open_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Open_Near_Resist))],
+           "Shadow_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Resist))],
+           "Closed_Near_Support":[(self.static_level_stats.__contains__(cst.Closed_Near_Support))],
+           "Closed_In_Support":[(self.static_level_stats.__contains__(cst.Closed_In_Support))],
+           "Shadow_In_Support":[(self.static_level_stats.__contains__(cst.Shadow_In_Support))],
+           "Shadow_Near_Support_s":[(self.static_level_stats.__contains__(cst.Shadow_Near_Support))],
+           "Opened_In_Support":[(self.static_level_stats.__contains__(cst.Opened_In_Support))],
+           "Opened_Near_Support":[(self.static_level_stats.__contains__(cst.Opened_Near_Support))],
+           "Closed_In_Resist":[(self.static_level_stats.__contains__(cst.Closed_In_Resist))],
+           "Closed_Near_Resist":[(self.static_level_stats.__contains__(cst.Closed_Near_Resist))],
+           "Shadow_In_Resist":[(self.static_level_stats.__contains__(cst.Shadow_In_Resist))],
+           "Shadow_Near_Resist_s":[(self.static_level_stats.__contains__(cst.Shadow_Near_Resist))],
+           "Opened_In_Resist":[(self.static_level_stats.__contains__(cst.Opened_In_Resist))],
+           "Opened_Near_Resist":[(self.static_level_stats.__contains__(cst.Opened_Near_Resist))],
            "Ichi_Stat":[self.ichi_stat.value],
            "double_bot":[self.double_bot_happened],
            "double_top":[self.double_top_happened],
-           "sma_10_50":[int(self.sma_10_50_cross_up_happened)],
-           "rsi_divergence":[self.rsi_divergance.value]
+           "sma_10_50":[(self.sma_10_50_cross_up_happened)],
+           "rsi_divergence":[self.rsi_divergance.value],
+           "fibo_level_retrace_stat":[self.fibo_level_retrace_stat.value],
+           "fibo_level_retrace_dir":[self.fibo_level_retrace_dir.value],
+           "fibo_level_trend_stat":[self.fibo_level_trend_stat.value],
+           "fibo_level_trend_dir":[self.fibo_level_trend_dir.value],
+
+
 
            }
 

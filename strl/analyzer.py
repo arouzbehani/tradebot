@@ -1,4 +1,5 @@
 
+import gc
 import helper
 import Constants as c , analaysis_constants as ac
 import pivot_helper
@@ -107,7 +108,7 @@ class Analyzer:
                 p0_res_long_x,p0_res_long_y,m_res_long,r2_res_long=helper.Return_Trend_From_DF(df_long,r_min=0.95,n=self.pvt_trend_number,mode=2)
 
                 fibo_dir_retrace,fibo_stat_retrace,fibo_retrace_levels=helper.FiboStat(df=df_short,fibomode=c.Fibo_Mode.Retracement,threshold=adj_th)
-                fibo_dir_trend,fibo_stat_trend,fibo_trend_levels=helper.FiboStat(df=df_long,fibomode=c.Fibo_Mode.Trend_Base_Extension,threshold=adj_th)
+                fibo_dir_trend,fibo_stat_trend,fibo_trend_levels=helper.FiboStat(df=df_short,fibomode=c.Fibo_Mode.Trend_Base_Extension,threshold=adj_th)
                 fibo_data_retrace={'dir':fibo_dir_retrace,'stat':fibo_stat_retrace,'levels':fibo_retrace_levels}
                 fibo_data_trend={'dir':fibo_dir_trend, 'stat':fibo_stat_trend,'levels':fibo_trend_levels}
                 last_candle_color=c.Candle_Color.Red
@@ -141,6 +142,13 @@ class Analyzer:
                             'dynamic_support_long':{'trend_stat':S_long_stat,'candle_stat':candle_S_long_stats},
                             'dynamic_resist_long':{'trend_stat':R_long_stat,'candle_stat':candle_R_long_stats},
                             'sma_stat':sma_stat,'rsi_data':rsi_data}
+                del df
+                del df_long
+                del df_short
+                del last_candles
+                del rsi_xs
+                del rsi_ys
+                gc.collect()
                 
     def calculate_situations(self):
         dict=self.dict
@@ -217,6 +225,8 @@ class Analyzer:
             sit.rsi_line=dict[tf]['rsi_data']['rsi_line']
             sit.rsi_chart_line=dict[tf]['rsi_data']['chart_line']
             self.situations[tf]=sit
+        del dict
+        gc.collect()
     def report_buy_00(self,tf):
         dict_buy_sell=self.situations[tf].buy_sell_v01()
         sit_tf_buy=self.situations[tf].buy_position_01()

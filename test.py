@@ -489,10 +489,31 @@ import numpy as np
 # print(result)
 
 
-a = [1,2,3,4,5,6,7,8,9]
-b = [40,50,60,80,0]
+# a = [1,2,3,4,5,6,7,8,9]
+# b = [40,50,60,80,0]
 
-if any(i in b for i in a):
-    print("b contains an element of a")
-else:
-    print("b does not contain any element of a")
+# if any(i in b for i in a):
+#     print("b contains an element of a")
+# else:
+#     print("b does not contain any element of a")
+
+import alpaca_trade_api as tradeapi
+import config as c
+API_KEY = 'PKHI6CRUWH0O5BDALJTU'
+SECRET_KEY = '8DbkwrH4OF1MsfjdL9MKLKgqPy73ONmQHUvBXgMq'
+
+# Create an instance of the Alpaca API
+api = tradeapi.REST(API_KEY, SECRET_KEY, base_url='https://paper-api.alpaca.markets')
+
+# Define the symbol for EUR/USD
+symbol = 'EURUSD'
+
+# Set the timeframe for the data (e.g., '1Min', '1H', '1D')
+timeframe = '1Min'
+
+# Get historical forex data
+bars = api.get_bars(symbol, timeframe, limit=100)
+
+# Print the historical data
+for bar in bars:
+    print(f"{bar.time}: Open={bar.open}, High={bar.high}, Low={bar.low}, Close={bar.close}")

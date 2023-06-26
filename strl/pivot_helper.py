@@ -46,8 +46,13 @@ def lows_highs(values, timestamps,candles=3):
     return lows, highs
 
 def pivotid(df1, l, n1, n2):
-    if l-n1 < 0 or l+n2 >= len(df1):
+    if l-n1 < 0 or l+n2>=len(df1):
         return 0
+    # if l+n2>=len(df1):
+    #     if  l+3 >= len(df1):
+    #         return 0
+    #     else:
+    #         n2=3
     pividlow = 1
     pividhigh = 1
     for i in range(l-n1, l+n2+1):

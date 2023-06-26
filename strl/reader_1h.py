@@ -27,4 +27,4 @@ if (dayname !='Saturday' and dayname!='Sunday'):
     # sg.TALibPattenrSignals(delay, ['60m'], markets=mr.GetMarkets('60m', exchangeName='Yahoo', local=local, testdata=testdata),
     #                        exchangeName='Yahoo', local=local, brout_candles=brout_candles, brout_percentage=brout_percentage, read_patterns=read_patterns)
 
-scanner.Scan()
+#scanner.Scan()
