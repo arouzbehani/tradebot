@@ -491,8 +491,8 @@ with st.sidebar:
     pivot_candle_left = st.number_input("Left Candles:", min_value=2, value=6)
     pivot_candle_right = st.number_input(
         "Right Candles:", min_value=2, value=6)
-    resistance_trend=st.checkbox("Overal Resistance Trend",value=True)
-    support_trend=st.checkbox("Overal Support Trend",value=True)
+    resistance_trend=st.checkbox("Overal Resistance Trend",value=False)
+    support_trend=st.checkbox("Overal Support Trend",value=False)
     npiv=st.number_input("Number Of Trend Pivots:",min_value=0,value=3)
     st.write('Price Action Settings:')
     waves_number = st.number_input("Number of Waves:", min_value=2, value=2)
@@ -511,15 +511,15 @@ with st.sidebar:
         entry_signal_mode = st.radio("Entry Signal Mode", entry_signal_names)
     else:
         entry_signal_mode = 'None'
-    ML_check = st.checkbox("ML Predict", value=False)
-    if (ML_check):
-        forecast_out = st.number_input(
-            "Forecast Number:", min_value=5, max_value=30, value=20)
-        if st.button('ML Predict Price'):
-            if (q.__contains__('symbol') and q.__contains__('tf')):
-                symbol = q['symbol'][0]
-                tf = q['tf'][0]
-                PredictPrice(coin=symbol, tf=tf, forecast_out=forecast_out)
+    # ML_check = st.checkbox("ML Predict", value=False)
+    # if (ML_check):
+    #     forecast_out = st.number_input(
+    #         "Forecast Number:", min_value=5, max_value=30, value=20)
+    #     if st.button('ML Predict Price'):
+    #         if (q.__contains__('symbol') and q.__contains__('tf')):
+    #             symbol = q['symbol'][0]
+    #             tf = q['tf'][0]
+    #             PredictPrice(coin=symbol, tf=tf, forecast_out=forecast_out)
 
 with st.container():
     cols = st.columns([1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1])

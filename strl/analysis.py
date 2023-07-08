@@ -40,8 +40,8 @@ st.markdown("""
         </style>
         """, unsafe_allow_html=True)
 
-tf='1d'
-symbol = 'ETH_USDT'
+tf='4h'
+symbol = 'TRX_USDT'
 exch = 'Kucoin'
 
 # symbol = None
@@ -157,15 +157,25 @@ def DoAnalysis():
     df_features = pd.DataFrame.from_dict(features_dict,orient='columns')
     df_features_row = df_features.iloc[0]
     f_input.extend(df_features_row.values)
-    models=ML_2.Predict(input=f_input,exch=exch,tf=tf,symbol=symbol,tp=ac.ml_const[tf][1],cn=ac.ml_const[tf][0],target='buy')
-    if len(models)>0:
-        st.subheader('Machine Learning Prediction')
-        for model in models:
-            st.write(f'{model["name"]} for Buy: {model["prediction"]} --- Min Recall Score:{np.min(model["recall_scores"])}')
-        models=ML_2.Predict(input=f_input,exch=exch,tf=tf,symbol=symbol,tp=ac.ml_const[tf][1],cn=ac.ml_const[tf][0],target='sell')
-        for model in models:
-            st.write(f'{model["name"]} for Sell: {model["prediction"]} --- Mean Recall Score:{np.mean(model["recall_scores"])}')
-        st.markdown("""---""")
+    st.subheader('Machine Learning Prediction')
+    predict={'buy':{1:'BUY',0:'Nothing'},
+             'sell':{1:'SELL',0:'Nothing'}}
+    
+    cols=st.columns(2)
+    i=0
+    for target in ['buy','sell']:
+        models=ML_2.Predict(input=f_input,exch=exch,tf=tf,symbol=symbol,tp=ac.ml_const[tf][1],cn=ac.ml_const[tf][0],target=f'{target}')
+        if len(models)>0:
+
+            for model in models:
+                with cols[i]:
+                    st.write(f'{model["name"]} for {target.capitalize()}: {predict[target][model["prediction"][0]]}')
+                    # st.write(f'Min Recall Score:{round(np.min(model["recall_scores"]),2)}')
+                    st.write(f'Mean Recall Score:{round(np.mean(model["recall_scores"]),2)}')
+                    st.write(f'Mean Accuracy Score:{round(np.mean(model["accuracy_scores"]),2)}')
+                    st.write(f'Mean Precision Score:{round(np.mean(model["precision_scores"]),2)}')
+        i +=1
+    st.markdown("""---""")
 
     ################################################################## Price Action Trend ######################################################################################
     st.subheader('Price Action Trend')
@@ -292,6 +302,26 @@ def DoAnalysis():
     st.plotly_chart(fig, use_container_width=True)
     del df2_sma
     gc.collect()
+    ################################################################## EMA 5 , 10 , 30 ####################################################################################
+
+    st.subheader('EMA 5 , 10 , 30')
+    st.write(f'Buy Point: {buy_pars.ema_5_10_30[0]*buy_pars.ema_5_10_30[1]}')
+    st.write(f'Sell Point: {sell_pars.ema_5_10_30[0] * sell_pars.ema_5_10_30[1]}')
+    # helper.append_ema(df2,entry_signal_mode='',exit_signal=True)
+    fig=DrawCandleSticks(df,df2,both=False)
+    fig.add_trace(
+        go.Scatter(x=df2['time'], y=df2['ema_5'], name='ema 5'), row=1, col=1
+    )
+    fig.add_trace(
+        go.Scatter(x=df2['time'], y=df2['ema_10'], name='ema 10'), row=1, col=1
+    )
+    fig.add_trace(
+        go.Scatter(x=df2['time'], y=df2['ema_30'], name='ema 30'), row=1, col=1
+    )    
+    fig.update_layout(xaxis_rangeslider_visible=False,
+                        height=450)
+    st.plotly_chart(fig, use_container_width=True)
+    gc.collect()    
     ################################################################## Current Ichi Moko ######################################################################################
     hraders_ichi=['Ichi Moku Status','Parent Ichi Moku Status']
     ichi_buy_points=[buy_pars.ichi_location[0]*buy_pars.ichi_location[1],buy_pars.ichi_location_parent[0]*buy_pars.ichi_location_parent[1]]
@@ -345,8 +375,8 @@ def DoAnalysis():
 
     ################################################################## RSI ####################################################################################
     st.subheader('RSI')
-    st.write(f'Buy Point: {buy_pars.rsi_divergence[0] *buy_pars.rsi_divergence[1]}')
-    st.write(f'Sell Point: {sell_pars.rsi_divergence[0] * sell_pars.rsi_divergence[1]}')
+    st.write(f'Buy Point: {buy_pars.rsi_divergence[0] *buy_pars.rsi_divergence[1]+buy_pars.rsi_cross_limits[0] *buy_pars.rsi_cross_limits[1]}')
+    st.write(f'Sell Point: {sell_pars.rsi_divergence[0] * sell_pars.rsi_divergence[1]+sell_pars.rsi_cross_limits[0] *sell_pars.rsi_cross_limits[1]}')
     df2_rsi=df2.copy()   
 
     fig=DrawCandleSticks(df,df2_rsi,both=False,cols=1,rows=2,column_width=[1],row_heights=[0.7,0.4])
@@ -369,13 +399,16 @@ def DoAnalysis():
     st.subheader('Fibonacci Retracement')
     st.write(f'Buy Point: {buy_pars.fibo_retrace[0] *buy_pars.fibo_retrace[1]}')
     st.write(f'Sell Point: {sell_pars.fibo_retrace[0] * sell_pars.fibo_retrace[1]}')
-    fig=DrawCandleSticks(df2,df2,both=False)
+    fig=DrawCandleSticks(df,df,both=False)
     i=0
     fibo_line=dict(color="#93e2ec",width=0.55)
+    shapes=[]
+    alpha=0.3
+    rgbs=[f'rgb(231, 204, 177,{alpha})',f'rgb(177, 231, 204,{alpha})',f'rgb(190, 231, 177,{alpha})',f'rgb(231, 231, 177,{alpha})',f'rgb(231, 190, 177,{alpha})',f'rgb(177, 177, 231,{alpha})',f'rgb(177, 218, 231,{alpha})']
 
     for l in sit.fibo_retrace_levels:
         i +=1
-        level_xs=[df2.iloc[0].timestamp,df2.iloc[-1].timestamp]
+        level_xs=[df.iloc[0].timestamp,df.iloc[-1].timestamp]
         level_ys=[l,l]
         level_xs_time=pd.to_datetime(level_xs,unit='ms')
         statval=sit.fibo_level_retrace_stat.value
@@ -386,22 +419,38 @@ def DoAnalysis():
         else:
             fibo_line=dict(color="#93e2ec",width=0.55)
         fig.add_trace(
-        go.Scatter(x=level_xs_time, y=level_ys, line=fibo_line, name=f'Fibo Retrace Level {i}'), row=1, col=1
-)         
+        go.Scatter(x=level_xs_time, y=level_ys, line=fibo_line, name=f'Fibo Retrace Level {i}'), row=1, col=1)
+ 
+        # Add a rectangle shape to fill the space between the lines
+        if len(rgbs)>i-1:
+            
+            fig.add_shape(go.layout.Shape(
+                type='rect',
+                x0=level_xs_time[0],
+                x1=level_xs_time[-1],
+                y0=level_ys[0],
+                y1=level_ys[1],
+                fillcolor=rgbs[i-1],  # Set the fill color (you can adjust the transparency)
+                line=dict(
+                    width=0,
+                )
+            ))
+            
+    #fig.layout.shapes=shapes
+    
     fig.update_layout(xaxis_rangeslider_visible=False,
                         height=450)
     st.plotly_chart(fig, use_container_width=True)
     ################################################################## Fibo Trend Base #########################################################################
     st.subheader('Fibonacci Trend Base')
-    st.write(f'Buy Point: {buy_pars.fibo_trend_parent[0] *buy_pars.fibo_trend_parent[1]}')
-    st.write(f'Sell Point: {sell_pars.fibo_trend_parent[0] * sell_pars.fibo_trend_parent[1]}')
-    fig=DrawCandleSticks(df2,df2,both=False)
+    st.write(f'Buy Point: {buy_pars.fibo_trend[0] *buy_pars.fibo_trend[1]}')
+    st.write(f'Sell Point: {sell_pars.fibo_trend[0] * sell_pars.fibo_trend[1]}')
+    fig=DrawCandleSticks(df,df,both=False)
     i=0
     fibo_line=dict(color="#93e2ec",width=0.55)
-
     for l in sit.fibo_trend_levels:
         i +=1
-        level_xs=[df2.iloc[0].timestamp,df2.iloc[-1].timestamp]
+        level_xs=[df.iloc[0].timestamp,df.iloc[-1].timestamp]
         level_ys=[l,l]
         level_xs_time=pd.to_datetime(level_xs,unit='ms')
         statval=sit.fibo_level_trend_stat.value
@@ -412,7 +461,7 @@ def DoAnalysis():
         else:
             fibo_line=dict(color="#93e2ec",width=0.55)
         fig.add_trace(
-        go.Scatter(x=level_xs_time, y=level_ys, line=fibo_line, name=f'Fibo Retrace Level {i}'), row=1, col=1
+        go.Scatter(x=level_xs_time, y=level_ys, line=fibo_line, name=f'Fibo Trend Base Level {i}'), row=1, col=1
 )         
     fig.update_layout(xaxis_rangeslider_visible=False,
                         height=450)

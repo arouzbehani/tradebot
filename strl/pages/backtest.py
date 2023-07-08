@@ -8,6 +8,7 @@ import analaysis_constants as ac
 import analyzer as a
 import situations as s
 import chart_helper as chh
+import ML_2
 st. set_page_config(layout="wide")
 st.markdown("""
 
@@ -44,7 +45,10 @@ with st.sidebar:
                 takeprofit=0
             stoploss=st.number_input('Stop Loss (%):',value=7,min_value=1)
         case 'Analysis':
-            candles_back=st.number_input("Candles Back:",min_value=10,max_value=100,value=50)
+            candles_back=st.number_input("Candles:",min_value=1,max_value=320,value=50)
+        # case 'ML Prediction':
+        #     candles_back=st.number_input("Candles Back:",min_value=1,max_value=320,value=300)
+        #     stoploss=st.number_input('Stop Loss (%):',value=2,min_value=1)
 q = st.experimental_get_query_params()
 symbol='BTC_USDT'
 tf='1h'
@@ -126,13 +130,15 @@ def Run_sma_Strategy(x)-> tm.TradingEnv:
 
 
     # st.text(f"fee:{fee} ; profit:{profit} ; stoploss:{stoploss}")
+
 def DrawAnaylsisChart():
+    #candles_back=2
     tfs = ['1d','4h', '1h','15m']
     totalpoints={}
     totalpoints[tf]=[]
     df=helper.GetData(tf=tf,symbol=symbol,exch=exch)
-    df_long = df[-ac.Long_Term_Trend_Limit-candles_back:-candles_back].reset_index(drop=True)
-    df_short = df[-ac.Short_Term_Trend_Limit-candles_back:-candles_back].reset_index(drop=True)
+    df_long = df[-ac.Long_Term_Trend_Limit:].reset_index(drop=True)
+    df_short = df[-ac.Short_Term_Trend_Limit:].reset_index(drop=True)
     df_long= pivot_helper.find_pivots(
     df_long, ac.Long_Term_Candles, ac.Long_Term_Candles, ac.PA_Power_Calc_Waves, short=True)
     df_short= pivot_helper.find_pivots(
@@ -143,29 +149,49 @@ def DrawAnaylsisChart():
     # [t for t in tfs if t=='4h' or t=='1h']
     # for t in tfs:
     df_short[f'{tf} point']=0
+    df_short[f'{tf} Buy']=np.nan
+    df_short[f'{tf} Sell']=np.nan
 
-    for i in range(candles_back-1,0,-1):
+    for i in range(candles_back,0,-1):
         # df_short.iloc[len(df_short)-i, df_short.columns.get_loc(f'{tf} point')]=3
 
         analyzer=a.Analyzer()
         analyzer.init_data(tfs=filtered_tfs,exch=exch,symbol=symbol,trend_limit_long=ac.Long_Term_Trend_Limit,
                             trend_limit_short=ac.Short_Term_Trend_Limit,long_term_pivot_candles=ac.Long_Term_Candles,
                             short_term_pivot_candles=ac.Short_Term_Candles,
-                            pvt_trend_number=ac.Pivot_Trend_Number,waves_number=ac.PA_Power_Calc_Waves,candles_back=i)
-        sit=s.Situation()
-        sit=analyzer.situations[tf]
+                            pvt_trend_number=ac.Pivot_Trend_Number,waves_number=ac.PA_Power_Calc_Waves,candles_back=i-1)
+   
         dict_buy_sell=analyzer.buy_sell(tf)
         buy_pars=s.Parametrs()
         sell_pars=s.Parametrs()
         buy_pars=dict_buy_sell['buy']
         sell_pars=dict_buy_sell['sell']
         df_short.iloc[len(df_short)-i, df_short.columns.get_loc(f'{tf} point')]=buy_pars.calc_points()-sell_pars.calc_points()
-    
+        
+        this_row=df_short.iloc[len(df_short)-i]
+        f_input=[this_row.open,this_row.high,this_row.low,this_row.close,this_row.volume]
+        features_dict=analyzer.features(tf=tf)
+        df_features = pd.DataFrame.from_dict(features_dict,orient='columns')
+        df_features_row = df_features.iloc[0]
+        f_input.extend(df_features_row.values)
+        targets=['buy','sell']
+        for target in targets:
+            models=ML_2.Predict(input=f_input,exch=exch,tf=tf,symbol=symbol,tp=ac.ml_const[tf][1],cn=ac.ml_const[tf][0],target=f'{target}')
+            if len(models)>0:
+                tree_model=next(m for m in models if m["name"]=='Decision Tree')
+                if tree_model["prediction"][0]==1:
+                    df_short.iloc[len(df_short)-i, df_short.columns.get_loc(f'{tf} {target.capitalize()}')]=this_row.close
+                
+
+
     chh.AppendLineChart(fig=fig,xs=df_short['time'],ys=df_short[f'{tf} point'],col=1,row=2)
+    chh.AppendPointChart(fig=fig,xs=df_short['time'],ys=df_short[f'{tf} Buy'],col=1,row=1,name='Buy',color='green')
+    chh.AppendPointChart(fig=fig,xs=df_short['time'],ys=df_short[f'{tf} Sell'],col=1,row=1,name='Sell',color='red')
     fig.update_layout(xaxis_rangeslider_visible=False,
                         height=450)
     st.plotly_chart(fig, use_container_width=True)
 
+#DrawAnaylsisChart()
 st.title(f"{strategy} Strategy")            
 if st.button('Run Strategy'):
     if strategy=='SMA':

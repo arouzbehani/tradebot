@@ -46,3 +46,8 @@ def AppendLineChart(fig,xs,ys,row=1,col=1,line=dict(color="black", width=1)):
         go.Scatter(x=xs, y=ys, name='trace', line=line, mode='lines'), row=row, col=col
     )
     
+def AppendPointChart(fig,xs,ys,row=1,col=1,size=10, color="red", symbol='star',name=''):
+    marker=dict(size=size, color=color, symbol=symbol)
+    fig.add_trace(
+    go.Scatter(x=xs, y=ys, name=name, mode='markers', marker=marker)
+    , row=row, col=col)

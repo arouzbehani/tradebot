@@ -287,7 +287,7 @@ def append_sma_2(df, entry_signal=False, w1=10, w2=50):
     # df.to_csv('test.csv', header=True, index=True, sep=',', mode='w')
 
 
-def append_ema(df, entry_signal=False, entry_signal_mode='Uptrend'):
+def append_ema(df, entry_signal=False, entry_signal_mode='Uptrend',exit_signal=False):
     ema_indicator_5 = ema(
         close=df['close'], window=5, fillna=False)
     ema_indicator_10 = ema(
@@ -305,6 +305,9 @@ def append_ema(df, entry_signal=False, entry_signal_mode='Uptrend'):
         else:
             df['ema_entry_signal'] = np.where(np.logical_and(np.logical_and(df['ema_30'] < df['ema_10'], df['ema_10'] < df['ema_5']),
                                                              np.logical_or(np.logical_or(df['ema_30'].shift(1) > df['ema_10'].shift(1), df['ema_10'].shift(1) > df['ema_5'].shift(1)), df['ema_30'].shift(1) > df['ema_5'].shift(1))), df['ema_30'], np.nan)
+    if exit_signal:
+            df['ema_exit_signal'] = np.where(np.logical_and(np.logical_and(df['ema_30'] > df['ema_10'], df['ema_10'] > df['ema_5']),
+                                                             np.logical_or(np.logical_or(df['ema_30'].shift(1) < df['ema_10'].shift(1), df['ema_10'].shift(1) < df['ema_5'].shift(1)), df['ema_30'].shift(1) < df['ema_5'].shift(1))), df['ema_30'], np.nan)
 
 
 def append_macd(df):
@@ -651,9 +654,9 @@ def Return_Trend_From_DF(df, r_min, n, mode=1):
 
 def Rsi_Divergence_2(df0,l=50):
     df=df0[-l:].reset_index(drop=True)
-    rsi_lows,rsi_highs=ph.lows_highs(df['rsi'],df['timestamp'])
-    chart_lows,_=ph.lows_highs(df['low'],df['timestamp'])
-    _,chart_highs=ph.lows_highs(df['high'],df['timestamp'])
+    rsi_lows,rsi_highs=ph.lows_highs(df['rsi'],df['timestamp'],candles=2)
+    chart_lows,_=ph.lows_highs(df['low'],df['timestamp'],candles=2)
+    _,chart_highs=ph.lows_highs(df['high'],df['timestamp'],candles=2)
 
     arr=[chart_lows,chart_highs,rsi_lows,rsi_highs]
 
@@ -669,8 +672,8 @@ def Rsi_Divergence_2(df0,l=50):
     # Find fit line for chart highs/lows and rsi highs/lows
     for key in values:
         v=values[key]
-        xs = [x[0][0] for x in v][-2:]
-        ys = [y[0][1] for y in v][-2:]
+        xs = [x[0][0] for x in v][-3:]
+        ys = [y[0][1] for y in v][-3:]
         coeff = np.polyfit(x=xs, y=ys, deg=1)
         yn = np.poly1d(coeff)
         r2 = r2_score(ys, yn(xs))
@@ -693,15 +696,30 @@ def Rsi_Divergence_2(df0,l=50):
 
     if (last_down < first_down and last_rsi_down > first_rsi_down) or (last_down > first_down and last_rsi_down < first_rsi_down):
         return True, [pd.to_datetime(fitlines['chart_lows'][1][0], unit="ms"),pd.to_datetime(fitlines['chart_lows'][1][-1],unit="ms")], [first_down, last_down],[pd.to_datetime(fitlines['rsi_lows'][1][0],unit="ms"),pd.to_datetime(fitlines['rsi_lows'][1][-1],unit="ms")], [first_rsi_down, last_rsi_down]
-
+    last_rsi=df.iloc[-1].rsi
+    
     return False, None, None, None, None
 def Candle_Dynamic_Trend_Stat(candle, supp_data,res_data,last_candles_diection, threshold=0.01, r_min=0.92):
     candle_support_stats=[]
     candle_resist_stats=[]
+    candle_location={"support":{"open":10000,"close":10000,"high":10000,"low":10000},
+                     "resist":{"open":10000,"close":10000,"high":10000,"low":10000}}
+    
+    supp_last = supp_data['m']*(candle.timestamp - supp_data['p0_x'])+supp_data['p0_y']
+    res_last = res_data['m']*(candle.timestamp - res_data['p0_x'])+res_data['p0_y']
+    
+    candle_location["support"]["open"]=candle.open-supp_last
+    candle_location["support"]["close"]=candle.close-supp_last
+    candle_location["support"]["low"]=candle.low-supp_last
+    candle_location["support"]["high"]=candle.high-supp_last
+
+    candle_location["resist"]["open"]=res_last-candle.open
+    candle_location["resist"]["close"]=res_last-candle.close
+    candle_location["resist"]["low"]=res_last-candle.low
+    candle_location["resist"]["high"]=res_last-candle.high
+    
     if last_candles_diection==c.Candles_Direction.Bearish:
         if supp_data['r2'] >= r_min:
-            supp_last = supp_data['m']*(candle.timestamp - supp_data['p0_x'])+supp_data['p0_y']
-
             p_open_supp=(max(candle.open,supp_last)-min(candle.open,supp_last))/min(candle.open,supp_last)
             p_close_supp=(max(candle.close,supp_last)-min(candle.close,supp_last))/min(candle.close,supp_last)
             p_high_supp=(max(candle.high,supp_last)-min(candle.high,supp_last))/min(candle.high,supp_last)
@@ -713,9 +731,9 @@ def Candle_Dynamic_Trend_Stat(candle, supp_data,res_data,last_candles_diection, 
                 candle_support_stats.append(c.Candle_Dynamic_SR_Stat.Open_Near_Support)
             if p_high_supp <= threshold or p_low_supp <=threshold:
                 candle_support_stats.append(c.Candle_Dynamic_SR_Stat.Shadow_Near_Support)
+            
     elif last_candles_diection==c.Candles_Direction.Bullish:
         if res_data['r2'] >= r_min:
-            res_last = res_data['m']*(candle.timestamp - res_data['p0_x'])+res_data['p0_y']
 
             p_open_res=(max(candle.open,res_last)-min(candle.open,res_last))/min(candle.open,res_last)
             p_close_res=(max(candle.close,res_last)-min(candle.close,res_last))/min(candle.close,res_last)
@@ -729,7 +747,7 @@ def Candle_Dynamic_Trend_Stat(candle, supp_data,res_data,last_candles_diection, 
             if p_high_res<= threshold or p_low_res <=threshold:
                 candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Shadow_Near_Resist)
 
-    return candle_support_stats, candle_resist_stats
+    return candle_support_stats, candle_resist_stats,candle_location
 
 
 def Dynamic_SR(df,last_candles_diection, threshold=0.01, r_min=0.92, n=3):
@@ -747,7 +765,7 @@ def Dynamic_SR(df,last_candles_diection, threshold=0.01, r_min=0.92, n=3):
             df, r_min, n, 2)
         dict_res={'p0_x':p0_res_x,'p0_y':p0_res_y,'m':m_res,'r2':r2_res}
 
-        candle_support_stats, candle_resist_stats = Candle_Dynamic_Trend_Stat(candle=df.iloc[-1], supp_data=dict_sup,res_data=dict_res, r_min=r_min,last_candles_diection=last_candles_diection, threshold=threshold)
+        candle_support_stats, candle_resist_stats,candle_location = Candle_Dynamic_Trend_Stat(candle=df.iloc[-1], supp_data=dict_sup,res_data=dict_res, r_min=r_min,last_candles_diection=last_candles_diection, threshold=threshold)
 
         if r2_sup >= r_min:
             S_stat = c.Trend_SR_Stat.Fit_Support
@@ -757,7 +775,7 @@ def Dynamic_SR(df,last_candles_diection, threshold=0.01, r_min=0.92, n=3):
         del df
 
         gc.collect()
-        return S_stat, candle_support_stats, R_stat, candle_resist_stats
+        return S_stat, candle_support_stats, R_stat, candle_resist_stats,candle_location
 
     except:
         del df
@@ -837,6 +855,7 @@ def Candles_direction(candles):
 
 def Candle_level_stat(level_top, level_bot, candle, last_candles_diection, threshold=0.015):
     stats=[]
+    candle_location={}
     if last_candles_diection==c.Candles_Direction.Bullish:
         if candle.close >= candle.open:  # green candle
             if candle.close <= level_top and candle.close >= level_bot:

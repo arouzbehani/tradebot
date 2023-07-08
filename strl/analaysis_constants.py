@@ -6,4 +6,4 @@ Pivot_Trend_Number=2
 PA_Power_Calc_Waves=2
 S_R_Limit=120
 Threshold=0.5
-ml_const={"1d":[7,7],"4h":[10,3],"1h":[12,2],"15m":[10,1.5]}
+ml_const={"1d":[7,7],"4h":[10,3],"1h":[12,1.5],"15m":[10,1.0]}

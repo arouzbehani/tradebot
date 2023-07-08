@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from  sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import KFold, train_test_split
+from sklearn.model_selection import GridSearchCV, KFold, train_test_split
 import GLOBAL , os
 local=True
 try:
@@ -37,26 +37,33 @@ def CalculateModels(exch,tf,symbol,tp,candles_forward,target='buy'):
     dt_accuracy_scores = []
     dt_precision_scores = []
     dt_recall_scores = []
-    lr_accuracy_scores = []
-    lr_precision_scores = []
-    lr_recall_scores = []
+    # lr_accuracy_scores = []
+    # lr_precision_scores = []
+    # lr_recall_scores = []
+    param_grid = {
+    'max_depth': [5, 15, 25],
+    'min_samples_leaf': [1, 3],
+    'max_leaf_nodes': [10, 20, 35, 50]}
+    #dt0 = DecisionTreeClassifier()
+    #gs = GridSearchCV(dt0, param_grid, scoring='f1', cv=5)
+    #gs.fit(X, y)    
     for train_index, test_index in kf.split(X):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        dt = DecisionTreeClassifier()
+        #dt = DecisionTreeClassifier(max_depth=gs.best_params_['max_depth'], min_samples_leaf=gs.best_params_['min_samples_leaf'], max_leaf_nodes=gs.best_params_['max_leaf_nodes'])        
+        dt = DecisionTreeClassifier(criterion="entropy")
         dt.fit(X_train, y_train)
         dt_accuracy_scores.append(dt.score(X_test, y_test))
         dt_y_pred = dt.predict(X_test)
         dt_precision_scores.append(precision_score(y_test, dt_y_pred))
         dt_recall_scores.append(recall_score(y_test, dt_y_pred))
-        lr = LogisticRegression()
-        lr.fit(X_train, y_train)
-        lr_accuracy_scores.append(lr.score(X_test, y_test))
-        lr_y_pred = lr.predict(X_test)
-        lr_precision_scores.append(precision_score(y_test, lr_y_pred))
-        lr_recall_scores.append(recall_score(y_test, lr_y_pred))
-    return [{"name":"Decision Tree","model":dt,"accuracy_scores":dt_accuracy_scores,"precision_scores":dt_precision_scores,"recall_scores":dt_recall_scores},
-            {"name":"Logistic Regression","model":lr,"accuracy_scores":lr_accuracy_scores,"precision_scores":lr_precision_scores,"recall_scores":lr_recall_scores}]
+        # lr = LogisticRegression()
+        # lr.fit(X_train, y_train)
+        # lr_accuracy_scores.append(lr.score(X_test, y_test))
+        # lr_y_pred = lr.predict(X_test)
+        # lr_precision_scores.append(precision_score(y_test, lr_y_pred))
+        # lr_recall_scores.append(recall_score(y_test, lr_y_pred))
+    return [{"name":"Decision Tree","model":dt,"accuracy_scores":dt_accuracy_scores,"precision_scores":dt_precision_scores,"recall_scores":dt_recall_scores}]
     print(f"Decision Tree on {symbol} with {target} target")
     print("  accuracy:", np.mean(dt_accuracy_scores))
     print("  precision:", np.mean(dt_precision_scores))

@@ -9,6 +9,7 @@ class Parametrs:
         self.triangle_break=[0.8,False]
         self.double_hits=[0.8,False]
         self.rsi_divergence=[0.7,False]
+        self.rsi_cross_limits=[0.2,False]
         self.fibo_retrace=[0.6,False]
         self.fibo_retrace_parent=[0.2,False]
         self.fibo_trend=[0.6,False]
@@ -21,6 +22,7 @@ class Parametrs:
         self.static_SR_closeness=[1.5,False]
         self.static_SR_closeness_parent=[0.5,False]    
         self.sma_50_10=[0.5,False]
+        self.ema_5_10_30=[0.7,False]
     
     def calc_points(self):
         all=[
@@ -32,6 +34,7 @@ class Parametrs:
                 self.triangle_break,
                 self.double_hits,
                 self.rsi_divergence,
+                self.rsi_cross_limits,
                 self.fibo_retrace,
                 self.fibo_retrace_parent,
                 self.fibo_trend,
@@ -43,7 +46,8 @@ class Parametrs:
                 self.dynamic_SR_closeness_parrent,
                 self.static_SR_closeness,
                 self.static_SR_closeness_parent,
-                self.sma_50_10
+                self.sma_50_10,
+                self.ema_5_10_30
             ]
         return sum(a[0]*a[1] for a in all) 
 class Situation:
@@ -64,29 +68,45 @@ class Situation:
 
         self.dynamic_support_stats=[]
         self.dynamic_support_line={}
+        self.dynamic_support_candle_location={}
         self.dynamic_resist_stats=[]
         self.dynamic_resist_line={}
+        self.dynamic_resist_candle_location={}
         self.dynamic_support_long_stats=[]
         self.dynamic_support_long_line={}
+        self.dynamic_support_long_candle_location={}
         self.dynamic_resist_long_stats=[]
         self.dynamic_resist_long_line={}
+        self.dynamic_resist_long_candle_location={}
 
         self.parent_dynamic_support_stats=[]
         self.dynamic_support_line_parent={}
+        self.dynamic_support_candle_location_parent={}
         self.parent_dynamic_resist_stats=[]
         self.dynamic_resist_line_parent={}
+        self.dynamic_resist_candle_location_parent={}
 
         self.ichi_stat=c.Ichi_Stat.Nothing
         self.ichi_parent_stat=c.Ichi_Stat.Nothing
 
+        self.bollinger_top_candle_location={}
+        self.bollinger_bot_candle_location={}
         # self.sma_50_stat=c.SMA_Stat.Above
         # self.sma_21_stat=c.SMA_Stat.Above
         # self.sma_10_stat=c.SMA_Stat.Above
 
         self.static_level_stats=[]
         self.parent_level_stats=[]
+
         self.static_levels=[]
         self.parent_static_levels=[]
+
+        self.static_support_candle_location={}
+        self.static_resist_candle_location={}
+
+        self.static_support_candle_location_parent={}
+        self.static_resist_candle_location_parent={}
+
         self.last_candles_diection=c.Candles_Direction.Side
         self.fibo_level_retrace_stat=c.Candle_Fibo_Stat.Nothing
         self.fibo_level_trend_stat=c.Candle_Fibo_Stat.Nothing
@@ -115,10 +135,14 @@ class Situation:
         self.double_bot_happened=0
 
         self.sma_10_50_cross_up_happened=False
-        self.ema_5_10_30_signal=False
+        self.ema_5_10_30_buy_signal=False
+        self.ema_5_10_30_sell_signal=False
         self.rsi_divergance=c.Rsi_Stat.Nothing
         self.rsi_chart_line=[]
         self.rsi_line=[]
+        self.rsi_over_75=False
+        self.rsi_below_30=False
+        self.rsi=-1
 
         
     def break_important_level_up(self):
@@ -271,22 +295,33 @@ class Situation:
             buy_pars.sma_50_10[1]=True
         if not self.sma_10_50_cross_up_happened:
             sell_pars.sma_50_10[1]=True        
+##      EMA 5 / 10 / 30 Status
+
+        if self.ema_5_10_30_buy_signal:
+            buy_pars.ema_5_10_30[1]=True
+        if self.ema_5_10_30_sell_signal:
+            sell_pars.ema_5_10_30[1]=True        
 
 ##      RSI Divergence
         if self.rsi_divergance==c.Rsi_Stat.Up:
             buy_pars.rsi_divergence[1]=True
         if self.rsi_divergance==c.Rsi_Stat.Down:
             sell_pars.rsi_divergence[1]=True
+##      RSI Limits
+        if self.rsi_over_75:
+            buy_pars.rsi_cross_limits[1]=True
+        if self.rsi_below_30:
+            sell_pars.rsi_cross_limits[1]=True            
 ##      Fibo 
         if self.fibo_level_retrace_stat!=c.Candle_Fibo_Stat.Nothing:
-            if self.fibo_level_retrace_dir==c.Fibo_Direction.Up:
+            if self.fibo_level_retrace_dir==c.Fibo_Direction.Down:
                 buy_pars.fibo_retrace[1]=True
-            elif self.fibo_level_retrace_dir==c.Fibo_Direction.Down:
+            elif self.fibo_level_retrace_dir==c.Fibo_Direction.Up:
                 sell_pars.fibo_retrace[1]=True
         if self.fibo_level_trend_stat!=c.Candle_Fibo_Stat.Nothing:
-            if self.fibo_level_trend_dir==c.Fibo_Direction.Up:
+            if self.fibo_level_trend_dir==c.Fibo_Direction.Down:
                 buy_pars.fibo_trend[1]=True
-            elif self.fibo_level_trend_dir==c.Fibo_Direction.Down:
+            elif self.fibo_level_trend_dir==c.Fibo_Direction.Up:
                 sell_pars.fibo_trend[1]=True
 
         return {"buy":buy_pars,"sell":sell_pars}
@@ -294,7 +329,33 @@ class Situation:
     def features(self):
         dcst=c.Candle_Dynamic_SR_Stat
         cst=c.Candle_Level_Area_Stat
-        
+        parent_dict={}
+        # if self.dynamic_support_candle_location_parent:
+        #     parent_dict={
+        #         "Closed_In_Support_Parent":[(self.parent_static_levels.__contains__(cst.Closed_In_Support))],
+        #         "Closed_Near_Support_Parent":[(self.parent_static_levels.__contains__(cst.Closed_Near_Support))],
+        #         "Shadow_In_Support_Parent":[(self.parent_static_levels.__contains__(cst.Shadow_In_Support))],
+        #         "Shadow_Near_Support_s_Parent":[(self.parent_static_levels.__contains__(cst.Shadow_Near_Support))], # "_s" stands for "Static"
+        #         "Opened_In_Support_Parent":[(self.parent_static_levels.__contains__(cst.Opened_In_Support))],
+        #         "Opened_Near_Support_Parent":[(self.parent_static_levels.__contains__(cst.Opened_Near_Support))],
+                
+        #         "Closed_In_Resist_Parent":[(self.parent_static_levels.__contains__(cst.Closed_In_Resist))],
+        #         "Closed_Near_Resist_Parent":[(self.parent_static_levels.__contains__(cst.Closed_Near_Resist))],
+        #         "Shadow_In_Resist_Parent":[(self.parent_static_levels.__contains__(cst.Shadow_In_Resist))],
+        #         "Shadow_Near_Resist_s_Parent":[(self.parent_static_levels.__contains__(cst.Shadow_Near_Resist))], # "_s" stands for "Static"
+        #         "Opened_In_Resist_Parent":[(self.parent_static_levels.__contains__(cst.Opened_In_Resist))],
+        #         "Opened_Near_Resist_Parent":[(self.parent_static_levels.__contains__(cst.Opened_Near_Resist))],            
+
+        #         "Candle_Close_Loc_To_Dynamic_Support_Parent":[self.dynamic_support_candle_location_parent['close']],
+        #         "Candle_Open_Loc_To_Dynamic_Support_Parent":[self.dynamic_support_candle_location_parent['open']],
+        #         "Candle_High_Loc_To_Dynamic_Support_Parent":[self.dynamic_support_candle_location_parent['high']],
+        #         "Candle_Low_Loc_To_Dynamic_Support_Parent":[self.dynamic_support_candle_location_parent['low']],                  
+                
+        #         "Candle_Close_Loc_To_Dynamic_Resist_Parent":[self.dynamic_resist_candle_location_parent['close']],
+        #         "Candle_Open_Loc_To_Dynamic_Resist_Parent":[self.dynamic_resist_candle_location_parent['open']],
+        #         "Candle_High_Loc_To_Dynamic_Resist_Parent":[self.dynamic_resist_candle_location_parent['high']],
+        #         "Candle_Low_Loc_To_Dynamic_Resist_Parent":[self.dynamic_resist_candle_location_parent['low']]
+        #     }
         f={"current_trend":[self.current_trend_stat.value],
            "Candle_Shape_Normal":[(self.candle_shapes.__contains__(c.Candle_Shape.Normal))],
            "Candle_Shape_Small":[(self.candle_shapes.__contains__(c.Candle_Shape.Small))],
@@ -303,38 +364,81 @@ class Situation:
            "Candle_Shape_Point":[(self.candle_shapes.__contains__(c.Candle_Shape.Point))],
            "Candle_Shape_PinBar_Up":[(self.candle_shapes.__contains__(c.Candle_Shape.PinBar_Up))],
            "Candle_Shape_PinBar_Down":[(self.candle_shapes.__contains__(c.Candle_Shape.PinBar_Down))],
-           "Close_Near_Support":[(self.dynamic_support_stats.__contains__(dcst.Close_Near_Support))],
-           "Open_Near_Support":[(self.dynamic_support_stats.__contains__(dcst.Open_Near_Support))],
-           "Shadow_Near_Support":[(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Support))],
-           "Close_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Close_Near_Resist))],
-           "Open_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Open_Near_Resist))],
-           "Shadow_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Resist))],
-           "Closed_Near_Support":[(self.static_level_stats.__contains__(cst.Closed_Near_Support))],
+
+
            "Closed_In_Support":[(self.static_level_stats.__contains__(cst.Closed_In_Support))],
+           "Closed_Near_Support":[(self.static_level_stats.__contains__(cst.Closed_Near_Support))],
            "Shadow_In_Support":[(self.static_level_stats.__contains__(cst.Shadow_In_Support))],
-           "Shadow_Near_Support_s":[(self.static_level_stats.__contains__(cst.Shadow_Near_Support))],
+           "Shadow_Near_Support_s":[(self.static_level_stats.__contains__(cst.Shadow_Near_Support))], # "_s" stands for "Static"
            "Opened_In_Support":[(self.static_level_stats.__contains__(cst.Opened_In_Support))],
            "Opened_Near_Support":[(self.static_level_stats.__contains__(cst.Opened_Near_Support))],
+           
            "Closed_In_Resist":[(self.static_level_stats.__contains__(cst.Closed_In_Resist))],
            "Closed_Near_Resist":[(self.static_level_stats.__contains__(cst.Closed_Near_Resist))],
            "Shadow_In_Resist":[(self.static_level_stats.__contains__(cst.Shadow_In_Resist))],
-           "Shadow_Near_Resist_s":[(self.static_level_stats.__contains__(cst.Shadow_Near_Resist))],
+           "Shadow_Near_Resist_s":[(self.static_level_stats.__contains__(cst.Shadow_Near_Resist))], # "_s" stands for "Static"
            "Opened_In_Resist":[(self.static_level_stats.__contains__(cst.Opened_In_Resist))],
            "Opened_Near_Resist":[(self.static_level_stats.__contains__(cst.Opened_Near_Resist))],
+
+        #    "Close_Near_Support":[(self.dynamic_support_stats.__contains__(dcst.Close_Near_Support))],
+        #    "Open_Near_Support":[(self.dynamic_support_stats.__contains__(dcst.Open_Near_Support))],
+        #    "Shadow_Near_Support":[(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Support))],
+        #    "Close_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Close_Near_Resist))],
+        #    "Open_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Open_Near_Resist))],
+        #    "Shadow_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Resist))],
+
+
+            "Candle_Close_Loc_To_Dynamic_Support":[self.dynamic_support_candle_location['close']],
+            "Candle_Open_Loc_To_Dynamic_Support":[self.dynamic_support_candle_location['open']],
+            "Candle_High_Loc_To_Dynamic_Support":[self.dynamic_support_candle_location['high']],
+            "Candle_Low_Loc_To_Dynamic_Support":[self.dynamic_support_candle_location['low']],
+
+            "Candle_Close_Loc_To_Dynamic_Resist":[self.dynamic_resist_candle_location['close']],
+            "Candle_Open_Loc_To_Dynamic_Resist":[self.dynamic_resist_candle_location['open']],
+            "Candle_High_Loc_To_Dynamic_Resist":[self.dynamic_resist_candle_location['high']],
+            "Candle_Low_Loc_To_Dynamic_Resist":[self.dynamic_resist_candle_location['low']],
+
+            "Candle_Close_Loc_To_Dynamic_Support_Long":[self.dynamic_support_long_candle_location['close']],
+            "Candle_Open_Loc_To_Dynamic_Support_Long":[self.dynamic_support_long_candle_location['open']],
+            "Candle_High_Loc_To_Dynamic_Support_Long":[self.dynamic_support_long_candle_location['high']],
+            "Candle_Low_Loc_To_Dynamic_Support_Long":[self.dynamic_support_long_candle_location['low']],    
+            
+            "Candle_Close_Loc_To_Dynamic_Resist_Long":[self.dynamic_resist_long_candle_location['close']],
+            "Candle_Open_Loc_To_Dynamic_Resist_Long":[self.dynamic_resist_long_candle_location['open']],
+            "Candle_High_Loc_To_Dynamic_Resist_Long":[self.dynamic_resist_long_candle_location['high']],
+            "Candle_Low_Loc_To_Dynamic_Resist_Long":[self.dynamic_resist_long_candle_location['low']],         
+
+            
+
            "Ichi_Stat":[self.ichi_stat.value],
            "double_bot":[self.double_bot_happened],
            "double_top":[self.double_top_happened],
            "sma_10_50":[(self.sma_10_50_cross_up_happened)],
-           "rsi_divergence":[self.rsi_divergance.value],
+           "ema_5_10_30_buy_signal":[(self.ema_5_10_30_buy_signal)],
+           "ema_5_10_30_sell_signal":[(self.ema_5_10_30_sell_signal)],
+        #   "rsi_divergence":[self.rsi_divergance.value],
+        #    "rsi_over_75":[self.rsi_over_75],
+        #    "rsi_below_30":[self.rsi_below_30],
+           "rsi":[self.rsi],
            "fibo_level_retrace_stat":[self.fibo_level_retrace_stat.value],
            "fibo_level_retrace_dir":[self.fibo_level_retrace_dir.value],
            "fibo_level_trend_stat":[self.fibo_level_trend_stat.value],
            "fibo_level_trend_dir":[self.fibo_level_trend_dir.value],
 
+           "Candle_Close_Loc_To_Dynamic_Bollinger_Top":[self.bollinger_top_candle_location['close']],
+           "Candle_Open_Loc_To_Dynamic_Bollinger_Top":[self.bollinger_top_candle_location['open']],
+           "Candle_High_Loc_To_Dynamic_Bollinger_Top":[self.bollinger_top_candle_location['high']],
+           "Candle_Low_Loc_To_Dynamic_Bollinger_Top":[self.bollinger_top_candle_location['low']],         
+
+           "Candle_Close_Loc_To_Dynamic_Bollinger_Bot":[self.bollinger_bot_candle_location['close']],
+           "Candle_Open_Loc_To_Dynamic_Bollinger_Bot":[self.bollinger_bot_candle_location['open']],
+           "Candle_High_Loc_To_Dynamic_Bollinger_Bot":[self.bollinger_bot_candle_location['high']],
+           "Candle_Low_Loc_To_Dynamic_Bollinger_Bot":[self.bollinger_bot_candle_location['low']]
 
 
            }
-
+        if parent_dict:
+            f.update(parent_dict)
         return f
 
 
