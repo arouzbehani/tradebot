@@ -1,8 +1,14 @@
+import os
+import numpy as np
 import analyzer as a
 import MarketReader as mr
 import pandas as pd
 import datetime
 import GLOBAL
+import ML_2
+import asyncio
+import telegram_messenger as tlgm
+
 local=True
 try:
     import subprocess
@@ -45,4 +51,59 @@ def Scan(exch='Kucoin'):
     df.to_csv(abs_path, header=True,
                              index=True, sep=',', mode='w')
     
+def Get_FeaturedSymbols(exch='Kucoin',tf='1h'):
+    symbols=[]
+    rel_dir=f'Feature_Models/{exch}/{tf}/'
+    abs_dir=GLOBAL.ABSOLUTE(rel_dir,local=local)
+    for fname in os.listdir(abs_dir):
+        if fname.__contains__('_features_'):
+            symbols.append(fname.split('_features_')[0])
+    return symbols
+def ML_Scan(exch='Kucoin'):
+    results={}
+    symbols=mr.GetSymbols(local=local)
+    tfs=['1d','4h','1h','15m']
+    if exch=='Yahoo':
+        tfs=['1d','90m','60m','15m']
 
+    for tf in tfs:
+        symbols=Get_FeaturedSymbols(exch=exch,tf=tf)
+        for s in symbols:
+            try:
+                analyzer=a.Analyzer()
+                analyzer.init_data(tfs=[tf], symbol=s,exch=exch)
+                sit=analyzer.situations[tf]
+                df=sit.short_term_df
+                df0=df[["close","open","high","low","volume"]].tail(1).reset_index(drop=True)
+                features_dict=analyzer.features(tf=tf)
+                df_features = pd.DataFrame.from_dict(features_dict,orient='columns').reset_index(drop=True)
+                df_input=pd.concat([df0,df_features],axis=1)
+                predict={'buy':{1:'BUY',0:'Nothing'},
+                        'sell':{1:'SELL',0:'Nothing'}}
+                for target in ['buy','sell']:
+                    models=ML_2.Predict(input=df_input,exch=exch,tf=tf,symbol=s,target=f'{target}')
+                    if len(models)>0:
+                        for model in models:
+                            p=predict[target][model["prediction"][0]]
+                            if p=='SELL' or p=='BUY':
+                                if np.mean(model["precision_scores"])>=0.8:
+                                    message=f'{p} {s} -- {tf} ---- Current Candle: {df.iloc[-1].time} (UTC)' + '\r\n'
+                                    message +=f'Possible Trade: {model["deals"]}% , Candles: {model["cn"]} , TP: {model["tp"]}'+ '\r\n'
+                                    message +=f'Model: {model["name"]}' + '\r\n'
+                                    message +=f'Mean Recall Score:{round(np.mean(model["recall_scores"]),2)}'+ '\r\n'
+                                    message +=f'Mean Accuracy Score:{round(np.mean(model["accuracy_scores"]),2)}'+ '\r\n'
+                                    message +=f'Mean Precision Score:{round(np.mean(model["precision_scores"]),2)}'
+                                    print(message)
+                                    asyncio.run(tlgm.main("-1001982135624",message))
+            except:
+                print(f'Error on {s}')
+    # df = pd.DataFrame.from_dict(results,orient='index')
+    # df.columns = [tf + ' point' for tf in tfs]
+    # df.index.name = 'Symbol'
+    # df = df.sort_values(by='1h point', ascending=False)
+    # now = datetime.datetime.now()
+    # rel_path = "Scans/{}/{}.csv".format(exch, now.strftime("%d_%m_%Y__%H_%M_%S"))
+    # abs_path = GLOBAL.ABSOLUTE(rel_path,local=local)
+    # df.to_csv(abs_path, header=True,
+    #                          index=True, sep=',', mode='w')
+    

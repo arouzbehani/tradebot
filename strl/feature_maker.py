@@ -1,3 +1,4 @@
+import argparse
 from numpy import arange
 import analyzer as a
 import pandas as pd
@@ -32,6 +33,20 @@ def get_tfs(tf, tfs):
             tfs_2.append(t)
             break
     return tfs_2
+def return_coef(exch,tf,symbol):
+    rel_dir=f'Feature_Models/{exch}/{tf}/'
+    abs_dir=GLOBAL.ABSOLUTE(rel_dir,local=local)
+
+    match_name=f'{symbol}_features_'
+    for fname in os.listdir(abs_dir):
+        if fname.startswith(match_name):
+            tp_buy=fname.split('tpbuy_')[1].split('_')[0]
+            tp_sell=fname.split('tpsell_')[1].split('_')[0]
+            buys=fname.split('buys_')[1].split('_')[0]
+            sells=fname.split('sells_')[1].split('_')[0]
+            cn_buy=fname.split('cnbuy_')[1].split('_')[0]
+            cn_sell=fname.split('cnsell_')[1].split('.')[0]
+            return float(tp_buy),float(tp_sell),int(buys),int(sells),int(cn_buy),int(cn_sell)
 def Find_Optimum_TP(closes,highs,lows,max_cn=13):
     max_buy=0
     max_sell=0    
@@ -39,6 +54,7 @@ def Find_Optimum_TP(closes,highs,lows,max_cn=13):
     tp_sell=0.01
     cn_buy=1
     cn_sell=1
+    # dict={"cn":{"tp":}}
     for cn in range(1,max_cn+1):
         candles_forward=cn
         for tp in arange(0.5,30,0.1):
@@ -82,7 +98,13 @@ def Make(
 
     print(datetime.datetime.now())
     df_tp=df[len(df)-ac.Long_Term_Trend_Limit-candles_back:len(df)].reset_index(drop=True)
-    tp_buy,tp_sell,max_buy,max_sell,cn_buy,cn_sell=Find_Optimum_TP(df_tp['close'].values,df_tp['high'].values,df_tp['low'].values,max_cn=13)
+    tp_buy,tp_sell,max_buy,max_sell,cn_buy,cn_sell=0,0,0,0,0,0
+    if extend:
+        tp_buy,tp_sell,max_buy,max_sell,cn_buy,cn_sell=return_coef(exch=exch,tf=tf,symbol=symbol)
+    else:
+        tp_buy,tp_sell,max_buy,max_sell,cn_buy,cn_sell=Find_Optimum_TP(df_tp['close'].values,df_tp['high'].values,df_tp['low'].values,max_cn=13)
+    print(f'tp_buy:{tp_buy} -- cn_buy: {cn_buy} -- Buy Deals(%): {max_buy}')
+    print(f'tp_sell:{tp_sell} -- cn_sell: {cn_sell} -- Sell Deals(%): {max_sell}')
     tps=[tp_buy,tp_sell]
     cns=[cn_buy,cn_sell]
     target_titles=['buy_target','sell_target']
@@ -124,12 +146,14 @@ def Make(
         del future_df
         del features_dict
         gc.collect()
-        print(f"candle {i}")
+        print(f"{symbol}/{tf} Candle {i}")
     del df_tp
     gc.collect()
-    columns_to_drop = ["timestamp", "Coin", "time"]
+    coin='Coin'
+    if exch=="Yahoo": coin='Symbol'
+    columns_to_drop = ["timestamp", coin, "time"]
     if not clean_timestamp:
-        columns_to_drop = ["Coin"]
+        columns_to_drop = coin
 
     df = df.drop(columns_to_drop, axis=1)
     df = df.drop(df.index[0 : len(df) - candles_back - 1]).reset_index(drop=True)
@@ -153,47 +177,75 @@ def Extend(
     symbol="FTM_USDT",
     exch="Kucoin",
     tf="1d",
-    candles_forward=7,
-    clean_timestamp=False,
-    tp=5):
+    clean_timestamp=False):
         tfs = ["1d", "4h", "1h", "15m"]
         df = helper.GetData(tf=tf, symbol=symbol, exch=exch)
-        rel_path = "Feature_Models/{}/{}/{}_features_tp{}_cn{}.csv".format(
-            exch, tf, symbol, tp, candles_forward
-        )
-        abs_path = GLOBAL.ABSOLUTE(rel_path, local=local)
-        if os.path.exists(abs_path):
-            df_features=pd.read_csv(abs_path)
-            last_timestamp=df_features.iloc[-1].timestamp
-            index = df[df['timestamp'] == last_timestamp].index.item()
-            subset_df = df.iloc[index+1:]
-            candles_back=len(subset_df)
-            Make(symbol=symbol,exch=exch,tf=tf,
-                 candles_back=candles_back-1,
-                 candles_forward=candles_forward,
-                 clean_timestamp=clean_timestamp,
-                 tp=tp,extend=True)
+        rel_dir=f'Feature_Models/{exch}/{tf}/'
+        abs_dir=GLOBAL.ABSOLUTE(rel_dir,local=local)
+
+        match_name=f'{symbol}_features_'
+        for fname in os.listdir(abs_dir):
+            if fname.startswith(match_name):
+                tp_buy=fname.split('tpbuy_')[1].split('_')[0]
+                tp_sell=fname.split('tpsell_')[1].split('_')[0]
+                buys=fname.split('buys_')[1].split('_')[0]
+                sells=fname.split('sells_')[1].split('_')[0]
+                cn_buy=fname.split('cnbuy_')[1].split('_')[0]
+                cn_sell=fname.split('cnsell_')[1].split('.')[0]
+                rel_path = f"Feature_Models/{exch}/{tf}/{symbol}_features_tpbuy_{tp_buy}_tpsell_{tp_sell}_buys_{buys}_sells_{sells}_cnbuy_{cn_buy}_cnsell_{cn_sell}.csv"
+                abs_path = GLOBAL.ABSOLUTE(rel_path, local=local)
+                if os.path.exists(abs_path):
+                    df_features=pd.read_csv(abs_path)
+                    last_timestamp=df_features.iloc[-1].timestamp
+                    index = df[df['timestamp'] == last_timestamp].index.item()
+                    subset_df = df.iloc[index+1:]
+                    candles_back=len(subset_df)
+                    Make(symbol=symbol,exch=exch,tf=tf,
+                        candles_back=candles_back-1,
+                        clean_timestamp=clean_timestamp,
+                        extend=True)
 
 def Make_Features(extend=False):
     tfs = ["1d", "4h", "1h", "15m"]
-    tfs = ["1h", "4h"]
+    tfs = ["4h", "1h"]
     symbols = ["BNB_USDT","TRX_USDT","FTM_USDT", "ADA_USDT", "MATIC_USDT", "BTC_USDT","ETH_USDT"]
-    #symbols = ["TRX_USDT"]
+    symbols.extend(["SOL_USDT","LTC_USDT","DOT_USDT", "BCH_USDT", "LINK_USDT", "UNI_USDT","FIL_USDT"])
+    # symbols=["DOT_USDT"]
+    # tfs=["1d"]
+    symbols=["XRP_USDT","DOGE_USDT","AVAX_USDT","TON_USDT","SHIB_USDT","LEO_USDT","XMR_USDT","ATOM_USDT","ETC_USDT","LDO_USDT","ICP_USDT","OKB_USDT","HBAR_USDT","ARB_USDT"]
+    exch='Kucoin'
     for tf in tfs:
         for s in symbols:
-            if not extend:
-                Make(
-                symbol=s,
-                tf=tf,
-                candles_back=3500,
-                clean_timestamp=False,
-                extend=False)
-            else:
-                Extend(
+            try:
+                if not extend:
+                    Make(
+                    exch=exch,
                     symbol=s,
                     tf=tf,
+                    candles_back=3500,
                     clean_timestamp=False,
-                    tp=ac.ml_const[tf][1],
-                    candles_forward=ac.ml_const[tf][0]
-                )
-Make_Features(extend=False)
+                    extend=False)
+                else:
+                    Extend(
+                        exch=exch,
+                        symbol=s,
+                        tf=tf,
+                        clean_timestamp=False
+                    )
+                    
+            except Exception as e:
+                print(f"Error in Symbol: {s} -- tf:{tf}")
+                print(str(e))
+
+if __name__ == "__main__":
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("argument", nargs="?", type=int, help="Your desired argument (optional)")
+    args = parser.parse_args()
+
+    # Call your function with the provided argument
+    if not args.argument is None:
+        Make_Features(extend=bool(args.argument))
+    else:
+        #print('pass')
+        Make_Features(extend=False)

@@ -41,7 +41,7 @@ st.markdown("""
         """, unsafe_allow_html=True)
 
 tf='4h'
-symbol = 'TRX_USDT'
+symbol = 'BTC_USDT'
 exch = 'Kucoin'
 
 # symbol = None
@@ -151,12 +151,14 @@ def DoAnalysis():
     df=sit.long_term_df
     df2=sit.short_term_df
     ################################################################## ML Prediction #############################################################################
-    lrow=df.iloc[-1]
-    f_input=[lrow.open,lrow.high,lrow.low,lrow.close,lrow.volume]
+    # lrow=df.iloc[-1]
+    df0=df[["close","open","high","low","volume"]].tail(1).reset_index(drop=True)
+    # f_input=[lrow.open,lrow.high,lrow.low,lrow.close,lrow.volume]
     features_dict=analyzer.features(tf=tf)
-    df_features = pd.DataFrame.from_dict(features_dict,orient='columns')
-    df_features_row = df_features.iloc[0]
-    f_input.extend(df_features_row.values)
+    df_features = pd.DataFrame.from_dict(features_dict,orient='columns').reset_index(drop=True)
+    df_input=pd.concat([df0,df_features],axis=1)
+    # df_features_row = df_features.iloc[0]
+    # f_input.extend(df_features_row.values)
     st.subheader('Machine Learning Prediction')
     predict={'buy':{1:'BUY',0:'Nothing'},
              'sell':{1:'SELL',0:'Nothing'}}
@@ -164,12 +166,13 @@ def DoAnalysis():
     cols=st.columns(2)
     i=0
     for target in ['buy','sell']:
-        models=ML_2.Predict(input=f_input,exch=exch,tf=tf,symbol=symbol,tp=ac.ml_const[tf][1],cn=ac.ml_const[tf][0],target=f'{target}')
+        models=ML_2.Predict(input=df_input,exch=exch,tf=tf,symbol=symbol,target=f'{target}')
         if len(models)>0:
 
             for model in models:
                 with cols[i]:
                     st.write(f'{model["name"]} for {target.capitalize()}: {predict[target][model["prediction"][0]]}')
+                    st.write(f'Total Deals: {model["deals"]} , Candles: {model["cn"]} , TP: {model["tp"]}')
                     # st.write(f'Min Recall Score:{round(np.min(model["recall_scores"]),2)}')
                     st.write(f'Mean Recall Score:{round(np.mean(model["recall_scores"]),2)}')
                     st.write(f'Mean Accuracy Score:{round(np.mean(model["accuracy_scores"]),2)}')

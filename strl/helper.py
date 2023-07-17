@@ -37,7 +37,8 @@ def GetData(tf, symbol, exch):
             df = pd.read_csv(path)
 
             break
-    df['time'] = pd.to_datetime(df['timestamp'], unit='ms')
+    if not df is None:
+        df['time'] = pd.to_datetime(df['timestamp'], unit='ms')
 
     return df
 

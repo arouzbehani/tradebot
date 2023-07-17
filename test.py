@@ -497,23 +497,38 @@ import numpy as np
 # else:
 #     print("b does not contain any element of a")
 
-import alpaca_trade_api as tradeapi
-import config as c
-API_KEY = 'PKHI6CRUWH0O5BDALJTU'
-SECRET_KEY = '8DbkwrH4OF1MsfjdL9MKLKgqPy73ONmQHUvBXgMq'
+# import alpaca_trade_api as tradeapi
+# import config as c
+# API_KEY = 'PKHI6CRUWH0O5BDALJTU'
+# SECRET_KEY = '8DbkwrH4OF1MsfjdL9MKLKgqPy73ONmQHUvBXgMq'
 
-# Create an instance of the Alpaca API
-api = tradeapi.REST(API_KEY, SECRET_KEY, base_url='https://paper-api.alpaca.markets')
+# # Create an instance of the Alpaca API
+# api = tradeapi.REST(API_KEY, SECRET_KEY, base_url='https://paper-api.alpaca.markets')
 
-# Define the symbol for EUR/USD
-symbol = 'EURUSD'
+# # Define the symbol for EUR/USD
+# symbol = 'EURUSD'
 
-# Set the timeframe for the data (e.g., '1Min', '1H', '1D')
-timeframe = '1Min'
+# # Set the timeframe for the data (e.g., '1Min', '1H', '1D')
+# timeframe = '1Min'
 
-# Get historical forex data
-bars = api.get_bars(symbol, timeframe, limit=100)
+# # Get historical forex data
+# bars = api.get_bars(symbol, timeframe, limit=100)
 
-# Print the historical data
-for bar in bars:
-    print(f"{bar.time}: Open={bar.open}, High={bar.high}, Low={bar.low}, Close={bar.close}")
+# # Print the historical data
+# for bar in bars:
+#     print(f"{bar.time}: Open={bar.open}, High={bar.high}, Low={bar.low}, Close={bar.close}")
+
+# def totimestamp(date_string):
+#     #date_string = '2010-01-01'
+#     date_object = datetime.datetime.strptime(date_string, '%Y-%m-%d')
+#     return int(date_object.timestamp() * 1000)
+# df=getTestData(exch='Forex',coin='EUR_USD',tf='1d')
+# df['timestamp']=df['Date'].apply(totimestamp)
+# df = df.rename(columns={'Date': 'time', 'Open': 'open','Close': 'close','High': 'high','Low': 'low','Volume': 'volume'})
+# df = df.drop(columns=['Adj Close'], axis=1)
+# rel_path = 'Market Data/{}/{}/{}__{}.csv'.format('Forex','1d','EUR_USD','1d')
+# df.to_csv(rel_path,header=True, index=False, sep=",", mode="w")
+# print(df.tail())
+
+
+

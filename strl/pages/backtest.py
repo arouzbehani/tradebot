@@ -169,16 +169,15 @@ def DrawAnaylsisChart():
         df_short.iloc[len(df_short)-i, df_short.columns.get_loc(f'{tf} point')]=buy_pars.calc_points()-sell_pars.calc_points()
         
         this_row=df_short.iloc[len(df_short)-i]
-        f_input=[this_row.open,this_row.high,this_row.low,this_row.close,this_row.volume]
+        df0=df_short[["close","open","high","low","volume"]].tail(1).reset_index(drop=True)
         features_dict=analyzer.features(tf=tf)
-        df_features = pd.DataFrame.from_dict(features_dict,orient='columns')
-        df_features_row = df_features.iloc[0]
-        f_input.extend(df_features_row.values)
+        df_features = pd.DataFrame.from_dict(features_dict,orient='columns').reset_index(drop=True)
+        df_input=pd.concat([df0,df_features],axis=1)
         targets=['buy','sell']
         for target in targets:
-            models=ML_2.Predict(input=f_input,exch=exch,tf=tf,symbol=symbol,tp=ac.ml_const[tf][1],cn=ac.ml_const[tf][0],target=f'{target}')
+            models=ML_2.Predict(input=df_input,exch=exch,tf=tf,symbol=symbol,target=f'{target}')
             if len(models)>0:
-                tree_model=next(m for m in models if m["name"]=='Decision Tree')
+                tree_model=next(m for m in models if m["name"]=='Random Forest')
                 if tree_model["prediction"][0]==1:
                     df_short.iloc[len(df_short)-i, df_short.columns.get_loc(f'{tf} {target.capitalize()}')]=this_row.close
                 

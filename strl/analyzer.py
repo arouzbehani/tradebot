@@ -47,6 +47,7 @@ class Analyzer:
             for tf in self.tfs:
                 adj_th=self.adjust_threshold(tf)
                 df = helper.GetData(tf, self.symbol, self.exch)
+                if df is None: continue
                 if candles_back < 0:
                     candles_back = len(df) - ac.Long_Term_Trend_Limit
                 else:
