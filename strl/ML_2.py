@@ -5,7 +5,7 @@ from  sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import GridSearchCV, KFold, train_test_split
 from sklearn.ensemble import RandomForestClassifier 
-from sklearn.neural_network import MLPClassifier
+# from sklearn.neural_network import MLPClassifier
 
 import GLOBAL , os
 local=True
@@ -69,6 +69,8 @@ def CalculateModels(exch,tf,symbol,target='buy'):
     ft_imp = pd.Series(rf0.feature_importances_, index=features.columns).sort_values(ascending=False)
     subset_features_index =ft_imp[ft_imp > 0.012].index
     X_imp=df[subset_features_index].values
+
+
     # X_train, X_test, y_train, y_test = train_test_split(X_imp, y, random_state=101)
     # rf = RandomForestClassifier()
     # y_train=y_train.ravel()
@@ -85,6 +87,10 @@ def CalculateModels(exch,tf,symbol,target='buy'):
     rf_accuracy_scores = []
     rf_precision_scores = []
     rf_recall_scores = []    
+
+    nn_accuracy_scores = []
+    nn_precision_scores = []
+    nn_recall_scores = []   
     # lr_accuracy_scores = []
     # lr_precision_scores = []
     # lr_recall_scores = []
@@ -112,6 +118,13 @@ def CalculateModels(exch,tf,symbol,target='buy'):
         rf_y_pred = rf.predict(X_test)
         rf_precision_scores.append(precision_score(y_test, rf_y_pred))
         rf_recall_scores.append(recall_score(y_test, rf_y_pred))
+
+        # nn=MLPClassifier(hidden_layer_sizes=(1000,500,200,100,50),random_state=101,verbose=0,max_iter=2000,activation='relu')
+        # nn.fit(X_train,y_train)
+        # nn_accuracy_scores.append(nn.score(X_test, y_test))
+        # nn_y_pred = nn.predict(X_test)
+        # nn_precision_scores.append(precision_score(y_test, nn_y_pred))
+        # nn_recall_scores.append(recall_score(y_test, nn_y_pred))
 
         # lr = LogisticRegression()
         # lr.fit(X_train, y_train)
@@ -143,8 +156,8 @@ def Predict(input,exch='Kucoin',tf='4h',symbol='BTC_USDT',target='buy'):
         model["prediction"]=model["model"].predict([subset_input_vals])
 
     return models
-
-#CalculateModels(exch='Kucoin',tf='1h',symbol='BNB_USDT',target='sell')
+if __name__ == "__main__":
+    CalculateModels(exch='Kucoin',tf='1h',symbol='SHIB_USDT',target='sell')
 # tfs = ["1h"]
 # symbols = ["BNB_USDT","TRX_USDT","FTM_USDT", "ADA_USDT", "MATIC_USDT", "BTC_USDT","ETH_USDT"]
 # symbols = ["SOL_USDT","LTC_USDT","DOT_USDT", "BCH_USDT", "LINK_USDT", "UNI_USDT","FIL_USDT"]

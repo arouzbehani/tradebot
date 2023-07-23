@@ -34,9 +34,12 @@ def GetMarkets(tf,exchangeName='Kucoin',local=False, testdata=False):
             except:
                 continue
     return markets 
-def ReadKucoinMarket(timeframes,testdata=False,local=False,symbol=''):
+def ReadKucoinMarket(timeframes,testdata=False,local=False,symbol='',featured_symbols=[]):
     markets = []
     markets = kc.GetMarkets()
+    featured_markets={}
+    if len(featured_symbols)>0:
+        featured_markets={k: markets[k] for k in tuple([s.replace('_', '/') for s in featured_symbols])}
     for i in range(0, len(timeframes)):
         marketsegment = {k: markets[k] for k in ('ADA/USDT', 'BTC/USDT')}
         if symbol !='':
@@ -45,6 +48,11 @@ def ReadKucoinMarket(timeframes,testdata=False,local=False,symbol=''):
 
         if(testdata):
             datframes, e = kc.GetMarketData(marketsegment, timeframes[i], 'All', 1200,local=local)
+            del datframes
+            del e
+            gc.collect()
+        elif len(featured_markets)>0:
+            datframes, e = kc.GetMarketData(featured_markets, timeframes[i], 'All', 1200,local=local)
             del datframes
             del e
             gc.collect()

@@ -50,8 +50,8 @@ with st.sidebar:
         #     candles_back=st.number_input("Candles Back:",min_value=1,max_value=320,value=300)
         #     stoploss=st.number_input('Stop Loss (%):',value=2,min_value=1)
 q = st.experimental_get_query_params()
-symbol='BTC_USDT'
-tf='1h'
+symbol='SHIB_USDT'
+tf='4h'
 if (q.__contains__('symbol')):
     symbol = q['symbol'][0]
 if (q.__contains__('tf')):
@@ -132,7 +132,7 @@ def Run_sma_Strategy(x)-> tm.TradingEnv:
     # st.text(f"fee:{fee} ; profit:{profit} ; stoploss:{stoploss}")
 
 def DrawAnaylsisChart():
-    #candles_back=2
+    # candles_back=1
     tfs = ['1d','4h', '1h','15m']
     totalpoints={}
     totalpoints[tf]=[]
@@ -159,7 +159,7 @@ def DrawAnaylsisChart():
         analyzer.init_data(tfs=filtered_tfs,exch=exch,symbol=symbol,trend_limit_long=ac.Long_Term_Trend_Limit,
                             trend_limit_short=ac.Short_Term_Trend_Limit,long_term_pivot_candles=ac.Long_Term_Candles,
                             short_term_pivot_candles=ac.Short_Term_Candles,
-                            pvt_trend_number=ac.Pivot_Trend_Number,waves_number=ac.PA_Power_Calc_Waves,candles_back=i-1)
+                            pvt_trend_number=ac.Pivot_Trend_Number,waves_number=ac.PA_Power_Calc_Waves,th=ac.Threshold/100, candles_back=i-1)
    
         dict_buy_sell=analyzer.buy_sell(tf)
         buy_pars=s.Parametrs()
@@ -167,9 +167,10 @@ def DrawAnaylsisChart():
         buy_pars=dict_buy_sell['buy']
         sell_pars=dict_buy_sell['sell']
         df_short.iloc[len(df_short)-i, df_short.columns.get_loc(f'{tf} point')]=buy_pars.calc_points()-sell_pars.calc_points()
-        
+        sit=analyzer.situations[tf]
+        sit_df=sit.short_term_df
         this_row=df_short.iloc[len(df_short)-i]
-        df0=df_short[["close","open","high","low","volume"]].tail(1).reset_index(drop=True)
+        df0=sit_df[["close","open","high","low","volume"]].tail(1).reset_index(drop=True)
         features_dict=analyzer.features(tf=tf)
         df_features = pd.DataFrame.from_dict(features_dict,orient='columns').reset_index(drop=True)
         df_input=pd.concat([df0,df_features],axis=1)
@@ -190,7 +191,7 @@ def DrawAnaylsisChart():
                         height=450)
     st.plotly_chart(fig, use_container_width=True)
 
-#DrawAnaylsisChart()
+# DrawAnaylsisChart()
 st.title(f"{strategy} Strategy")            
 if st.button('Run Strategy'):
     if strategy=='SMA':

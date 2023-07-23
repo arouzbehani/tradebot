@@ -7,6 +7,7 @@ import GLOBAL
 import helper
 import analaysis_constants as ac
 import gc , os
+import top_100_crypto, scanner
 
 local = True
 try:
@@ -121,6 +122,7 @@ def Make(
             pvt_trend_number=ac.Pivot_Trend_Number,
             waves_number=ac.PA_Power_Calc_Waves,
             candles_back=i,
+            th=ac.Threshold/100
         )
         features_dict = analyzer.features(tf)
         df_features = pd.DataFrame.from_dict(features_dict, orient="columns")
@@ -206,15 +208,20 @@ def Extend(
                         extend=True)
 
 def Make_Features(extend=False):
-    tfs = ["1d", "4h", "1h", "15m"]
-    tfs = ["4h", "1h"]
-    symbols = ["BNB_USDT","TRX_USDT","FTM_USDT", "ADA_USDT", "MATIC_USDT", "BTC_USDT","ETH_USDT"]
-    symbols.extend(["SOL_USDT","LTC_USDT","DOT_USDT", "BCH_USDT", "LINK_USDT", "UNI_USDT","FIL_USDT"])
-    # symbols=["DOT_USDT"]
-    # tfs=["1d"]
-    symbols=["XRP_USDT","DOGE_USDT","AVAX_USDT","TON_USDT","SHIB_USDT","LEO_USDT","XMR_USDT","ATOM_USDT","ETC_USDT","LDO_USDT","ICP_USDT","OKB_USDT","HBAR_USDT","ARB_USDT"]
+    #tfs = ["1d", "4h", "1h", "15m"]
+    tfs = ["1h","4h"]
+
+    # symbols=["SHIB_USDT"]
+    # tfs=["4h"]
     exch='Kucoin'
+    n=5
     for tf in tfs:
+        existing_symbols=scanner.Get_FeaturedSymbols(exch='Kucoin',tf=tf)
+        remains=[elem for elem in top_100_crypto.top100 if elem not in existing_symbols]
+        symbols = remains[:n] if len(remains) >= n else remains
+        print(f'Symbols to Calculate: {symbols}')
+        if extend:
+            symbols=existing_symbols
         for s in symbols:
             try:
                 if not extend:

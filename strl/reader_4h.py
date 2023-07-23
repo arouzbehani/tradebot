@@ -4,6 +4,7 @@ import datetime , calendar
 
 testdata = False
 import subprocess
+import scanner
 interface = "eth0"
 ip = subprocess.check_output("ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True).decode().strip()
 local = ip !='51.89.178.202'
@@ -13,7 +14,12 @@ delay = 4*24*60
 brout_candles = 15
 brout_percentage = 2
 
-mr.ReadKucoinMarket([tf], testdata=testdata, local=local)
+
+featured_symbols=scanner.Get_FeaturedSymbols(exch='Kucoin',tf='4h')
+mr.ReadKucoinMarket(['4h'], testdata=testdata, local=local,featured_symbols=featured_symbols)
+scanner.ML_Scan(exch='Kucoin',pref_tf='4h')
+
+# mr.ReadKucoinMarket([tf], testdata=testdata, local=local)
 # sg.TALibPattenrSignals(delay, [tf], markets=mr.GetMarkets(tf, exchangeName='Kucoin', local=local, testdata=testdata),
 #                        exchangeName='Kucoin', local=local, brout_candles=brout_candles, brout_percentage=brout_percentage, read_patterns=read_patterns)
 

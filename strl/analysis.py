@@ -41,7 +41,7 @@ st.markdown("""
         """, unsafe_allow_html=True)
 
 tf='4h'
-symbol = 'BTC_USDT'
+symbol = 'LDO_USDT'
 exch = 'Kucoin'
 
 # symbol = None
@@ -136,7 +136,7 @@ def DoAnalysis():
     #tf='1h'
     analyzer=a.Analyzer()
     analyzer.init_data(tfs=tfs,exch=exch,symbol=symbol,trend_limit_long=trend_limit_long,trend_limit_short=trend_limit_short,long_term_pivot_candles=long_term_pivot_candles,short_term_pivot_candles=short_term_pivot_candles,
-                    pvt_trend_number=pvt_trend_number,waves_number=waves_number,candles_back=candles_back,th=threshold/100)
+                    pvt_trend_number=pvt_trend_number,waves_number=waves_number,candles_back=0,th=threshold/100)
     sit=s.Situation()
     sit=analyzer.situations[tf]
     dict_buy_sell=analyzer.buy_sell(tf)

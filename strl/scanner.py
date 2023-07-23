@@ -8,6 +8,7 @@ import GLOBAL
 import ML_2
 import asyncio
 import telegram_messenger as tlgm
+import situations
 
 local=True
 try:
@@ -59,22 +60,34 @@ def Get_FeaturedSymbols(exch='Kucoin',tf='1h'):
         if fname.__contains__('_features_'):
             symbols.append(fname.split('_features_')[0])
     return symbols
-def ML_Scan(exch='Kucoin'):
+def ML_Scan(exch='Kucoin',pref_tf=''):
     results={}
     symbols=mr.GetSymbols(local=local)
     tfs=['1d','4h','1h','15m']
+    # tfs=['4h']
     if exch=='Yahoo':
         tfs=['1d','90m','60m','15m']
+    
+    if pref_tf !='':
+        tfs=[pref_tf]
 
     for tf in tfs:
         symbols=Get_FeaturedSymbols(exch=exch,tf=tf)
+        # symbols=['SHIB_USDT']
         for s in symbols:
             try:
+                print(f'Scanning {s}')
                 analyzer=a.Analyzer()
                 analyzer.init_data(tfs=[tf], symbol=s,exch=exch)
                 sit=analyzer.situations[tf]
-                df=sit.short_term_df
-                df0=df[["close","open","high","low","volume"]].tail(1).reset_index(drop=True)
+                sit_df=sit.short_term_df
+                dict_buy_sell=analyzer.buy_sell(tf)
+                buy_pars=situations.Parametrs()
+                sell_pars=situations.Parametrs()
+                buy_pars=dict_buy_sell['buy']
+                sell_pars=dict_buy_sell['sell']
+                point=buy_pars.calc_points()-sell_pars.calc_points()
+                df0=sit_df[["close","open","high","low","volume"]].tail(1).reset_index(drop=True)
                 features_dict=analyzer.features(tf=tf)
                 df_features = pd.DataFrame.from_dict(features_dict,orient='columns').reset_index(drop=True)
                 df_input=pd.concat([df0,df_features],axis=1)
@@ -85,9 +98,10 @@ def ML_Scan(exch='Kucoin'):
                     if len(models)>0:
                         for model in models:
                             p=predict[target][model["prediction"][0]]
-                            if p=='SELL' or p=='BUY':
+                            if p=='SELL' or p=='BUY' or point>=6.0 or point <=-6:
                                 if np.mean(model["precision_scores"])>=0.8:
-                                    message=f'{p} {s} -- {tf} ---- Current Candle: {df.iloc[-1].time} (UTC)' + '\r\n'
+                                    message=f'{p} {s} -- {tf} ---- Current Candle: {sit_df.iloc[-1].time} (UTC)' + '\r\n'
+                                    message +=f'Analysis Point: {round(point,2)}'+ '\r\n'
                                     message +=f'Possible Trade: {model["deals"]}% , Candles: {model["cn"]} , TP: {model["tp"]}'+ '\r\n'
                                     message +=f'Model: {model["name"]}' + '\r\n'
                                     message +=f'Mean Recall Score:{round(np.mean(model["recall_scores"]),2)}'+ '\r\n'
@@ -95,8 +109,8 @@ def ML_Scan(exch='Kucoin'):
                                     message +=f'Mean Precision Score:{round(np.mean(model["precision_scores"]),2)}'
                                     print(message)
                                     asyncio.run(tlgm.main("-1001982135624",message))
-            except:
-                print(f'Error on {s}')
+            except Exception as e:
+                 print(f'Error on {s} --- {e}')
     # df = pd.DataFrame.from_dict(results,orient='index')
     # df.columns = [tf + ' point' for tf in tfs]
     # df.index.name = 'Symbol'
@@ -107,3 +121,5 @@ def ML_Scan(exch='Kucoin'):
     # df.to_csv(abs_path, header=True,
     #                          index=True, sep=',', mode='w')
     
+if __name__ == "__main__":
+    ML_Scan()

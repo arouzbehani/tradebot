@@ -45,17 +45,20 @@ class Analyzer:
     def calculate_dict(self,candles_back=0):
         if self.analysis == '1.0':
             for tf in self.tfs:
+                candles_back_copy=candles_back
                 adj_th=self.adjust_threshold(tf)
                 df = helper.GetData(tf, self.symbol, self.exch)
                 if df is None: continue
+                if len(df)<ac.Long_Term_Trend_Limit:
+                    self.trend_limit_long=len(df)
                 if candles_back < 0:
-                    candles_back = len(df) - ac.Long_Term_Trend_Limit
-                else:
-                    if candles_back > len(df) - ac.Long_Term_Trend_Limit:
-                        candles_back = len(df) - ac.Long_Term_Trend_Limit
+                    candles_back_copy = len(df) - self.trend_limit_long
+                elif candles_back>0:
+                    if candles_back > len(df) - self.trend_limit_long:
+                        candles_back_copy = len(df) - self.trend_limit_long
 
-                df_long = df[len(df)-self.trend_limit_long-candles_back:len(df)-candles_back].reset_index(drop=True)
-                df_short = df[len(df)-self.trend_limit_short-candles_back:len(df)-candles_back].reset_index(drop=True)
+                df_long = df[len(df)-self.trend_limit_long-candles_back_copy:len(df)-candles_back_copy].reset_index(drop=True)
+                df_short = df[len(df)-self.trend_limit_short-candles_back_copy:len(df)-candles_back_copy].reset_index(drop=True)
                 df_long = pivot_helper.find_pivots(
                     df_long, self.long_term_pivot_candles, self.long_term_pivot_candles, self.waves_number, short=True)
                 df_short = pivot_helper.find_pivots(
@@ -71,7 +74,7 @@ class Analyzer:
                     df_long, trend_long, trend_short)
                 
                 # major pivots in short term period:
-                df_levels=df_long[len(df_long)-self.trend_limit_short-candles_back:len(df_long)-candles_back].reset_index(drop=True)
+                df_levels=df_long[len(df_long)-self.trend_limit_short-candles_back_copy:len(df_long)-candles_back_copy].reset_index(drop=True)
                 static_levels = helper.GetImportantLevels(
                     df_levels, threshold=adj_th*2, combined=True)
 
