@@ -34,12 +34,16 @@ def GetMarkets(tf,exchangeName='Kucoin',local=False, testdata=False):
             except:
                 continue
     return markets 
-def ReadKucoinMarket(timeframes,testdata=False,local=False,symbol='',featured_symbols=[]):
+def ReadKucoinMarket(timeframes,testdata=False,local=False,symbol='',featured_symbols=[],except_symbols=[]):
     markets = []
     markets = kc.GetMarkets()
     featured_markets={}
+    after_except_markets={}
     if len(featured_symbols)>0:
-        featured_markets={k: markets[k] for k in tuple([s.replace('_', '/') for s in featured_symbols])}
+        featured_markets={k: markets[k] for k in tuple([s.replace('_', '/') for s in featured_symbols]) if k.replace('_', '/') in markets }
+    if len(except_symbols)>0:
+        after_except_markets = {k: markets[k] for k in markets if k.replace('/', '_') not in except_symbols}
+
     for i in range(0, len(timeframes)):
         marketsegment = {k: markets[k] for k in ('ADA/USDT', 'BTC/USDT')}
         if symbol !='':
@@ -51,8 +55,14 @@ def ReadKucoinMarket(timeframes,testdata=False,local=False,symbol='',featured_sy
             del datframes
             del e
             gc.collect()
+
         elif len(featured_markets)>0:
             datframes, e = kc.GetMarketData(featured_markets, timeframes[i], 'All', 1200,local=local)
+            del datframes
+            del e
+            gc.collect()            
+        elif len(after_except_markets)>0:
+            datframes, e = kc.GetMarketData(after_except_markets, timeframes[i], 'All', 1200,local=local)
             del datframes
             del e
             gc.collect()

@@ -1,23 +1,29 @@
 import MarketReader as mr
 import scanner
 import datetime , calendar
-
+import top_100_crypto
 testdata = False
 import subprocess
 interface = "eth0"
-ip = subprocess.check_output("ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True).decode().strip()
-local = ip !='51.89.178.202'
+local=False
+try:
+    ip = subprocess.check_output("ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True).decode().strip()
+    local = ip !='51.89.178.202'
+except:
+    local=True
 read_patterns = False
 tf = '1h'
 delay = 100*24*60
 brout_candles = 15
 brout_percentage = 2
 
-featured_symbols=scanner.Get_FeaturedSymbols(exch='Kucoin',tf='1h')
-mr.ReadKucoinMarket(['1h'], testdata=testdata, local=local,featured_symbols=featured_symbols)
-scanner.ML_Scan(exch='Kucoin',pref_tf='1h')
+# featured_symbols=scanner.Get_FeaturedSymbols(exch='Kucoin',tf='1h')
+mr.ReadKucoinMarket(['1h','15m'], testdata=testdata, local=local,featured_symbols=top_100_crypto.top100)
+scanner.Position_Scan(exch='Kucoin',tf='1h',tfs=['4h','1h','15m'])
+# mr.ReadKucoinMarket(['5m'], testdata=testdata, local=local,featured_symbols=top_100_crypto.top100)
+# scanner.Position_Scan(exch='Kucoin',tf='15m',tfs=['1h','15m','5m'])
+mr.ReadKucoinMarket(['15m','1h'], testdata=testdata, local=local,except_symbols=top_100_crypto.top100)
 
-mr.ReadKucoinMarket(['15m','1h'], testdata=testdata, local=local)
 # sg.TALibPattenrSignals(delay, [tf], markets=mr.GetMarkets(tf, exchangeName='Kucoin', local=local, testdata=testdata),
 #                      exchangeName='Kucoin', local=local, brout_candles=brout_candles, brout_percentage=brout_percentage, read_patterns=read_patterns)
 

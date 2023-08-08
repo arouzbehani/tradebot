@@ -2,11 +2,15 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import pandas as pd
 
-def DrawCandleSticks(df,df2,both=True,symbol='BTC_USDT'):
+def DrawCandleSticks(df,df2,both=True,symbol='BTC_USDT',rownum=2):
+        
+    row_heights = [0.7]
+    for k in range(0, rownum-1):
+        row_heights.append(0.4/(rownum-1))        
         fig = make_subplots(
-        rows=2, cols=1,
+        rows=rownum, cols=1,
         column_widths=[1],
-        row_heights=[0.7,0.3],
+        row_heights=row_heights,
         shared_xaxes=True, vertical_spacing=0.01)
 
         if both:
@@ -41,9 +45,9 @@ def DrawCandleSticks(df,df2,both=True,symbol='BTC_USDT'):
             return fig
 
 
-def AppendLineChart(fig,xs,ys,row=1,col=1,line=dict(color="black", width=1)):
+def AppendLineChart(fig,xs,ys,row=1,col=1,line=dict(width=1) , name='trace'):
     fig.add_trace(
-        go.Scatter(x=xs, y=ys, name='trace', line=line, mode='lines'), row=row, col=col
+        go.Scatter(x=xs, y=ys, name=name, line=line, mode='lines'), row=row, col=col
     )
     
 def AppendPointChart(fig,xs,ys,row=1,col=1,size=10, color="red", symbol='star',name=''):

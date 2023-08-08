@@ -66,6 +66,10 @@ class Candle_Level_Area_Stat(enum.Enum):
    Opened_Near_Resist=10
    Shadow_Near_Support=11
    Shadow_Near_Resist=12
+   Closed_Above_Support=13
+   Closed_Below_Resist=14
+   Long_Position=15 
+   Short_Position=16
 
 
 class Candle_Cross_Level_Stat(enum.Enum):
@@ -83,24 +87,27 @@ class Candle_Channel_Stat(enum.Enum):
 class Candle_Fibo_Stat(enum.Enum):
    Nothing=-1
    _0=0
-   _382=1
-   _500=2
-   _618=3
-   _786=4
-   _1000=5
-   _1618=6
-   _2618=7
+   _236=1
+   _382=2
+   _500=3
+   _618=4
+   _786=5
+   _1000=6
+   _1618=7
+   _2618=8
 
 class Candles_Direction(enum.Enum):
    Side=0
    Bullish=1
    Bearish=2
+   
 
 class Fibo_Mode(enum.Enum):
    Retracement=1
    Trend_Base_Extension=2
 
 class Fibo_Direction(enum.Enum):
+   Nothing=0
    Down=1
    Up=2
 
@@ -108,3 +115,17 @@ class Rsi_Stat(enum.Enum):
    Nothing=0
    Up=1
    Down=2
+
+class Candle_Pattern(enum.Enum):
+   Nothing=0
+   CDLDOJI=1
+   CDLENGULFING=2
+   CDLHAMMER=3
+   CDLINVERTEDHAMMER=4
+   CDLHARAMI=5
+   CDLMORNINGSTAR=6
+   CDL3WHITESOLDIERS=7
+   CDLHANGINGMAN=8
+   CDLSHOOTINGSTAR=9
+   CDLEVENINGSTAR=10
+   CDL3BLACKCROWS=11

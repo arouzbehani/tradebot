@@ -58,6 +58,7 @@ class Analyzer:
                         candles_back_copy = len(df) - self.trend_limit_long
 
                 df_long = df[len(df)-self.trend_limit_long-candles_back_copy:len(df)-candles_back_copy].reset_index(drop=True)
+                
                 df_short = df[len(df)-self.trend_limit_short-candles_back_copy:len(df)-candles_back_copy].reset_index(drop=True)
                 df_long = pivot_helper.find_pivots(
                     df_long, self.long_term_pivot_candles, self.long_term_pivot_candles, self.waves_number, short=True)
@@ -68,6 +69,13 @@ class Analyzer:
                 helper.append_ema(df_short,entry_signal=True,entry_signal_mode='',exit_signal=True)
                 ema_entry_signal=not pd.isna(df_short.iloc[-1].ema_entry_signal)
                 ema_exit_signal=not pd.isna(df_short.iloc[-1].ema_exit_signal)
+                helper.append_ema_W(df_long,window=150)
+                ema_150_trend=c.Trend.Nothing
+                if df_long.iloc[-1].close >df_long.iloc[-1].ema_150:
+                    ema_150_trend=c.Trend.Bullish
+                elif df_long.iloc[-1].close <df_long.iloc[-1].ema_150:
+                    ema_150_trend=c.Trend.Bearish
+                    
                 trend_long,long_up_points,long_down_points = helper.TrendDirection(df_long)
                 trend_short,short_up_points,short_down_points = helper.TrendDirection(df_short)
                 pa_break, is_break,break_level = helper.PA_Break(
@@ -83,7 +91,7 @@ class Analyzer:
 
                 helper.append_rsi(df_short)
                 rsi_data={"dvg":c.Rsi_Stat.Nothing,"chart_line":[],"rsi_line":[]}
-                rsi_dvg,chart_xs,chart_ys,rsi_xs,rsi_ys=helper.Rsi_Divergence_2(df_short)
+                rsi_dvg,chart_xs,chart_ys,rsi_xs,rsi_ys=helper.Rsi_Divergence_3(df_short)
                 if rsi_dvg:
                     rsi_data['chart_line']=[chart_xs,chart_ys]
                     rsi_data['rsi_line']=[rsi_xs,rsi_ys]
@@ -113,15 +121,15 @@ class Analyzer:
                 if trend_long == c.Trend.Bullish:
                     if (trend_short == c.Trend.Bearish and is_break):
                         current_trend=c.Trend.Bearish
-                    elif (trend_short == c.Trend.Bearish and not is_break) or (trend_short==c.Trend.Bullish):
+                    elif (trend_short==c.Trend.Bullish):
                         current_trend=c.Trend.Bullish
                 elif trend_long == c.Trend.Bearish:
                     if (trend_short == c.Trend.Bullish and is_break):
                         current_trend=c.Trend.Bullish
-                    elif (trend_short == c.Trend.Bullish and not is_break) or (trend_short == c.Trend.Bearish):
+                    elif (trend_short == c.Trend.Bearish):
                         current_trend=c.Trend.Bearish
 
-                last_candles=df_short[-self.short_term_pivot_candles:].reset_index(drop=True)
+                last_candles=df_short[-ac.Latest_Candles_Direction:].reset_index(drop=True)
                 last_candles_diection=helper.Candles_direction(last_candles)
 
                 # "S" stands for "Supoort" "R" stands for "Resistance"
@@ -134,8 +142,8 @@ class Analyzer:
                 p0_sup_long_x,p0_sup_long_y,m_sup_long,r2_sup_long=helper.Return_Trend_From_DF(df_long,r_min=0.95,n=self.pvt_trend_number,mode=1)
                 p0_res_long_x,p0_res_long_y,m_res_long,r2_res_long=helper.Return_Trend_From_DF(df_long,r_min=0.95,n=self.pvt_trend_number,mode=2)
 
-                fibo_dir_retrace,fibo_stat_retrace,fibo_retrace_levels=helper.FiboStat(df=df_long,fibomode=c.Fibo_Mode.Retracement,threshold=adj_th)
-                fibo_dir_trend,fibo_stat_trend,fibo_trend_levels=helper.FiboStat(df=df_long,fibomode=c.Fibo_Mode.Trend_Base_Extension,threshold=adj_th)
+                fibo_dir_retrace,fibo_stat_retrace,fibo_retrace_levels=helper.FiboStat(df=df_long,fibomode=c.Fibo_Mode.Retracement,threshold=adj_th,max_remaining_candles=ac.Long_Term_Candles)
+                fibo_dir_trend,fibo_stat_trend,fibo_trend_levels=helper.FiboStat(df=df_long,fibomode=c.Fibo_Mode.Trend_Base_Extension,threshold=adj_th,max_remaining_candles=ac.Long_Term_Candles)
                 fibo_data_retrace={'dir':fibo_dir_retrace,'stat':fibo_stat_retrace,'levels':fibo_retrace_levels}
                 fibo_data_trend={'dir':fibo_dir_trend, 'stat':fibo_stat_trend,'levels':fibo_trend_levels}
                 last_candle_color=c.Candle_Color.Red
@@ -170,7 +178,7 @@ class Analyzer:
                             'dynamic_resist_long':{'trend_stat':R_long_stat,'candle_stat':candle_R_long_stats},
                             'candle_location_long':{'support':candle_location_long['support'],'resist':candle_location_long['resist']},
                             'sma_stat':sma_stat, 'ema_entry_signal':ema_entry_signal,'ema_exit_signal':ema_exit_signal, 
-                            'rsi_data':rsi_data,'bollinger_data':bollinger_data}
+                            'rsi_data':rsi_data,'bollinger_data':bollinger_data,'ema_150_trend':ema_150_trend}
                 del df
                 del df_long
                 del df_short
@@ -184,6 +192,7 @@ class Analyzer:
         for tf in dict:
             adj_th=self.adjust_threshold(tf)
             candle=dict[tf]['df_short'].iloc[-1]
+            prelast_candle=dict[tf]['df_short'].iloc[-2]
             sit=s.Situation()
             sit.tf=tf
             sit.long_term_df=dict[tf]['df_long']
@@ -218,10 +227,22 @@ class Analyzer:
             sit.fibo_level_trend_dir=dict[tf]['fibo']['trend']['dir']            
             sit.static_levels=dict[tf]['static_levels']
             sit.last_candles_diection=dict[tf]['last_candles_diection']
-            for l in sit.static_levels:
+
+            for j in range(0,len(sit.static_levels)):
+                l=sit.static_levels[j]
+                l0=()
+                l1=()
+                if j>0:l0=sit.static_levels[j-1]
+                if j<len(sit.static_levels)-1:l1=sit.static_levels[j+1]
                 candle_stats=helper.Candle_level_stat(l[1],l[0],candle,sit.last_candles_diection, threshold=adj_th)
                 if len(candle_stats)>0:
                     sit.static_level_stats=candle_stats
+                    prelast_candle_stats=helper.Candle_level_stat(l[1],l[0],prelast_candle,sit.last_candles_diection, threshold=adj_th)
+                    if len(prelast_candle_stats)>0:
+                        sit.prelast_candle_static_level_stats=prelast_candle_stats
+                        sit.position_level_bot=l0
+                        sit.position_level_middle=l
+                        sit.position_level_top=l1
                     break
 
 
@@ -241,6 +262,22 @@ class Analyzer:
                     if len(candle_stats)>0:
                         sit.parent_level_stats=candle_stats
                         break
+                for j in range(0,len(sit.parent_static_levels)):
+                    l=sit.parent_static_levels[j]
+                    l0=()
+                    l1=()
+                    if j>0:l0=sit.parent_static_levels[j-1]
+                    if j<len(sit.parent_static_levels)-1:l1=sit.parent_static_levels[j+1]
+                    candle_stats=helper.Candle_level_stat(l[1],l[0],candle,sit.last_candles_diection, threshold=adj_th)
+                    if len(candle_stats)>0:
+                        sit.parent_level_stats=candle_stats
+                        prelast_candle_stats=helper.Candle_level_stat(l[1],l[0],prelast_candle,sit.last_candles_diection, threshold=adj_th)
+                        if len(prelast_candle_stats)>0:
+                            sit.parent_prelast_candle_static_level_stats=prelast_candle_stats
+                            sit.parent_position_level_bot=l0
+                            sit.parent_position_level_middle=l
+                            sit.parent_position_level_top=l1
+                        break                    
                 sit.parent_dynamic_support_stats,sit.parent_dynamic_resist_stats,candle_location=helper.Candle_Dynamic_Trend_Stat(candle=candle,supp_data=dict[tf_p]['support_dynamic_trend'],res_data=dict[tf_p]['resist_dynamic_trend'],r_min=0.95,last_candles_diection=sit.last_candles_diection, threshold=adj_th)
                 sit.dynamic_resist_candle_location_parent=candle_location["resist"]
                 sit.dynamic_support_candle_location_parent=candle_location["support"]
@@ -267,6 +304,7 @@ class Analyzer:
             sit.rsi=dict[tf]['rsi_data']['rsi']
             sit.bollinger_top_candle_location=dict[tf]['bollinger_data']['upper']
             sit.bollinger_bot_candle_location=dict[tf]['bollinger_data']['lower']
+            sit.ema_150_trend=dict[tf]['ema_150_trend']
             self.situations[tf]=sit
         del dict
         gc.collect()
@@ -285,3 +323,7 @@ class Analyzer:
         return self.situations[tf].buy_sell_v01()
     def features(self,tf):
         return self.situations[tf].features()
+    def level_bounce_position(self,tf):
+        return self.situations[tf].level_bounce_position()
+    def fibo_position(self,tf):
+        return self.situations[tf].fibo_position()

@@ -1,4 +1,5 @@
 import ccxt
+
 import config
 import pandas as pd
 import os,gc
@@ -8,6 +9,7 @@ exchange = ccxt.kucoin({
     'apikey': config.Kucoin_API_Key,
     'secret': config.kucoin_API_Secret
 })
+
 
 def GetMarkets():
     return exchange.load_markets()

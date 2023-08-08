@@ -340,7 +340,7 @@ def DrawChart(limit=500, read_patterns=False, read_rsi=False, read_bb=True, read
                     go.Scatter(x=df['time'], y=df['rsi'], name='rsi', line=dict(width=2, color='#d5dae5')), row=rownum, col=1
                 )
                 if (entry_signals):
-                    dvg_res, px, py, rsi_x, rsi_y = helper.Rsi_Divergence_2(df)
+                    dvg_res, px, py, rsi_x, rsi_y = helper.Rsi_Divergence_3(df)
                     if (dvg_res):
                         fig.add_trace(
                             go.Scatter(x=px, y=py, name='divergence on graph', line=dict(width=3, color='#ff6c00')), row=1, col=1

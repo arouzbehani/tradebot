@@ -531,4 +531,9 @@ import numpy as np
 # print(df.tail())
 
 
+import yfinance as yf
 
+ticker_symbol="EURUSD=X"
+ticker=yf.Ticker(ticker_symbol)
+historical_data=ticker.history(period='20d',interval='60m')
+print(historical_data)

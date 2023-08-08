@@ -40,8 +40,8 @@ st.markdown("""
         </style>
         """, unsafe_allow_html=True)
 
-tf='4h'
-symbol = 'LDO_USDT'
+tf='1h'
+symbol = 'MASK_USDT'
 exch = 'Kucoin'
 
 # symbol = None
@@ -56,10 +56,10 @@ if (q.__contains__('tf')):
 
 if (symbol != None):
     st.title(symbol.replace('_', '-').upper())
-    url = 'https://kucoin.com/trade/{}'.format(
-        symbol.replace('_', '-').upper())
+    url = 'https://bingx.com/en-us/futures/forward/{}'.format(
+        symbol.replace('_', '').upper())
     link = (st.markdown(f'''
-    <a href={url}><button style="background-color:transparent;border:none;text-decoration: underline; color:#21a58a; font-size:large">View {symbol.replace('_','/')} Chart on Kucoin</button></a>
+    <a href={url}><button style="background-color:transparent;border:none;text-decoration: underline; color:#21a58a; font-size:large">View {symbol.replace('_','/')} Chart on BingX</button></a>
 ''',
                         unsafe_allow_html=True))
 
@@ -79,8 +79,7 @@ with st.sidebar:
         short_term_pivot_candles = st.number_input(
             "Short Term Candles:", min_value=2, value=ac.Short_Term_Candles)
         pvt_trend_number = st.number_input(
-            "Pivot Trend Number:", min_value=2, value=ac.Pivot_Trend_Number)
-        
+            "Pivot Trend Number:", min_value=2, value=ac.Pivot_Trend_Number)        
         waves_number = st.number_input(
             "PA Power Calc. Waves:", min_value=2, value=ac.PA_Power_Calc_Waves)
         threshold=st.number_input("Closeness Threshold (%):",min_value=0.1,value=ac.Threshold,max_value=5.0,step=0.1)
@@ -136,7 +135,7 @@ def DoAnalysis():
     #tf='1h'
     analyzer=a.Analyzer()
     analyzer.init_data(tfs=tfs,exch=exch,symbol=symbol,trend_limit_long=trend_limit_long,trend_limit_short=trend_limit_short,long_term_pivot_candles=long_term_pivot_candles,short_term_pivot_candles=short_term_pivot_candles,
-                    pvt_trend_number=pvt_trend_number,waves_number=waves_number,candles_back=0,th=threshold/100)
+                    pvt_trend_number=pvt_trend_number,waves_number=waves_number,candles_back=candles_back,th=threshold/100)
     sit=s.Situation()
     sit=analyzer.situations[tf]
     dict_buy_sell=analyzer.buy_sell(tf)
@@ -151,39 +150,39 @@ def DoAnalysis():
     df=sit.long_term_df
     df2=sit.short_term_df
     ################################################################## ML Prediction #############################################################################
-    # lrow=df.iloc[-1]
-    df0=df[["close","open","high","low","volume"]].tail(1).reset_index(drop=True)
-    # f_input=[lrow.open,lrow.high,lrow.low,lrow.close,lrow.volume]
-    features_dict=analyzer.features(tf=tf)
-    df_features = pd.DataFrame.from_dict(features_dict,orient='columns').reset_index(drop=True)
-    df_input=pd.concat([df0,df_features],axis=1)
-    # df_features_row = df_features.iloc[0]
-    # f_input.extend(df_features_row.values)
-    st.subheader('Machine Learning Prediction')
-    predict={'buy':{1:'BUY',0:'Nothing'},
-             'sell':{1:'SELL',0:'Nothing'}}
-    
-    cols=st.columns(2)
-    i=0
-    for target in ['buy','sell']:
-        models=ML_2.Predict(input=df_input,exch=exch,tf=tf,symbol=symbol,target=f'{target}')
-        if len(models)>0:
+                # # lrow=df.iloc[-1]
+                # df0=df[["close","open","high","low","volume"]].tail(1).reset_index(drop=True)
+                # # f_input=[lrow.open,lrow.high,lrow.low,lrow.close,lrow.volume]
+                # features_dict=analyzer.features(tf=tf)
+                # df_features = pd.DataFrame.from_dict(features_dict,orient='columns').reset_index(drop=True)
+                # df_input=pd.concat([df0,df_features],axis=1)
+                # # df_features_row = df_features.iloc[0]
+                # # f_input.extend(df_features_row.values)
+                # st.subheader('Machine Learning Prediction')
+                # predict={'buy':{1:'BUY',0:'Nothing'},
+                #         'sell':{1:'SELL',0:'Nothing'}}
+                
+                # cols=st.columns(2)
+                # i=0
+                # for target in ['buy','sell']:
+                #     models=ML_2.Predict(input=df_input,exch=exch,tf=tf,symbol=symbol,target=f'{target}')
+                #     if len(models)>0:
 
-            for model in models:
-                with cols[i]:
-                    st.write(f'{model["name"]} for {target.capitalize()}: {predict[target][model["prediction"][0]]}')
-                    st.write(f'Total Deals: {model["deals"]} , Candles: {model["cn"]} , TP: {model["tp"]}')
-                    # st.write(f'Min Recall Score:{round(np.min(model["recall_scores"]),2)}')
-                    st.write(f'Mean Recall Score:{round(np.mean(model["recall_scores"]),2)}')
-                    st.write(f'Mean Accuracy Score:{round(np.mean(model["accuracy_scores"]),2)}')
-                    st.write(f'Mean Precision Score:{round(np.mean(model["precision_scores"]),2)}')
-        i +=1
-    st.markdown("""---""")
+                #         for model in models:
+                #             with cols[i]:
+                #                 st.write(f'{model["name"]} for {target.capitalize()}: {predict[target][model["prediction"][0]]}')
+                #                 st.write(f'Total Deals: {model["deals"]} , Candles: {model["cn"]} , TP: {model["tp"]}')
+                #                 # st.write(f'Min Recall Score:{round(np.min(model["recall_scores"]),2)}')
+                #                 st.write(f'Mean Recall Score:{round(np.mean(model["recall_scores"]),2)}')
+                #                 st.write(f'Mean Accuracy Score:{round(np.mean(model["accuracy_scores"]),2)}')
+                #                 st.write(f'Mean Precision Score:{round(np.mean(model["precision_scores"]),2)}')
+                #     i +=1
+                # st.markdown("""---""")
 
     ################################################################## Price Action Trend ######################################################################################
     st.subheader('Price Action Trend')
-    st.write(f'Buy Point: {buy_pars.price_action_trend[0]*buy_pars.price_action_trend[1]}')
-    st.write(f'Sell Point: {sell_pars.price_action_trend[0] * sell_pars.price_action_trend[1]}')
+    st.write(f'Buy Point: {buy_pars.price_action_trend[0]*buy_pars.price_action_trend[1]+buy_pars.ema_150_trend[1]}')
+    st.write(f'Sell Point: {sell_pars.price_action_trend[0] * sell_pars.price_action_trend[1]+sell_pars.ema_150_trend[1]}')
     
 
     fig=DrawCandleSticks(df,df2)
@@ -215,7 +214,10 @@ def DoAnalysis():
             go.Scatter(x=pa_beark_level_xs_time, y=pa_break_level_ys, line=dict(
                 color="#e05293",width=0.75), name=f'Trend Break Level'), row=1, col=1
         )         
-
+    
+    fig.add_trace(
+        go.Scatter(x=df['time'], y=df['ema_150'], name='ema 150'), row=1, col=1
+    )    
     fig.update_layout(xaxis_rangeslider_visible=False,
                         height=450)
     st.plotly_chart(fig, use_container_width=True)
@@ -417,12 +419,13 @@ def DoAnalysis():
         statval=sit.fibo_level_retrace_stat.value
         if statval==i-1:
             fibo_line=dict(color="green",width=0.8)
-        elif i==1 or i==6: 
+        elif i==1 or i==7: 
             fibo_line=dict(color="gray",width=0.7)
         else:
             fibo_line=dict(color="#93e2ec",width=0.55)
+        fibname=round(float(str(c.Candle_Fibo_Stat(i-1)).split('_')[3])/1000,3)
         fig.add_trace(
-        go.Scatter(x=level_xs_time, y=level_ys, line=fibo_line, name=f'Fibo Retrace Level {i}'), row=1, col=1)
+        go.Scatter(x=level_xs_time, y=level_ys, line=fibo_line, name=f'Fibo Retrace Level {fibname}'), row=1, col=1)
  
         # Add a rectangle shape to fill the space between the lines
         if len(rgbs)>i-1:
@@ -459,12 +462,13 @@ def DoAnalysis():
         statval=sit.fibo_level_trend_stat.value
         if statval==i-1:
             fibo_line=dict(color="green",width=0.8)
-        elif i==1 or i==6: 
+        elif i==1 or i==7: 
             fibo_line=dict(color="gray",width=0.7)
         else:
             fibo_line=dict(color="#93e2ec",width=0.55)
+        fibname=round(float(str(c.Candle_Fibo_Stat(i-1)).split('_')[3])/1000,3)
         fig.add_trace(
-        go.Scatter(x=level_xs_time, y=level_ys, line=fibo_line, name=f'Fibo Trend Base Level {i}'), row=1, col=1
+        go.Scatter(x=level_xs_time, y=level_ys, line=fibo_line, name=f'Fibo Trend Base Level {fibname}'), row=1, col=1
 )         
     fig.update_layout(xaxis_rangeslider_visible=False,
                         height=450)
@@ -480,6 +484,7 @@ first=True
 with st.container():
     cols = st.columns([1, 1, 1, 1])
     tfs = ['1d', '4h', '1h', '15m']
+    # tfs = ['1h']
     if exch == 'Yahoo':
         tfs = ['1d', '90m', '60m', '15m']
 

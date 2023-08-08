@@ -15,11 +15,11 @@ brout_candles = 15
 brout_percentage = 2
 
 
-featured_symbols=scanner.Get_FeaturedSymbols(exch='Kucoin',tf='4h')
-mr.ReadKucoinMarket(['4h'], testdata=testdata, local=local,featured_symbols=featured_symbols)
-scanner.ML_Scan(exch='Kucoin',pref_tf='4h')
+# featured_symbols=scanner.Get_FeaturedSymbols(exch='Kucoin',tf='4h')
+# mr.ReadKucoinMarket(['4h'], testdata=testdata, local=local,featured_symbols=featured_symbols)
+# scanner.ML_Scan(exch='Kucoin',pref_tf='4h')
 
-# mr.ReadKucoinMarket([tf], testdata=testdata, local=local)
+mr.ReadKucoinMarket([tf], testdata=testdata, local=local)
 # sg.TALibPattenrSignals(delay, [tf], markets=mr.GetMarkets(tf, exchangeName='Kucoin', local=local, testdata=testdata),
 #                        exchangeName='Kucoin', local=local, brout_candles=brout_candles, brout_percentage=brout_percentage, read_patterns=read_patterns)
 
