@@ -949,6 +949,7 @@ def ReturnTrend_From_Comb(comb, bounds):
     xs = [x[0] for x in comb]
     ys = [y[1] for y in comb]
     coeff = np.polyfit(x=xs, y=ys, deg=1)
+    m, b = np.polyfit(x=xs, y=ys, deg=1)
     yn = np.poly1d(coeff)
     r2 = r2_score(ys, yn(xs))
     xs.insert(0, bounds[0])
@@ -1077,8 +1078,10 @@ def Rsi_Divergence_2(df0, l=50):
 
 
 def Candle_Dynamic_Trend_Stat(
-    candle, supp_data, res_data, last_candles_diection, threshold=0.01, r_min=0.92
+    candle, supp_data, res_data, last_candles, threshold=0.01, r_min=0.92
 ):
+    last_candles_diection=Candles_direction(last_candles)
+    
     candle_support_stats = []
     candle_resist_stats = []
     candle_location = {
@@ -1100,57 +1103,62 @@ def Candle_Dynamic_Trend_Stat(
     candle_location["resist"]["close"] = res_last - candle.close
     candle_location["resist"]["low"] = res_last - candle.low
     candle_location["resist"]["high"] = res_last - candle.high
+    if res_last>supp_last:
+        if last_candles_diection == c.Candles_Direction.Bearish:
+            if supp_data["r2"] >= r_min:
+                cross_line=False
+                for index , cn in last_candles.iterrows():
+                    py=supp_data["m"] * (cn.timestamp - supp_data["p0_x"]) + supp_data["p0_y"]
+                    if min(cn.open,cn.close)<py:
+                        cross_line=True
+                        break
+                if not cross_line:                
+                    margin1_top=0.05*(res_last-supp_last)+supp_last
+                    margin2_top=0.1*(res_last-supp_last)+supp_last
+                    margin1_bot=supp_last-0.05*(res_last-supp_last)
+                    margin2_bot=supp_last-0.1*(res_last-supp_last)
 
-    if last_candles_diection == c.Candles_Direction.Bearish:
-        if supp_data["r2"] >= r_min:
-            p_open_supp = (
-                max(candle.open, supp_last) - min(candle.open, supp_last)
-            ) / min(candle.open, supp_last)
-            p_close_supp = (
-                max(candle.close, supp_last) - min(candle.close, supp_last)
-            ) / min(candle.close, supp_last)
-            p_high_supp = (
-                max(candle.high, supp_last) - min(candle.high, supp_last)
-            ) / min(candle.high, supp_last)
-            p_low_supp = (
-                max(candle.low, supp_last) - min(candle.low, supp_last)
-            ) / min(candle.low, supp_last)
+                    if candle.close <= candle.open:
+                        if candle.close>=margin1_bot and candle.close<=margin1_top:
+                            candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Close_Near_Support)
+                        if candle.high>=margin2_bot and candle.high<=margin2_top:
+                            candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Shadow_Near_Support)
+                    elif candle.close >= candle.open:
+                        if candle.open>=margin1_bot and candle.open<=margin1_top:
+                            candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Open_Near_Support)
+                        if candle.low>=margin2_bot and candle.low<=margin2_top:
+                            candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Shadow_Near_Support)
 
-            if p_close_supp <= threshold:
-                candle_support_stats.append(c.Candle_Dynamic_SR_Stat.Close_Near_Support)
-            if p_open_supp <= threshold:
-                candle_support_stats.append(c.Candle_Dynamic_SR_Stat.Open_Near_Support)
-            if p_high_supp <= threshold or p_low_supp <= threshold:
-                candle_support_stats.append(
-                    c.Candle_Dynamic_SR_Stat.Shadow_Near_Support
-                )
 
-    elif last_candles_diection == c.Candles_Direction.Bullish:
-        if res_data["r2"] >= r_min:
-            p_open_res = (
-                max(candle.open, res_last) - min(candle.open, res_last)
-            ) / min(candle.open, res_last)
-            p_close_res = (
-                max(candle.close, res_last) - min(candle.close, res_last)
-            ) / min(candle.close, res_last)
-            p_high_res = (
-                max(candle.high, res_last) - min(candle.high, res_last)
-            ) / min(candle.high, res_last)
-            p_low_res = (max(candle.low, res_last) - min(candle.low, res_last)) / min(
-                candle.low, res_last
-            )
+        elif last_candles_diection == c.Candles_Direction.Bullish:
+            if res_data["r2"] >= r_min:
+                cross_line=False
+                for index , cn in last_candles.iterrows():
+                    py=res_data["m"]* (cn.timestamp - res_data["p0_x"]) + res_data["p0_y"]
+                    if max(cn.open,cn.close)>py:
+                        cross_line=True
+                        break           
+                if not cross_line: 
+                    margin1_top=0.05*(res_last-supp_last)+res_last
+                    margin2_top=0.1*(res_last-supp_last)+res_last
+                    margin1_bot=res_last-0.05*(res_last-supp_last)
+                    margin2_bot=res_last-0.1*(res_last-supp_last)
 
-            if p_close_res <= threshold:
-                candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Close_Near_Resist)
-            if p_open_res <= threshold:
-                candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Open_Near_Resist)
-            if p_high_res <= threshold or p_low_res <= threshold:
-                candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Shadow_Near_Resist)
+                    if candle.close >= candle.open:
+                        if candle.close>=margin1_bot and candle.close<=margin1_top:
+                            candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Close_Near_Resist)
+                        if candle.high>=margin2_bot and candle.high<=margin2_top:
+                            candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Shadow_Near_Resist)
+                    elif candle.close <= candle.open:
+                        if candle.open>=margin1_bot and candle.open<=margin1_top:
+                            candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Open_Near_Resist)
+                        if candle.low>=margin2_bot and candle.low<=margin2_top:
+                            candle_resist_stats.append(c.Candle_Dynamic_SR_Stat.Shadow_Near_Resist)
 
     return candle_support_stats, candle_resist_stats, candle_location
 
 
-def Dynamic_SR(df, last_candles_diection, threshold=0.01, r_min=0.92, n=3):
+def Dynamic_SR(df, remaining_candles,candle, threshold=0.01,r_min=0.92, n=3):
     try:
         R_stat = c.Trend_SR_Stat.Nothing
         S_stat = c.Trend_SR_Stat.Nothing
@@ -1167,11 +1175,11 @@ def Dynamic_SR(df, last_candles_diection, threshold=0.01, r_min=0.92, n=3):
             candle_resist_stats,
             candle_location,
         ) = Candle_Dynamic_Trend_Stat(
-            candle=df.iloc[-1],
+            candle=candle,
             supp_data=dict_sup,
             res_data=dict_res,
             r_min=r_min,
-            last_candles_diection=last_candles_diection,
+            last_candles=remaining_candles,
             threshold=threshold,
         )
 

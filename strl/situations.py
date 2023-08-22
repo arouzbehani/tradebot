@@ -4,29 +4,28 @@ import talib, patterns
 
 class Parametrs:
     def __init__(self):
+        self.ema_150_trend = [1, False]
         self.price_action_trend = [1, False]
-        self.price_action_trend_parent = [0.6, False]
-        self.price_action_trend_grand_parent = [0.2, False]
-        self.channel_break = [0.8, False]
-        self.channel_boundries = [0.7, False]
-        self.triangle_break = [0.8, False]
-        self.double_hits = [0.8, False]
+        self.price_action_trend_parent = [0.5, False]
+        self.price_action_trend_grand_parent = [0.3, False]
+        self.channel_break = [1, False]
+        self.channel_boundries = [1, False]
+        self.triangle_break = [1, False]
+        self.double_hits = [1, False]
         self.rsi_divergence = [0.7, False]
         self.rsi_cross_limits = [0.2, False]
-        self.fibo_retrace = [0.6, False]
-        self.fibo_retrace_parent = [0.2, False]
-        self.fibo_trend = [0.6, False]
-        self.fibo_trend_parent = [0.2, False]
-        self.ichi_location = [0.6, False]
-        self.ichi_location_parent = [0.2, False]
-        self.dynamic_SR_closeness = [1.5, False]  # Short Term Dynamic S/R
+        self.fibo_retrace = [1, False]
+        self.fibo_retrace_parent = [0.5, False]
+        self.fibo_trend = [1, False]
+        self.fibo_trend_parent = [0.5, False]
+        self.ichi_location = [0.5, False]
+        self.ichi_location_parent = [0.3, False]
+        # self.dynamic_SR_closeness = [1.5, False]  # Short Term Dynamic S/R
         self.dynamic_SR_long_closeness = [1, False]
         self.dynamic_SR_closeness_parrent = [0.5, False]
-        self.static_SR_closeness = [1.5, False]
+        self.static_SR_closeness = [1, False]
         self.static_SR_closeness_parent = [0.5, False]
-        self.sma_50_10 = [0.5, False]
-        self.ema_5_10_30 = [0.7, False]
-        self.ema_150_trend = [1, False]
+        self.ema_5_10_30 = [0.5, False]
     def calc_array_points(self,all):
         return sum(a[0] * a[1] for a in all)
     def calc_points(self):
@@ -47,12 +46,12 @@ class Parametrs:
             self.fibo_trend_parent,
             self.ichi_location,
             self.ichi_location_parent,
-            self.dynamic_SR_closeness,
+            #self.dynamic_SR_closeness,
             self.dynamic_SR_long_closeness,
             self.dynamic_SR_closeness_parrent,
             self.static_SR_closeness,
             self.static_SR_closeness_parent,
-            self.sma_50_10,
+            # self.sma_50_10,
             self.ema_5_10_30,
             self.ema_150_trend,
         ]
@@ -68,14 +67,14 @@ class Parametrs:
             ],
             "current_static_level_pars": [self.static_SR_closeness],
             "parent_static_level_pars": [self.static_SR_closeness_parent],
-            "dynamic_SR_pars": [self.dynamic_SR_closeness],
+            # "dynamic_SR_pars": [self.dynamic_SR_closeness],
             "dynamic_SR_pars_long": [
                 self.dynamic_SR_long_closeness,
             ],
             "dynamic_SR_pars_parent": [
                 self.dynamic_SR_closeness_parrent,
             ],
-            "sma_10_50_pars": [self.sma_50_10],
+            # "sma_10_50_pars": [self.sma_50_10],
             "ema_5_10_30": [
                 self.ema_5_10_30,
             ],
@@ -113,12 +112,13 @@ class Situation:
         self.short_trend_stat = c.Trend.Nothing
         self.ema_150_trend = c.Trend.Nothing
 
-        self.dynamic_support_stats = []
-        self.dynamic_support_line = {}
-        self.dynamic_support_candle_location = {}
-        self.dynamic_resist_stats = []
-        self.dynamic_resist_line = {}
-        self.dynamic_resist_candle_location = {}
+        # self.dynamic_support_stats = []
+        # self.dynamic_support_line = {}
+        # self.dynamic_support_candle_location = {}
+        # self.dynamic_resist_stats = []
+        # self.dynamic_resist_line = {}
+        # self.dynamic_resist_candle_location = {}
+        self.dynamic_last_pivots=[]
         self.dynamic_support_long_stats = []
         self.dynamic_support_long_line = {}
         self.dynamic_support_long_candle_location = {}
@@ -197,24 +197,24 @@ class Situation:
         self.rsi_below_30 = False
         self.rsi = -1
 
-    bullish_reversal_patterns = [
-        "CDLDOJI",
-        "CDLENGULFING",
-        "CDLHAMMER",
-        "CDLINVERTEDHAMMER",
-        "CDLHARAMI",
-        "CDLMORNINGSTAR",
-        "CDL3WHITESOLDIERS",
-    ]
-    bearish_reversal_patterns = [
-        "CDLDOJI",
-        "CDLENGULFING",
-        "CDLHANGINGMAN",
-        "CDLSHOOTINGSTAR",
-        "CDLHARAMI",
-        "CDLEVENINGSTAR",
-        "CDL3BLACKCROWS",
-    ]
+        self.bullish_reversal_patterns = [
+            "CDLDOJI",
+            "CDLENGULFING",
+            "CDLHAMMER",
+            "CDLINVERTEDHAMMER",
+            "CDLHARAMI",
+            "CDLMORNINGSTAR",
+            "CDL3WHITESOLDIERS",
+        ]
+        self.bearish_reversal_patterns = [
+            "CDLDOJI",
+            "CDLENGULFING",
+            "CDLHANGINGMAN",
+            "CDLSHOOTINGSTAR",
+            "CDLHARAMI",
+            "CDLEVENINGSTAR",
+            "CDL3BLACKCROWS",
+        ]
 
     def break_important_level_up(self):
         return self.parent_level_stat == c.Candle_Level_Area_Stat.Broke_Resist
@@ -357,10 +357,10 @@ class Situation:
             dcst.Open_Near_Support,
             dcst.Shadow_Near_Support,
         ]
-        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(
-            i in self.dynamic_support_stats for i in dynamic_support_rules
-        ):
-            buy_pars.dynamic_SR_closeness[1] = True
+        # if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(
+        #     i in self.dynamic_support_stats for i in dynamic_support_rules
+        # ):
+        #     buy_pars.dynamic_SR_closeness[1] = True
         if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(
             i in self.dynamic_support_long_stats for i in dynamic_support_rules
         ):
@@ -375,10 +375,10 @@ class Situation:
             dcst.Open_Near_Resist,
             dcst.Shadow_Near_Resist,
         ]
-        if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(
-            i in self.dynamic_resist_stats for i in dynamic_resist_rules
-        ):
-            sell_pars.dynamic_SR_closeness[1] = True
+        # if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(
+        #     i in self.dynamic_resist_stats for i in dynamic_resist_rules
+        # ):
+        #     sell_pars.dynamic_SR_closeness[1] = True
         if (not self.candle_shapes.__contains__(c.Candle_Shape.Slim)) and any(
             i in self.dynamic_resist_long_stats for i in dynamic_resist_rules
         ):
@@ -445,11 +445,11 @@ class Situation:
 
         ##      SMA 10 / 50 Status
 
-        if self.sma_10_50_cross_up_happened:
-            buy_pars.sma_50_10[1] = True
-        if not self.sma_10_50_cross_up_happened:
-            sell_pars.sma_50_10[1] = True
-        ##      EMA 5 / 10 / 30 Status
+        # if self.sma_10_50_cross_up_happened:
+        #     buy_pars.sma_50_10[1] = True
+        # if not self.sma_10_50_cross_up_happened:
+        #     sell_pars.sma_50_10[1] = True
+        # ##      EMA 5 / 10 / 30 Status
 
         if self.ema_5_10_30_buy_signal:
             buy_pars.ema_5_10_30[1] = True
@@ -484,21 +484,21 @@ class Situation:
         matching = []
         for p in reversal_patterns:
             func = getattr(talib, p)
-            last_row = self.short_term_df[-1:]
+            last_rows = self.short_term_df[-50:]
             res = (
                 func(
-                    last_row["open"],
-                    last_row["high"],
-                    last_row["low"],
-                    last_row["close"],
+                    last_rows["open"],
+                    last_rows["high"],
+                    last_rows["low"],
+                    last_rows["close"],
                 )
             ).reset_index()
             if bullish:
-                if res[0][0] > 0:
-                    matching.append(patterns[p])
+                if res[-1:][0].values[0] > 0:
+                    matching.append(patterns.patterns[p])
             else:
-                if res[0][0] < 0:
-                    matching.append(patterns[p])
+                if res[-1:][0].values[0] < 0:
+                    matching.append(patterns.patterns[p])
 
         return matching
 
@@ -578,6 +578,57 @@ class Situation:
                                 self.bearish_reversal_patterns, bullish=False
                             ),
                         }
+        return pos
+ 
+    def dynamic_SR_position(self):                                         
+        pos = {}
+        dst = c.Candle_Dynamic_SR_Stat
+        close = self.short_term_df.iloc[-1].close
+        if self.ema_150_trend == c.Trend.Bullish:
+            if self.dynamic_resist_long_line.__contains__(
+                dst.Close_Near_Support
+            ) or self.dynamic_resist_long_line.__contains__(
+                dst.Shadow_Near_Support
+            ):  
+
+                tp = round(self.dynamic_last_pivots[1].high.values[0]-self.dynamic_last_pivots[0].low.values[0]+self.dynamic_last_pivots[1].high.values[0], 4)
+                tp_percent = round(100 * (tp / close - 1), 2)
+                sl = round(self.dynamic_last_pivots[2].low.values[0], 4)
+                sl_percent = round(100 * (1 - sl / close), 2)
+                return {
+                    "position": "long",
+                    "name": "Close to Dynamic Support",
+                    "tp": tp,
+                    "sl": sl,
+                    "tp_percent": tp_percent,
+                    "sl_percent": sl_percent,
+                    "patterns": self.matching_patterns(
+                        self.bullish_reversal_patterns, bullish=True
+                    ),
+                }
+        if self.ema_150_trend == c.Trend.Bearish:
+            if self.dynamic_resist_long_line.__contains__(
+                dst.Close_Near_Resist
+            ) or self.dynamic_resist_long_line.__contains__(
+                dst.Shadow_Near_Resist
+            ):  
+
+                tp = round(self.dynamic_last_pivots[0].high.values[0]-(self.dynamic_last_pivots[0].high.values[0]-self.dynamic_last_pivots[1].low.values[0]), 4)
+                tp_percent = round(100 * (tp / close - 1), 2)
+                sl = round(self.dynamic_last_pivots[2].high.values[0], 4)
+                sl_percent = round(100 * (1 - sl / close), 2)
+                return {
+                    "position": "short",
+                    "name": "Close to Dynamic Resist",
+                    "tp": tp,
+                    "sl": sl,
+                    "tp_percent": tp_percent,
+                    "sl_percent": sl_percent,
+                    "patterns": self.matching_patterns(
+                        self.bearish_reversal_patterns, bullish=False
+                    ),
+                }
+
         return pos
 
     def fibo_position(self):
@@ -791,30 +842,30 @@ class Situation:
             #    "Close_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Close_Near_Resist))],
             #    "Open_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Open_Near_Resist))],
             #    "Shadow_Near_Resist":[(self.dynamic_support_stats.__contains__(dcst.Shadow_Near_Resist))],
-            "Candle_Close_Loc_To_Dynamic_Support": [
-                self.dynamic_support_candle_location["close"]
-            ],
-            "Candle_Open_Loc_To_Dynamic_Support": [
-                self.dynamic_support_candle_location["open"]
-            ],
-            "Candle_High_Loc_To_Dynamic_Support": [
-                self.dynamic_support_candle_location["high"]
-            ],
-            "Candle_Low_Loc_To_Dynamic_Support": [
-                self.dynamic_support_candle_location["low"]
-            ],
-            "Candle_Close_Loc_To_Dynamic_Resist": [
-                self.dynamic_resist_candle_location["close"]
-            ],
-            "Candle_Open_Loc_To_Dynamic_Resist": [
-                self.dynamic_resist_candle_location["open"]
-            ],
-            "Candle_High_Loc_To_Dynamic_Resist": [
-                self.dynamic_resist_candle_location["high"]
-            ],
-            "Candle_Low_Loc_To_Dynamic_Resist": [
-                self.dynamic_resist_candle_location["low"]
-            ],
+            # # # "Candle_Close_Loc_To_Dynamic_Support": [
+            # # #     self.dynamic_support_candle_location["close"]
+            # # # ],
+            # # # "Candle_Open_Loc_To_Dynamic_Support": [
+            # # #     self.dynamic_support_candle_location["open"]
+            # # # ],
+            # # # "Candle_High_Loc_To_Dynamic_Support": [
+            # # #     self.dynamic_support_candle_location["high"]
+            # # # ],
+            # # # "Candle_Low_Loc_To_Dynamic_Support": [
+            # # #     self.dynamic_support_candle_location["low"]
+            # # # ],
+            # # # "Candle_Close_Loc_To_Dynamic_Resist": [
+            # # #     self.dynamic_resist_candle_location["close"]
+            # # # ],
+            # # # "Candle_Open_Loc_To_Dynamic_Resist": [
+            # # #     self.dynamic_resist_candle_location["open"]
+            # # # ],
+            # # # "Candle_High_Loc_To_Dynamic_Resist": [
+            # # #     self.dynamic_resist_candle_location["high"]
+            # # # ],
+            # # # "Candle_Low_Loc_To_Dynamic_Resist": [
+            # # #     self.dynamic_resist_candle_location["low"]
+            # # # ],
             "Candle_Close_Loc_To_Dynamic_Support_Long": [
                 self.dynamic_support_long_candle_location["close"]
             ],
@@ -842,7 +893,7 @@ class Situation:
             "Ichi_Stat": [self.ichi_stat.value],
             "double_bot": [self.double_bot_happened],
             "double_top": [self.double_top_happened],
-            "sma_10_50": [(self.sma_10_50_cross_up_happened)],
+            # "sma_10_50": [(self.sma_10_50_cross_up_happened)],
             "ema_5_10_30_buy_signal": [(self.ema_5_10_30_buy_signal)],
             "ema_5_10_30_sell_signal": [(self.ema_5_10_30_sell_signal)],
             #   "rsi_divergence":[self.rsi_divergance.value],

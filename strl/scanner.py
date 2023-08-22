@@ -62,9 +62,10 @@ def Position_Scan(exch='Kucoin',tf='1h',tfs=['4h','1h','15m']):
             analyzer=a.Analyzer()
             analyzer.init_data(tfs=tfs, symbol=s,exch=exch)
             sit=analyzer.situations[tf]
+            pos_dynamic=analyzer.dynamic_SR_position(tf=tf)
             pos_level=analyzer.level_bounce_position(tf=tf)
             pos_fibo=analyzer.fibo_position(tf=tf)
-            positions=[pos_level,pos_fibo]
+            positions=[pos_dynamic,pos_level,pos_fibo]
             for pos in positions:
                 if len(pos)>0:
                     message=f'Name: {pos["name"]}' + '\r\n'

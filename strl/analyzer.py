@@ -1,5 +1,7 @@
 
 import gc
+
+import numpy as np
 import helper
 import Constants as c , analaysis_constants as ac
 import pivot_helper
@@ -133,12 +135,24 @@ class Analyzer:
                 last_candles_diection=helper.Candles_direction(last_candles)
 
                 # "S" stands for "Supoort" "R" stands for "Resistance"
-                S_stat,candle_S_stats,R_stat,candle_R_stats,candle_location=helper.Dynamic_SR(df=df_short,last_candles_diection=last_candles_diection,threshold=adj_th,n=self.pvt_trend_number)
-                p0_sup_x,p0_sup_y,m_sup,r2_sup=helper.Return_Trend_From_DF(df_short,r_min=0.95,n=self.pvt_trend_number,mode=1)
-                p0_res_x,p0_res_y,m_res,r2_res=helper.Return_Trend_From_DF(df_short,r_min=0.95,n=self.pvt_trend_number,mode=2)
+                # S_stat,candle_S_stats,R_stat,candle_R_stats,candle_location=helper.Dynamic_SR(df=df_short,threshold=adj_th,n=self.pvt_trend_number)
+                # p0_sup_x,p0_sup_y,m_sup,r2_sup=helper.Return_Trend_From_DF(df_short,r_min=0.95,n=self.pvt_trend_number,mode=1)
+                # p0_res_x,p0_res_y,m_res,r2_res=helper.Return_Trend_From_DF(df_short,r_min=0.95,n=self.pvt_trend_number,mode=2)
 
                 # *_long stands for df_long (long term : 280 candles and 16 candles left/right)
-                S_long_stat,candle_S_long_stats,R_long_stat,candle_R_long_stats,candle_location_long=helper.Dynamic_SR(df=df_long,last_candles_diection=last_candles_diection,threshold=adj_th,n=self.pvt_trend_number)
+                pivots = pd.DataFrame(
+                    data=df_long[np.logical_or(df_long["pivot"] == 1, df_long["pivot"] == 2)],
+                    columns=["timestamp", "low", "high", "pivot"],
+                )
+                last_pivot = pivots[-1:]
+                last_pivots=[]
+                last_pivots.append(last_pivot)
+                last_pivots.append(pivots[-2:-1])                
+                last_pivots.append(pivots[-3:-2])                
+                remaining_candles=df_long[-len(df_long)+last_pivot.index.values[0]+1:-1].reset_index(drop=True)         
+                      #sit.parent_dynamic_support_stats,sit.parent_dynamic_resist_stats,candle_location=helper.Candle_Dynamic_Trend_Stat(candle=candle,supp_data=dict[tf_p]['support_dynamic_trend'],res_data=dict[tf_p]['resist_dynamic_trend'],r_min=0.95,last_candles_diection=sit.last_candles_diection, threshold=adj_th)
+
+                S_long_stat,candle_S_long_stats,R_long_stat,candle_R_long_stats,candle_location_long=helper.Dynamic_SR(df=df_long,remaining_candles=remaining_candles,candle=df_long.iloc[-1], threshold=adj_th,n=self.pvt_trend_number)
                 p0_sup_long_x,p0_sup_long_y,m_sup_long,r2_sup_long=helper.Return_Trend_From_DF(df_long,r_min=0.95,n=self.pvt_trend_number,mode=1)
                 p0_res_long_x,p0_res_long_y,m_res_long,r2_res_long=helper.Return_Trend_From_DF(df_long,r_min=0.95,n=self.pvt_trend_number,mode=2)
 
@@ -167,15 +181,16 @@ class Analyzer:
 
                             'fibo':{'retrace':fibo_data_retrace,'trend':fibo_data_trend},
 
-                            'support_dynamic_trend':{'p0_x':p0_sup_x,'p0_y':p0_sup_y,'m':m_sup,'r2':r2_sup},
-                            'resist_dynamic_trend':{'p0_x':p0_res_x,'p0_y':p0_res_y,'m':m_res,'r2':r2_res},
-                            'dynamic_support':{'trend_stat':S_stat,'candle_stat':candle_S_stats},
-                            'dynamic_resist':{'trend_stat':R_stat,'candle_stat':candle_R_stats},
-                            'candle_location':{'support':candle_location['support'],'resist':candle_location['resist']},
+                            # 'support_dynamic_trend':{'p0_x':p0_sup_x,'p0_y':p0_sup_y,'m':m_sup,'r2':r2_sup},
+                            # 'resist_dynamic_trend':{'p0_x':p0_res_x,'p0_y':p0_res_y,'m':m_res,'r2':r2_res},
+                            # 'dynamic_support':{'trend_stat':S_stat,'candle_stat':candle_S_stats},
+                            # 'dynamic_resist':{'trend_stat':R_stat,'candle_stat':candle_R_stats},
+                            # 'candle_location':{'support':candle_location['support'],'resist':candle_location['resist']},
                             'support_dynamic_trend_long':{'p0_x':p0_sup_long_x,'p0_y':p0_sup_long_y,'m':m_sup_long,'r2':r2_sup_long},
                             'resist_dynamic_trend_long':{'p0_x':p0_res_long_x,'p0_y':p0_res_long_y,'m':m_res_long,'r2':r2_res_long},
                             'dynamic_support_long':{'trend_stat':S_long_stat,'candle_stat':candle_S_long_stats},
                             'dynamic_resist_long':{'trend_stat':R_long_stat,'candle_stat':candle_R_long_stats},
+                            'dynamic_last_pivots':last_pivots,
                             'candle_location_long':{'support':candle_location_long['support'],'resist':candle_location_long['resist']},
                             'sma_stat':sma_stat, 'ema_entry_signal':ema_entry_signal,'ema_exit_signal':ema_exit_signal, 
                             'rsi_data':rsi_data,'bollinger_data':bollinger_data,'ema_150_trend':ema_150_trend}
@@ -205,12 +220,13 @@ class Analyzer:
             sit.current_trend_stat=dict[tf]['current_trend']
             sit.long_trend_points=dict[tf]['long_trend_points']
             sit.short_trend_points=dict[tf]['short_trend_points']
-            sit.dynamic_support_stats=dict[tf]['dynamic_support']['candle_stat']
-            sit.dynamic_support_line=dict[tf]['support_dynamic_trend']
-            sit.dynamic_resist_stats=dict[tf]['dynamic_resist']['candle_stat']
-            sit.dynamic_resist_line=dict[tf]['resist_dynamic_trend']
-            sit.dynamic_support_candle_location=dict[tf]['candle_location']['support']
-            sit.dynamic_resist_candle_location=dict[tf]['candle_location']['resist']
+
+            # sit.dynamic_support_stats=dict[tf]['dynamic_support']['candle_stat']
+            # sit.dynamic_support_line=dict[tf]['support_dynamic_trend']
+            # sit.dynamic_resist_stats=dict[tf]['dynamic_resist']['candle_stat']
+            # sit.dynamic_resist_line=dict[tf]['resist_dynamic_trend']
+            # sit.dynamic_support_candle_location=dict[tf]['candle_location']['support']
+            # sit.dynamic_resist_candle_location=dict[tf]['candle_location']['resist']
 
             sit.dynamic_support_long_stats=dict[tf]['dynamic_support_long']['candle_stat']
             sit.dynamic_support_long_line=dict[tf]['support_dynamic_trend_long']
@@ -218,7 +234,7 @@ class Analyzer:
             sit.dynamic_resist_long_line=dict[tf]['resist_dynamic_trend_long']
             sit.dynamic_support_long_candle_location=dict[tf]['candle_location_long']['support']
             sit.dynamic_resist_long_candle_location=dict[tf]['candle_location_long']['resist']
-
+            sit.dynamic_last_pivots=dict[tf]['dynamic_last_pivots']
             sit.fibo_level_retrace_stat=dict[tf]['fibo']['retrace']['stat']
             sit.fibo_level_trend_stat=dict[tf]['fibo']['trend']['stat']
             sit.fibo_retrace_levels=dict[tf]['fibo']['retrace']['levels']
@@ -251,8 +267,8 @@ class Analyzer:
             if tf_parent_index>=0:
                 tf_p=self.tfs[tf_parent_index]
                 sit.short_term_df_parent=dict[tf_p]['df_short']
-                sit.dynamic_support_line_parent=dict[tf_p]['support_dynamic_trend']
-                sit.dynamic_resist_line_parent=dict[tf_p]['resist_dynamic_trend']
+                sit.dynamic_support_line_parent=dict[tf_p]['support_dynamic_trend_long']
+                sit.dynamic_resist_line_parent=dict[tf_p]['resist_dynamic_trend_long']
                 sit.ichi_parent_stat=dict[tf_p]['ichi_stat']
 
                 levels_parent=dict[tf_p]['static_levels']
@@ -278,7 +294,15 @@ class Analyzer:
                             sit.parent_position_level_middle=l
                             sit.parent_position_level_top=l1
                         break                    
-                sit.parent_dynamic_support_stats,sit.parent_dynamic_resist_stats,candle_location=helper.Candle_Dynamic_Trend_Stat(candle=candle,supp_data=dict[tf_p]['support_dynamic_trend'],res_data=dict[tf_p]['resist_dynamic_trend'],r_min=0.95,last_candles_diection=sit.last_candles_diection, threshold=adj_th)
+                pivots = pd.DataFrame(
+                    data=dict[tf]['df_long'][np.logical_or(dict[tf]['df_long']["pivot"] == 1, dict[tf]['df_long']["pivot"] == 2)],
+                    columns=["timestamp", "low", "high", "pivot"],
+                )
+                last_pivot = pivots[-1:]
+
+                remaining_candles=dict[tf]['df_long'][-len(dict[tf_p]['df_long'])+last_pivot.index.values[0]+1:-1].reset_index(drop=True)              
+                 #sit.parent_dynamic_support_stats,sit.parent_dynamic_resist_stats,candle_location=helper.Candle_Dynamic_Trend_Stat(candle=candle,supp_data=dict[tf_p]['support_dynamic_trend'],res_data=dict[tf_p]['resist_dynamic_trend'],r_min=0.95,last_candles_diection=sit.last_candles_diection, threshold=adj_th)
+                _,sit.parent_dynamic_support_stats,_,sit.parent_dynamic_resist_stats,candle_location=helper.Dynamic_SR(df=dict[tf_p]['df_long'],remaining_candles=remaining_candles,candle=candle, threshold=adj_th,n=self.pvt_trend_number)
                 sit.dynamic_resist_candle_location_parent=candle_location["resist"]
                 sit.dynamic_support_candle_location_parent=candle_location["support"]
 
@@ -327,3 +351,5 @@ class Analyzer:
         return self.situations[tf].level_bounce_position()
     def fibo_position(self,tf):
         return self.situations[tf].fibo_position()
+    def dynamic_SR_position(self,tf):
+        return self.situations[tf].dynamic_SR_position()

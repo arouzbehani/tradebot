@@ -531,9 +531,14 @@ import numpy as np
 # print(df.tail())
 
 
-import yfinance as yf
+# # # import yfinance as yf
 
-ticker_symbol="EURUSD=X"
-ticker=yf.Ticker(ticker_symbol)
-historical_data=ticker.history(period='20d',interval='60m')
-print(historical_data)
+# # # ticker_symbol="EURUSD=X"
+# # # ticker=yf.Ticker(ticker_symbol)
+# # # historical_data=ticker.history(period='20d',interval='60m')
+# # # print(historical_data)
+#import talib, patterns
+A = np.array([[2, 1], [4, 3]])
+A_inv = np.linalg.inv(A)
+print(A)
+print(A_inv)

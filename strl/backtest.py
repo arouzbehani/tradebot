@@ -317,7 +317,9 @@ def Point_Anaylsis():
         sell_pars = s.Parametrs()
         buy_pars = dict_buy_sell["buy"]
         sell_pars = dict_buy_sell["sell"]
-        
+        df_short.iloc[len(df_short) - i, df_short.columns.get_loc(f"{tf} total point")] = (
+                    buy_pars.calc_points() - sell_pars.calc_points()
+                )        
         for key in pars.calc_pars():
             df_short.iloc[
                 len(df_short) - i, df_short.columns.get_loc(f"{tf} {key} point")
