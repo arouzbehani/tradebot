@@ -103,6 +103,7 @@ class Situation:
         self.short_term_df = None
         self.short_trend_points = []
         self.long_term_df = None
+        self.long_term_df_parent = None
         self.long_trend_points = []
         self.trend_break_level = 0
         self.candle_color = c.Candle_Color.Green

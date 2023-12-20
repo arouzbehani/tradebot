@@ -10,6 +10,7 @@ import asyncio
 import telegram_messenger as tlgm
 import situations , Constants as c
 import top_100_crypto
+import TiingoMarket as tm
 local=True
 try:
     import subprocess
@@ -55,8 +56,11 @@ def Scan(exch='Kucoin'):
 def Position_Scan(exch='Kucoin',tf='1h',tfs=['4h','1h','15m']):
     #symbols=mr.GetSymbols(local=local)
     symbols=top_100_crypto.top100
+    if exch=='Forex':
+        symbols=tm.GetMarkets(local=local)
     #symbols=['ATOM_USDT']
     for s in symbols:
+        s=s.replace('/','_')
         try:
             print(f'Analyzing {s}')
             analyzer=a.Analyzer()
@@ -95,7 +99,9 @@ def ML_Scan(exch='Kucoin',pref_tf=''):
     # tfs=['4h']
     if exch=='Yahoo':
         tfs=['1d','90m','60m','15m']
-    
+    if exch=='Forex':
+        tfs=['1day','4Hour','1Hour','15min']
+        
     if pref_tf !='':
         tfs=[pref_tf]
 

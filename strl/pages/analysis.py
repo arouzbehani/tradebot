@@ -40,9 +40,9 @@ st.markdown("""
         </style>
         """, unsafe_allow_html=True)
 
-tf='1h'
-symbol = 'EOS_USDT'
-exch = 'Kucoin'
+tf='4Hour'
+symbol = 'AUD_USD'
+exch = 'Forex'
 
 # symbol = None
 # exch = None
@@ -189,10 +189,10 @@ def DoAnalysis():
     trend_points=[sit.short_trend_points,sit.long_trend_points]
 
     for i in range(0,2):
-        trend_down_xs=[trend_points[i][0][0][0],trend_points[i][0][1][0]]
+        trend_down_xs=[df[df['row_index']==trend_points[i][0][0][0]]['timestamp'].values[0],df[df['row_index']==trend_points[i][0][1][0]]['timestamp'].values[0]]
         trend_down_ys=[trend_points[i][0][0][1],trend_points[i][0][1][1]]
 
-        trend_up_xs=[trend_points[i][1][0][0],trend_points[i][1][1][0]]
+        trend_up_xs=[df[df['row_index']==trend_points[i][1][0][0]]['timestamp'].values[0],df[df['row_index']==trend_points[i][1][1][0]]['timestamp'].values[0]]
         trend_up_ys=[trend_points[i][1][0][1],trend_points[i][1][1][1]]
 
         trend_down_xs_time=pd.to_datetime(trend_down_xs,unit='ms')
@@ -265,7 +265,9 @@ def DoAnalysis():
 
     # lines=[[sit.dynamic_support_line,sit.dynamic_resist_line]]
     lines=[[sit.dynamic_support_long_line,sit.dynamic_resist_long_line]]
+    df_p=None
     if sit.dynamic_support_line_parent!={} and sit.dynamic_resist_line_parent!={}:
+          df_p=sit.long_term_df_parent
           lines.append([sit.dynamic_support_line_parent,sit.dynamic_resist_line_parent])
     legends=['Dynamic Support','Dynamic Resist']
     colors=['#52b47f','#e05293']
@@ -277,8 +279,20 @@ def DoAnalysis():
         xs=[df.iloc[0].timestamp,df.iloc[-1].timestamp]
 
         for j in range(0,2):
-            ys_start=lines[i][j]['p0_y']-(lines[i][j]['p0_x']-xs[0])*lines[i][j]['m']
-            ys_end=lines[i][j]['p0_y']+(xs[1]-lines[i][j]['p0_x'])*lines[i][j]['m']
+            
+            
+            if i==0:
+                ys_start=lines[i][j]['p0_y']-(lines[i][j]['p0_x']-df[df['timestamp']==xs[0]]['row_index'].values[0])*lines[i][j]['m']
+                ys_end=lines[i][j]['p0_y']+(df[df['timestamp']==xs[1]]['row_index'].values[0]-lines[i][j]['p0_x'])*lines[i][j]['m']
+            if i==1:
+                xs_p=[df_p.iloc[0].timestamp,df_p.iloc[-1].timestamp]
+                y0_p=lines[i][j]['p0_y']
+                m_p=lines[i][j]['m']
+                xs_0=df[df['timestamp']==xs[0]]['row_index'].values[0]
+                xs_p_0=df_p[df_p['timestamp']==xs_p[0]]['row_index'].values[0]
+                y0_child=y0_p+m_p*(xs[0]-xs_p[0])
+                ys_start=lines[i][j]['p0_y']-(lines[i][j]['p0_x']-df[df['timestamp']==xs[0]]['row_index'].values[0])*lines[i][j]['m']
+                ys_end=lines[i][j]['p0_y']+(df_p[df_p['timestamp']==xs_p[1]]['row_index'].values[0]-lines[i][j]['p0_x'])*lines[i][j]['m']
             ys=[ys_start,ys_end]
             xs_time=pd.to_datetime(xs,unit='ms')
             fig.add_trace(
@@ -485,10 +499,11 @@ first=True
 with st.container():
     cols = st.columns([1, 1, 1, 1])
     tfs = ['1d', '4h', '1h', '15m']
-    tfs = ['4h','1h']
+    # tfs = ['4h','1h']
     if exch == 'Yahoo':
         tfs = ['1d', '90m', '60m', '15m']
-
+    if exch == 'Forex':
+        tfs = ['1day', '4Hour', '1Hour', '15min']
     for i in range(0, len(tfs)):
         if cols[i].button(tfs[i]):
             tf = tfs[i]

@@ -42,7 +42,7 @@ class Analyzer:
         self.calculate_situations()
         
     def adjust_threshold(self,tf):
-        rs={'1w':0.2,'1d':0.5,'4h':1.0,'90m':1.5,'1h':2.0,'60m':2.0,'15m':4,'5m':6,'1m':10}
+        rs={'1w':0.2,'1d':0.5,'1day':0.5,'4h':1.0,'4Hour':1.0,'90m':1.5,'1h':2.0,'1Hour':2.0,'60m':2.0,'15m':4,'15min':4,'5m':6,'5min':6,'1m':10,'1min':10}
         return self.threshold/rs[tf] 
     def calculate_dict(self,candles_back=0):
         if self.analysis == '1.0':
@@ -142,7 +142,7 @@ class Analyzer:
                 # *_long stands for df_long (long term : 280 candles and 16 candles left/right)
                 pivots = pd.DataFrame(
                     data=df_long[np.logical_or(df_long["pivot"] == 1, df_long["pivot"] == 2)],
-                    columns=["timestamp", "low", "high", "pivot"],
+                    columns=["row_index", "low", "high", "pivot"],
                 )
                 last_pivot = pivots[-1:]
                 last_pivots=[]
@@ -267,6 +267,7 @@ class Analyzer:
             if tf_parent_index>=0:
                 tf_p=self.tfs[tf_parent_index]
                 sit.short_term_df_parent=dict[tf_p]['df_short']
+                sit.long_term_df_parent=dict[tf_p]['df_long']
                 sit.dynamic_support_line_parent=dict[tf_p]['support_dynamic_trend_long']
                 sit.dynamic_resist_line_parent=dict[tf_p]['resist_dynamic_trend_long']
                 sit.ichi_parent_stat=dict[tf_p]['ichi_stat']
@@ -296,7 +297,7 @@ class Analyzer:
                         break                    
                 pivots = pd.DataFrame(
                     data=dict[tf]['df_long'][np.logical_or(dict[tf]['df_long']["pivot"] == 1, dict[tf]['df_long']["pivot"] == 2)],
-                    columns=["timestamp", "low", "high", "pivot"],
+                    columns=["row_index", "low", "high", "pivot"],
                 )
                 last_pivot = pivots[-1:]
 

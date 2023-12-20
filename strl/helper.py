@@ -38,16 +38,19 @@ except:
 
 def GetData(tf, symbol, exch):
     df = None
+
     rel_dir = "Market Data/{}/{}/".format(exch, tf, symbol)
     # rel_dir='Market Data/{}/{}/'.format(exch,tf,symbol)
     abs_dir = GLOBAL.ABSOLUTE(rel_dir, local)
     for path in Path(abs_dir).iterdir():
         if path.name.lower().startswith(symbol.lower()):
             df = pd.read_csv(path)
+            #df=df[df['volume']>0]
 
             break
     if not df is None:
         df["time"] = pd.to_datetime(df["timestamp"], unit="ms")
+        df['row_index'] = range(len(df))
 
     return df
 
@@ -476,7 +479,7 @@ def append_macd(df):
 
 
 def Rsi_Divergence(df):
-    x = np.where(df["pivot"] == 2, df["timestamp"], np.nan)
+    x = np.where(df["pivot"] == 2, df["row_index"], np.nan)
     xs_up = x[~np.isnan(x)]
     y = np.where(df["pivot"] == 2, df["pointpos"], np.nan)
     ys_up = y[~np.isnan(y)]
@@ -485,22 +488,22 @@ def Rsi_Divergence(df):
     one_to_last_up = ys_up[-2:-1][0]
     one_to_last_xs_up = xs_up[-2:-1][0]
 
-    r = np.where(df["timestamp"] == last_xs_up, df["rsi"], np.nan)
+    r = np.where(df["row_index"] == last_xs_up, df["rsi"], np.nan)
     last_rsi_up = r[~np.isnan(r)][-1:][0]
-    r = np.where(df["timestamp"] == one_to_last_xs_up, df["rsi"], np.nan)
+    r = np.where(df["row_index"] == one_to_last_xs_up, df["rsi"], np.nan)
     one_to_last_rsi_up = r[~np.isnan(r)][-1:][0]
 
-    x = np.where(df["pivot"] == 1, df["timestamp"], np.nan)
+    x = np.where(df["pivot"] == 1, df["row_index"], np.nan)
     xs_down = x[~np.isnan(x)]
     y = np.where(df["pivot"] == 1, df["pointpos"], np.nan)
     ys_down = y[~np.isnan(y)]
     last_down = ys_down[-1:][0]
     last_xs_down = xs_down[-1:][0]
-    r = np.where(df["timestamp"] == last_xs_down, df["rsi"], np.nan)
+    r = np.where(df["row_index"] == last_xs_down, df["rsi"], np.nan)
     last_rsi_down = r[~np.isnan(r)][-1:][0]
     one_to_last_down = ys_down[-2:-1][0]
     one_to_last_xs_down = xs_down[-2:-1][0]
-    r = np.where(df["timestamp"] == one_to_last_xs_down, df["rsi"], np.nan)
+    r = np.where(df["row_index"] == one_to_last_xs_down, df["rsi"], np.nan)
     one_to_last_rsi_down = r[~np.isnan(r)][-1:][0]
 
     if (last_up < one_to_last_up and last_rsi_up > one_to_last_rsi_up) or (
@@ -509,13 +512,13 @@ def Rsi_Divergence(df):
         return (
             True,
             [
-                pd.to_datetime(one_to_last_xs_up, unit="ms"),
-                pd.to_datetime(last_xs_up, unit="ms"),
+                one_to_last_xs_up,
+                last_xs_up,
             ],
             [one_to_last_up, last_up],
             [
-                pd.to_datetime(one_to_last_xs_up, unit="ms"),
-                pd.to_datetime(last_xs_up, unit="ms"),
+                one_to_last_xs_up,
+                last_xs_up,
             ],
             [one_to_last_rsi_up, last_rsi_up],
         )
@@ -525,13 +528,13 @@ def Rsi_Divergence(df):
         return (
             True,
             [
-                pd.to_datetime(one_to_last_xs_down, unit="ms"),
-                pd.to_datetime(last_xs_down, unit="ms"),
+                one_to_last_xs_down,
+                last_xs_down,
             ],
             [one_to_last_down, last_down],
             [
-                pd.to_datetime(one_to_last_xs_down, unit="ms"),
-                pd.to_datetime(last_xs_down, unit="ms"),
+                one_to_last_xs_down,
+                last_xs_down,
             ],
             [one_to_last_rsi_down, last_rsi_down],
         )
@@ -556,13 +559,13 @@ def find_closest_value(arr, timeX):
 
 def Rsi_Divergence_3(df0, l=100):
     df = df0[-l:].reset_index(drop=True)
-    rsi_lows, rsi_highs = ph.lows_highs(df["rsi"], df["timestamp"], candles=2)
+    rsi_lows, rsi_highs = ph.lows_highs(df["rsi"], df["row_index"], candles=2)
     pivots = pd.DataFrame(
         data=df[np.logical_or(df["pivot"] == 1, df["pivot"] == 2)],
-        columns=["timestamp", "low", "high", "pivot"]
+        columns=["row_index", "low", "high", "pivot"]
         )
     last_pivot = pivots[-1:]
-    x = np.where(df["pivot"] == 2, df["timestamp"], np.nan)
+    x = np.where(df["pivot"] == 2, df["row_index"], np.nan)
     xs_up = x[~np.isnan(x)]
     y = np.where(df["pivot"] == 2, df["pointpos"], np.nan)
     ys_up = y[~np.isnan(y)]
@@ -571,7 +574,7 @@ def Rsi_Divergence_3(df0, l=100):
     one_to_last_up = ys_up[-2:-1][0]
     one_to_last_xs_up = xs_up[-2:-1][0]
 
-    x = np.where(df["pivot"] == 1, df["timestamp"], np.nan)
+    x = np.where(df["pivot"] == 1, df["row_index"], np.nan)
     xs_down = x[~np.isnan(x)]
     y = np.where(df["pivot"] == 1, df["pointpos"], np.nan)
     ys_down = y[~np.isnan(y)]
@@ -585,37 +588,37 @@ def Rsi_Divergence_3(df0, l=100):
 
     last_xs_rsi_down, last_rsi_down = find_closest_value(rsi_lows, last_xs_down)
     one_to_last_xs_rsi_down, one_to_last_rsi_down = find_closest_value(rsi_lows, one_to_last_xs_down)
-    if last_xs_up==last_pivot.timestamp.values[0]:
+    if last_xs_up==last_pivot.row_index.values[0]:
         if (last_up < one_to_last_up and last_rsi_up > one_to_last_rsi_up) or (
             last_up > one_to_last_up and last_rsi_up < one_to_last_rsi_up
         ):
             return (
                 True,
                 [
-                    pd.to_datetime(one_to_last_xs_up, unit="ms"),
-                    pd.to_datetime(last_xs_up, unit="ms"),
+                    one_to_last_xs_up,
+                    last_xs_up,
                 ],
                 [one_to_last_up, last_up],
                 [
-                    pd.to_datetime(one_to_last_xs_rsi_up, unit="ms"),
-                    pd.to_datetime(last_xs_rsi_up, unit="ms"),
+                    one_to_last_xs_rsi_up,
+                    last_xs_rsi_up,
                 ],
                 [one_to_last_rsi_up, last_rsi_up]
             )
-    elif last_xs_down==last_pivot.timestamp.values[0]:
+    elif last_xs_down==last_pivot.row_index.values[0]:
         if (last_down < one_to_last_down and last_rsi_down > one_to_last_rsi_down) or (
             last_down > one_to_last_down and last_rsi_down < one_to_last_rsi_down
         ):
             return (
                 True,
                 [
-                    pd.to_datetime(one_to_last_xs_down, unit="ms"),
-                    pd.to_datetime(last_xs_down, unit="ms"),
+                    one_to_last_xs_down,
+                    last_xs_down,
                 ],
                 [one_to_last_down, last_down],
                 [
-                    pd.to_datetime(one_to_last_xs_rsi_down, unit="ms"),
-                    pd.to_datetime(last_xs_rsi_down, unit="ms"),
+                    one_to_last_xs_rsi_down,
+                    last_xs_rsi_down,
                 ],
                 [one_to_last_rsi_down, last_rsi_down]
             )
@@ -634,10 +637,10 @@ def ReturnTrend(xs, ys):
 def TrendDirection(df):
     pointpos_df = pd.DataFrame(
         data=df[~pd.isnull(df["pointpos"])],
-        columns=["time", "pointpos", "pivot", "timestamp"],
+        columns=["time", "pointpos", "pivot", "row_index"],
     )
     trend = c.Trend.Nothing
-    down_xs = (pointpos_df[pointpos_df["pivot"] == 1]["timestamp"]).reset_index(
+    down_xs = (pointpos_df[pointpos_df["pivot"] == 1]["row_index"]).reset_index(
         drop=True
     )
     down_ys = (pointpos_df[pointpos_df["pivot"] == 1]["pointpos"]).reset_index(
@@ -645,7 +648,7 @@ def TrendDirection(df):
     )
     _, trend_down_ys = ReturnTrend(down_xs, down_ys)
 
-    up_xs = (pointpos_df[pointpos_df["pivot"] == 2]["timestamp"]).reset_index(drop=True)
+    up_xs = (pointpos_df[pointpos_df["pivot"] == 2]["row_index"]).reset_index(drop=True)
     up_ys = (pointpos_df[pointpos_df["pivot"] == 2]["pointpos"]).reset_index(drop=True)
     _, trend_up_ys = ReturnTrend(up_xs, up_ys)
     if trend_up_ys[-1] > trend_up_ys[0] and trend_down_ys[-1] > trend_down_ys[0]:
@@ -853,7 +856,7 @@ def double_levels(df, threshold=0.01):
         double_top_level = 0
         pivots = pd.DataFrame(
             data=df[np.logical_or(df["pivot"] == 1, df["pivot"] == 2)],
-            columns=["timestamp", "low", "high", "pivot"],
+            columns=["row_index", "low", "high", "pivot"],
         )
         if len(pivots) >= 5:
             last_pivot = pivots[-1:]
@@ -866,13 +869,13 @@ def double_levels(df, threshold=0.01):
             pre_pre_last_high_pivot = pivots[-5:-4]["high"].values[0]
 
             last_close = df[-1:]["close"].values[0]
-            last_timestamp = df[-1:]["timestamp"].values[0]
-            last_high_timestamp = pivots[-2:-1]["timestamp"].values[0]
-            last_low_timestamp = pivots[-1:]["timestamp"].values[0]
+            last_row_index = df[-1:]["row_index"].values[0]
+            last_high_row_index = pivots[-2:-1]["row_index"].values[0]
+            last_low_row_index = pivots[-1:]["row_index"].values[0]
             max_latest_candles_close = df[
                 np.logical_and(
-                    df["timestamp"] > last_low_timestamp,
-                    df["timestamp"] < last_timestamp,
+                    df["row_index"] > last_low_row_index,
+                    df["row_index"] < last_row_index,
                 )
             ]["close"].max()
             if last_pivot["pivot"].values[0] == 1:
@@ -901,8 +904,8 @@ def double_levels(df, threshold=0.01):
             else:
                 min_latest_candles_close = df[
                     np.logical_and(
-                        df["timestamp"] > last_high_timestamp,
-                        df["timestamp"] < last_timestamp,
+                        df["row_index"] > last_high_row_index,
+                        df["row_index"] < last_row_index,
                     )
                 ]["close"].min()
                 if (
@@ -977,13 +980,13 @@ def Return_Combo(xs, ys, n, r_min):
 
 
 def Return_Trend_From_DF(df, r_min, n, mode=1):
-    boudry_xs = [df.iloc[0].timestamp, df.iloc[-1].timestamp]
+    boudry_xs = [df.iloc[0].row_index, df.iloc[-1].row_index]
     pointpos_df = pd.DataFrame(
         data=df[~pd.isnull(df["pointpos"])],
-        columns=["time", "pointpos", "pivot", "timestamp"],
+        columns=["time", "pointpos", "pivot", "row_index"],
     )
     xs = list(
-        (pointpos_df[pointpos_df["pivot"] == mode]["timestamp"]).reset_index(drop=True)
+        (pointpos_df[pointpos_df["pivot"] == mode]["row_index"]).reset_index(drop=True)
     )
     ys = list(
         (pointpos_df[pointpos_df["pivot"] == mode]["pointpos"]).reset_index(drop=True)
@@ -1003,9 +1006,9 @@ def Return_Trend_From_DF(df, r_min, n, mode=1):
 
 def Rsi_Divergence_2(df0, l=50):
     df = df0[-l:].reset_index(drop=True)
-    rsi_lows, rsi_highs = ph.lows_highs(df["rsi"], df["timestamp"], candles=2)
-    chart_lows, _ = ph.lows_highs(df["low"], df["timestamp"], candles=2)
-    _, chart_highs = ph.lows_highs(df["high"], df["timestamp"], candles=2)
+    rsi_lows, rsi_highs = ph.lows_highs(df["rsi"], df["row_index"], candles=2)
+    chart_lows, _ = ph.lows_highs(df["low"], df["row_index"], candles=2)
+    _, chart_highs = ph.lows_highs(df["high"], df["row_index"], candles=2)
 
     arr = [chart_lows, chart_highs, rsi_lows, rsi_highs]
 
@@ -1025,8 +1028,8 @@ def Rsi_Divergence_2(df0, l=50):
         coeff = np.polyfit(x=xs, y=ys, deg=1)
         yn = np.poly1d(coeff)
         r2 = r2_score(ys, yn(xs))
-        # xs.insert(0,df.iloc[0].timestamp)
-        # xs.append(df.iloc[-1].timestamp)
+        # xs.insert(0,df.iloc[0].row_index)
+        # xs.append(df.iloc[-1].row_index)
         fitlines[key] = (round(r2, 4), xs, yn(xs))
     last_up = fitlines["chart_highs"][2][-1]
     first_up = fitlines["chart_highs"][2][0]
@@ -1037,21 +1040,21 @@ def Rsi_Divergence_2(df0, l=50):
     first_down = fitlines["chart_lows"][2][0]
     last_rsi_down = fitlines["rsi_lows"][2][-1]
     first_rsi_down = fitlines["rsi_lows"][2][0]
-    x1 = pd.to_datetime(fitlines["chart_highs"][1][0], unit="ms")
-    x2 = pd.to_datetime(fitlines["chart_highs"][1][0], unit="ms")
+    x1 = fitlines["chart_highs"][1][0]
+    x2 = fitlines["chart_highs"][1][0]
     if (last_up < first_up and last_rsi_up > first_rsi_up) or (
         last_up > first_up and last_rsi_up < first_rsi_up
     ):
         return (
             True,
             [
-                pd.to_datetime(fitlines["chart_highs"][1][0], unit="ms"),
-                pd.to_datetime(fitlines["chart_highs"][1][-1], unit="ms"),
+                fitlines["chart_highs"][1][0],
+                fitlines["chart_highs"][1][-1],
             ],
             [first_up, last_up],
             [
-                pd.to_datetime(fitlines["rsi_highs"][1][0], unit="ms"),
-                pd.to_datetime(fitlines["rsi_highs"][1][-1], unit="ms"),
+                fitlines["rsi_highs"][1][0],
+                fitlines["rsi_highs"][1][-1],
             ],
             [first_rsi_up, last_rsi_up],
         )
@@ -1062,13 +1065,13 @@ def Rsi_Divergence_2(df0, l=50):
         return (
             True,
             [
-                pd.to_datetime(fitlines["chart_lows"][1][0], unit="ms"),
-                pd.to_datetime(fitlines["chart_lows"][1][-1], unit="ms"),
+                fitlines["chart_lows"][1][0],
+                fitlines["chart_lows"][1][-1],
             ],
             [first_down, last_down],
             [
-                pd.to_datetime(fitlines["rsi_lows"][1][0], unit="ms"),
-                pd.to_datetime(fitlines["rsi_lows"][1][-1], unit="ms"),
+                fitlines["rsi_lows"][1][0],
+                fitlines["rsi_lows"][1][-1],
             ],
             [first_rsi_down, last_rsi_down],
         )
@@ -1090,9 +1093,9 @@ def Candle_Dynamic_Trend_Stat(
     }
 
     supp_last = (
-        supp_data["m"] * (candle.timestamp - supp_data["p0_x"]) + supp_data["p0_y"]
+        supp_data["m"] * (candle.row_index - supp_data["p0_x"]) + supp_data["p0_y"]
     )
-    res_last = res_data["m"] * (candle.timestamp - res_data["p0_x"]) + res_data["p0_y"]
+    res_last = res_data["m"] * (candle.row_index - res_data["p0_x"]) + res_data["p0_y"]
 
     candle_location["support"]["open"] = candle.open - supp_last
     candle_location["support"]["close"] = candle.close - supp_last
@@ -1108,7 +1111,7 @@ def Candle_Dynamic_Trend_Stat(
             if supp_data["r2"] >= r_min:
                 cross_line=False
                 for index , cn in last_candles.iterrows():
-                    py=supp_data["m"] * (cn.timestamp - supp_data["p0_x"]) + supp_data["p0_y"]
+                    py=supp_data["m"] * (cn.row_index - supp_data["p0_x"]) + supp_data["p0_y"]
                     if min(cn.open,cn.close)<py:
                         cross_line=True
                         break
@@ -1134,7 +1137,7 @@ def Candle_Dynamic_Trend_Stat(
             if res_data["r2"] >= r_min:
                 cross_line=False
                 for index , cn in last_candles.iterrows():
-                    py=res_data["m"]* (cn.timestamp - res_data["p0_x"]) + res_data["p0_y"]
+                    py=res_data["m"]* (cn.row_index - res_data["p0_x"]) + res_data["p0_y"]
                     if max(cn.open,cn.close)>py:
                         cross_line=True
                         break           
@@ -1211,7 +1214,7 @@ def FiboStat(df, fibomode=c.Fibo_Mode.Retracement, threshold=0.01,max_remaining_
     dir = c.Fibo_Direction.Nothing
     pivots = pd.DataFrame(
         data=df[np.logical_or(df["pivot"] == 1, df["pivot"] == 2)],
-        columns=["timestamp", "low", "high", "pivot"],
+        columns=["row_index", "low", "high", "pivot"],
     )
     fibs = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1, 1.618, 2.618]
     levels = []
@@ -1332,7 +1335,7 @@ def Candles_direction_two_approvements(candles):
         ##  0*15/2=0 to 15 /2=7: 0 ,1 ,2, 3, 4, 5,6 --- 1* 15/2=7 to 2*15/2=15 : 7 , 8, 9, 10 , 11 ,12 ,13,14
         ##  0*16/2=0 to 16 /2=8: 0 ,1 ,2, 3, 4, 5,6,7 --- 1* 16/2=8 to 2*16/2=16 : 8, 9, 10 , 11 ,12 ,13,14,15
         for i in range(int(j * len(candles) / 2), int(len(candles) / 2 * (j + 1))):
-            xs.append(candles["timestamp"][i])
+            xs.append(candles["row_index"][i])
             ys.append(candles["close"][i])
         r2, ys_fit = ReturnTrend(xs, ys)
 
@@ -1356,7 +1359,7 @@ def Candles_direction(candles):
     xs = []
     ys = []
     for i in range(0, len(candles)):
-        xs.append(candles["timestamp"][i])
+        xs.append(candles["row_index"][i])
         ys.append(candles["close"][i])
     _, ys_fit = ReturnTrend(xs, ys)
     if ys_fit[-1] > ys_fit[0]:

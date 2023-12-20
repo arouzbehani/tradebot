@@ -2,6 +2,7 @@ import GLOBAL,gc
 from pathlib import Path
 import kucoinMarkets as kc
 import YahooMarket as ym
+import TiingoMarket as forex_market
 import pandas as pd
 
 def GetSymbols(exch='Kucoin',local=False):
@@ -100,3 +101,32 @@ def ReadYahooMarket(timeframes,testdata=False,local=False,symbol=''):
         del markets
         gc.collect()
 
+def ReadForexMarket(timeframes,testdata=False,local=False,symbol='',secrets=[]):
+    try:
+        forex_markets = []
+        period_dict={"1day":30, '5min':1 , 
+            "15min" :1 , "30min":2 , "1Hour":5 , "4Hour":10 }
+        forex_markets = forex_market.GetMarkets(local)
+        for i in range(0, len(timeframes)):
+            try:
+                # if i==0: 
+                #     continue
+                if symbol !='':
+                    testdata=True
+                    marketsegment = [x for x in forex_markets if x.lower().__contains__(symbol.lower())]
+                if(testdata):
+                    datframes, e = forex_market.GetMarketData(marketsegment,period=period_dict[timeframes[i]],ticker='All', tf= timeframes[i],local=local,secret=secrets[i])
+                    del datframes
+                    del e
+                    gc.collect()
+                else :
+                    datframes, e = forex_market.GetMarketData(forex_markets,period=period_dict[timeframes[i]],ticker='All', tf= timeframes[i],local=local,secret=secrets[i])
+                    del datframes
+                    del e
+                    gc.collect()
+            except Exception as error:
+                print(f'Error on timeframe: {timeframes[i]}---{error}')
+        del forex_markets
+        gc.collect()
+    except:
+        print('Erro on whole Process of getting Market Data')
