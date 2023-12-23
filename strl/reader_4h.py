@@ -1,18 +1,12 @@
-import config
+import config,helper
 import MarketReader as mr
 import signaler as sg
 import datetime , calendar
 import scanner
 
 testdata = False
-import subprocess
-interface = "eth0"
-local=False
-try:
-    ip = subprocess.check_output("ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True).decode().strip()
-    local = ip !='51.89.178.202'
-except:
-    local=True
+
+local=helper.GetLocal()
 read_patterns = False
 tf = '4h'
 delay = 4*24*60

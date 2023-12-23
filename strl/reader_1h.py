@@ -2,17 +2,12 @@ import MarketReader as mr
 import scanner
 import datetime , calendar
 import top_100_crypto
-import config
+import config,GLOBAL,helper
 
 testdata = False
-import subprocess
-interface = "eth0"
-local=False
-try:
-    ip = subprocess.check_output("ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True).decode().strip()
-    local = ip !='51.89.178.202'
-except:
-    local=True
+
+local=helper.GetLocal()
+
 read_patterns = False
 tf = '1h'
 delay = 100*24*60

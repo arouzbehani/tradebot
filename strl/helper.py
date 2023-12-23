@@ -18,22 +18,32 @@ from ta.volume import ForceIndexIndicator as fi
 from ta.volume import OnBalanceVolumeIndicator as obv
 from statistics import mean
 import pivot_helper as ph
+import subprocess
+def GetLocal():
+    interface='eth0'
+    try:
+        ip_address = subprocess.check_output(["ip", "addr", "show", interface]).decode()
+        ip_address = ip_address.split("inet ")[1].split("/")[0]
+        if ip_address==GLOBAL.SERVER_IP:
+            return False
+    except subprocess.CalledProcessError as e:
+        return True
+    return True
 
-local = True
-try:
-    import subprocess
+local = GetLocal()
+# try:
 
-    interface = "eth0"
-    ip = (
-        subprocess.check_output(
-            "ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True
-        )
-        .decode()
-        .strip()
-    )
-    local = ip != GLOBAL.SERVER_IP
-except:
-    local = True
+#     interface = "eth0"
+#     ip = (
+#         subprocess.check_output(
+#             "ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True
+#         )
+#         .decode()
+#         .strip()
+#     )
+#     local = ip != GLOBAL.SERVER_IP
+# except:
+#     local = True
 
 
 def GetData(tf, symbol, exch):

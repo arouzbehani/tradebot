@@ -4,21 +4,14 @@ import analyzer as a
 import MarketReader as mr
 import pandas as pd
 import datetime
-import GLOBAL
+import GLOBAL,helper
 import ML_2
 import asyncio
 import telegram_messenger as tlgm
 import situations , Constants as c
 import top_100_crypto
 import TiingoMarket as tm
-local=True
-try:
-    import subprocess
-    interface = "eth0"
-    ip = subprocess.check_output("ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True).decode().strip()
-    local = ip !=GLOBAL.SERVER_IP
-except:
-    local=True
+local=helper.GetLocal()
 
 def Scan(exch='Kucoin'):
     results={}
