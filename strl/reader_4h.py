@@ -23,13 +23,13 @@ brout_percentage = 2
 # #                        exchangeName='Kucoin', local=local, brout_candles=brout_candles, brout_percentage=brout_percentage, read_patterns=read_patterns)
 
 
-# weekday=datetime.datetime.now().weekday()
-# dayname=calendar.day_name[weekday]
+weekday=datetime.datetime.now().weekday()
+dayname=calendar.day_name[weekday]
 
-# if (dayname !='Saturday' and dayname!='Sunday'):
+if (dayname !='Saturday' and dayname!='Sunday'):
 #     mr.ReadYahooMarket(['90m'],testdata=testdata,local=local)
 #     # sg.TALibPattenrSignals(delay, ['90m'], markets=mr.GetMarkets('90m', exchangeName='Yahoo', local=local, testdata=testdata),
 #     #                     exchangeName='Yahoo', local=local, brout_candles=brout_candles, brout_percentage=brout_percentage, read_patterns=read_patterns)
 
-mr.ReadForexMarket(['4Hour'], testdata=testdata,local=local,symbol='',secrets=[config.Tiingo_Secrets['oned']])
-scanner.Position_Scan(exch='Forex',tf='4Hour',tfs=['1day','4Hour','1Hour'])
+    mr.ReadForexMarket(['4Hour'], testdata=testdata,local=local,symbol='',secrets=[config.Tiingo_Secrets['oned']])
+    scanner.Position_Scan(exch='Forex',tf='4Hour',tfs=['1day','4Hour','1Hour'])

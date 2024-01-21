@@ -20,6 +20,7 @@ from statistics import mean
 import pivot_helper as ph
 import subprocess
 def GetLocal():
+    # return True
     interface='eth0'
     try:
         ip_address = subprocess.check_output(["ip", "addr", "show", interface]).decode()
@@ -30,7 +31,7 @@ def GetLocal():
         return True
     return True
 
-local = GetLocal()
+local =GetLocal()
 # try:
 
 #     interface = "eth0"
@@ -64,7 +65,16 @@ def GetData(tf, symbol, exch):
 
     return df
 
-
+def tf_to_tf(tf0):
+    tf_mappings={'1m':'1min','5m':'5min','15m':'15min','1h':'1Hour','4h':'4Hour','1d':'1day'}
+    # Create a reverse dictionary mapping values to keys
+    reverse_tf_mappings = {value: key for key, value in tf_mappings.items()}
+    if tf0 in reverse_tf_mappings:
+        corresponding_key = reverse_tf_mappings[tf0]
+        return corresponding_key
+    elif tf0 in tf_mappings:
+        return tf_mappings[tf0]
+    return ''
 def GetAllData(exch="Kucoin"):
     tfs = ["30m", "1h", "4h", "1d"]
     markets = []
@@ -148,7 +158,11 @@ def append_ichi(df):
     df["ich_base_line"] = ich_indicator.ichimoku_base_line()
     df["ich_conversion_line"] = ich_indicator.ichimoku_conversion_line()
     df["ich_moku_color"] = df["ich_a"] - df["ich_b"]
-
+    df["ichi_label"] = np.where(df["ich_moku_color"] > 0, 1, 0)
+    df["ichi_label"] = (
+        df["ichi_label"].ne(df["ichi_label"].shift()).cumsum()
+    )
+    
     return df
 
 
@@ -552,19 +566,19 @@ def Rsi_Divergence(df):
     return False, None, None, None, None
 
 
-def find_closest_value(arr, timeX):
+def find_closest_value(arr, numberX):
     closest_diff = float("inf")
     closest_value = None
-    closest_time = None
-    for (time, value), _ in arr:
-        diff = abs(time - timeX)
+    closest_number = None
+    for (number, value), _ in arr:
+        diff = abs(number - numberX)
         if diff < closest_diff:
             closest_diff = diff
             closest_value = value
-            closest_time = time
+            closest_number = number
 
 
-    return closest_time, closest_value
+    return closest_number, closest_value
 
 
 def Rsi_Divergence_3(df0, l=100):
@@ -647,7 +661,8 @@ def ReturnTrend(xs, ys):
 def TrendDirection(df):
     pointpos_df = pd.DataFrame(
         data=df[~pd.isnull(df["pointpos"])],
-        columns=["time", "pointpos", "pivot", "row_index"],
+        # columns=["time", "pointpos", "pivot", "row_index"],
+        columns=["number", "pointpos", "pivot", "row_index"],
     )
     trend = c.Trend.Nothing
     down_xs = (pointpos_df[pointpos_df["pivot"] == 1]["row_index"]).reset_index(
@@ -826,7 +841,7 @@ def GetImportantLevels(df, threshold=0.01, combined=True):
         return low_level_areas, high_level_areas
 
 
-def GetIchiStatus(df):
+def GetIchiStatus(df) -> c.Ichi_Stat:
     try:
         last_close = df[-1:]["close"].values[0]
         last_high = df[-1:]["high"].values[0]
@@ -859,7 +874,40 @@ def GetIchiStatus(df):
         ichi_stat = c.Ichi_Stat.Error
         return ichi_stat
 
-
+def has_Ichi_Bermuda(df)->(bool,int,float,float):
+    mygroup=int(df['ichi_label'].iloc[-1])
+    bermuda_group=-1
+    max_g=0
+    min_g=0
+    bermuda_distance=-1
+    for g in range(mygroup-1,0,-1):
+        group_df=df[(df['ichi_label'] == g)]
+        group_df['max_ichi'] = group_df[['ich_a', 'ich_b']].max(axis=1)
+        group_df['min_ichi'] = group_df[['ich_a', 'ich_b']].min(axis=1)
+        filtered_rows = group_df[(group_df['high'] > group_df['max_ichi']) & (group_df['low'] > group_df['max_ichi']) |
+                        (group_df['high'] < group_df['min_ichi']) & (group_df['low'] < group_df['min_ichi'])]
+        if(len(filtered_rows)==len(group_df)):
+            bermuda_group=g
+            bermuda_distance=df.index[-1]-group_df.index[-1]
+            max_g=group_df['max_ichi'].values.max()
+            min_g=group_df['min_ichi'].values.min()
+            del group_df
+            del filtered_rows
+            gc.collect()
+            break
+    
+    if bermuda_group>0:
+        test_df=df[(df['ichi_label'].astype(int)>bermuda_group)]
+        filtered_rows = test_df[(test_df['high'] >= max_g) & (test_df['low'] <= min_g) |
+                                (test_df['high'] <= max_g) & (test_df['high'] >= min_g) |
+                                (test_df['low'] <= max_g) & (test_df['low'] >= min_g)]
+        if (len(filtered_rows)==0):
+            del test_df
+            del filtered_rows
+            gc.collect()
+            return (True,bermuda_distance,min_g,max_g) 
+            
+    return (False,0,0,0)
 def double_levels(df, threshold=0.01):
     try:
         double_bot_level = 0
@@ -993,7 +1041,8 @@ def Return_Trend_From_DF(df, r_min, n, mode=1):
     boudry_xs = [df.iloc[0].row_index, df.iloc[-1].row_index]
     pointpos_df = pd.DataFrame(
         data=df[~pd.isnull(df["pointpos"])],
-        columns=["time", "pointpos", "pivot", "row_index"],
+        # columns=["time", "pointpos", "pivot", "row_index"],
+        columns=["number", "pointpos", "pivot", "row_index"],
     )
     xs = list(
         (pointpos_df[pointpos_df["pivot"] == mode]["row_index"]).reset_index(drop=True)

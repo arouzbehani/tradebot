@@ -1,4 +1,5 @@
 import itertools
+import math
 from statistics import mean
 import streamlit as st
 import pandas as pd
@@ -16,32 +17,27 @@ from matplotlib import style
 import datetime
 import plotly.figure_factory as ff
 import MarketReader as mr
+import top_100_crypto
 
-local = True
-try:
-    import subprocess
-
-    interface = "eth0"
-    ip = (
-        subprocess.check_output(
-            "ifconfig " + interface + " | awk '/inet / {print $2}'", shell=True
-        )
-        .decode()
-        .strip()
-    )
-    local = ip != GLOBAL.SERVER_IP
-except:
-    local = True
-
-
-def getTilte():
+local = helper.GetLocal()
+    
+def getTilte(title='Chart'):
     q = st.experimental_get_query_params()
     if q.__contains__("symbol"):
-        return q["symbol"][0]
-    return "Chart"
+        return f'{q["symbol"][0]} {title}'
+    return title
+symbol = None
+tf = None
+exch = None
+q = st.experimental_get_query_params()
+if q.__contains__("symbol"):
+    symbol = q["symbol"][0]
+if q.__contains__("tf"):
+    tf = q["tf"][0]
+if q.__contains__("exch"):
+    exch = q["exch"][0]
 
-
-st.set_page_config(layout="wide", page_title=getTilte())
+st.set_page_config(layout="wide", page_title=getTilte(title='Chart'))
 st.markdown(
     """
 
@@ -54,28 +50,33 @@ st.markdown(
         """,
     unsafe_allow_html=True,
 )
-# symbol = 'FTM_USDT'
-# tf = '1h'
-# exch = 'kucoin'
-symbol = None
-tf = None
-exch = None
-q = st.experimental_get_query_params()
-if q.__contains__("symbol"):
-    symbol = q["symbol"][0]
-if q.__contains__("tf"):
-    tf = q["tf"][0]
-if q.__contains__("exch"):
-    exch = q["exch"][0]
-if symbol != None:
-    st.title(symbol.replace("_", "-").upper())
-    url = "https://kucoin.com/trade/{}".format(symbol.replace("_", "-").upper())
-    link = st.markdown(
-        f"""
-    <a href={url}><button style="background-color:transparent;border:none;text-decoration: underline; color:#21a58a; font-size:large">View {symbol.replace('_','/')} Chart on Kucoin</button></a>
-""",
-        unsafe_allow_html=True,
-    )
+symbol = 'FTM_USDT'
+tf = '1h'
+exch = 'Kucoin'
+base_urls={'forex':'https://bingx.com/en-us/futures/forex',
+        'yahoo':'https://bingx.com/en-us/futures/forward',
+        'kucoin':'https://bingx.com/en-us/futures/forward'}
+markets=[]
+indexed_symbol=''
+if (symbol != None):
+    if exch.lower()=='forex':
+        markets=mr.forex_market.GetMarkets(local=local)
+        indexed_symbol=symbol.replace('_','/')
+    if exch.lower()=='kucoin':
+        markets=top_100_crypto.top100
+        indexed_symbol=symbol
+    if exch.lower()=='yahoo':
+        markets=mr.ym.GetMarkets(local=local)
+        indexed_symbol=symbol
+selected_item = st.selectbox(label='', options= markets,index=markets.index(indexed_symbol)) 
+st.experimental_set_query_params(tf=tf, exch=exch, symbol=selected_item.replace('/','_').replace('-','_'))
+
+url = '{}/{}'.format(
+    base_urls[exch.lower()],symbol.replace('_', '').upper())
+link = (st.markdown(f'''
+<a href={url}><button style="background-color:transparent;border:none;text-decoration: underline; color:#21a58a; font-size:large">View {symbol.replace('_','/')} Chart on BingX</button></a>
+''',
+                    unsafe_allow_html=True))
 
 
 def is_consolidating(closes, percentage=2):
@@ -192,6 +193,7 @@ def DrawChart(
             ) = pivot_helper.find_pivots(
                 df, left_candles, right_candles, waves_number, short=False
             )
+            df["number"] = range(1, len(df) + 1)
 
             if read_bull_patterns:
                 try:
@@ -214,10 +216,10 @@ def DrawChart(
             )
             # df['upperband'],df['middleband'],df['lowerband']=tah.BoolingerBands(close= df['close'],timeperiod= 20, nbdevdn= 6, nbdevup= 6, matype=0)
             # st.dataframe(df)
-
             fig.add_trace(
                 go.Candlestick(
-                    x=df["time"],
+                    #x=df["time"],
+                    x=df["number"],
                     open=df["open"],
                     close=df["close"],
                     high=df["high"],
@@ -229,11 +231,14 @@ def DrawChart(
             )
             pointpos_df = pd.DataFrame(
                 data=df[~pd.isnull(df["pointpos"])],
-                columns=["time", "pointpos", "pivot", "timestamp"],
+                #columns=["time", "pointpos", "pivot", "timestamp"],
+                columns=["time", "pointpos", "pivot", "number"],
             )
-            boudry_xs = [df[0:1]["timestamp"].values[0], df[-1:]["timestamp"].values[0]]
+            #boudry_xs = [df[0:1]["timestamp"].values[0], df[-1:]["timestamp"].values[0]]
+            boudry_xs = [df[0:1]["number"].values[0], df[-1:]["number"].values[0]]
             if support_trend:
-                down_xs = pointpos_df[pointpos_df["pivot"] == 1]["timestamp"]
+                #down_xs = pointpos_df[pointpos_df["pivot"] == 1]["timestamp"]
+                down_xs = pointpos_df[pointpos_df["pivot"] == 1]["number"]
                 down_ys = pointpos_df[pointpos_df["pivot"] == 1]["pointpos"]
                 m = npiv
                 if npiv == 0:
@@ -247,7 +252,8 @@ def DrawChart(
                 trend_down_xs_time = pd.to_datetime(trend_down_xs, unit="ms")
                 fig.add_trace(
                     go.Scatter(
-                        x=trend_down_xs_time,
+                        # x=trend_down_xs_time,
+                        x=trend_down_xs,
                         y=trend_down_ys,
                         line=dict(color="gray"),
                         name=f"r2_sq(support):{r2_down}",
@@ -257,7 +263,8 @@ def DrawChart(
                 )
 
             if resistance_trend:
-                up_xs = pointpos_df[pointpos_df["pivot"] == 2]["timestamp"]
+                # up_xs = pointpos_df[pointpos_df["pivot"] == 2]["timestamp"]
+                up_xs = pointpos_df[pointpos_df["pivot"] == 2]["number"]
                 up_ys = pointpos_df[pointpos_df["pivot"] == 2]["pointpos"]
                 m = npiv
                 if npiv == 0:
@@ -277,7 +284,8 @@ def DrawChart(
                 trend_up_xs_time = pd.to_datetime(trend_up_xs, unit="ms")
                 fig.add_trace(
                     go.Scatter(
-                        x=trend_up_xs_time,
+                        # x=trend_up_xs_time,
+                        x=trend_up_xs,
                         y=trend_up_ys,
                         line=dict(color="gray"),
                         name=f"r2_sq(resistance):{r2_up}",
@@ -288,7 +296,8 @@ def DrawChart(
 
             fig.add_trace(
                 go.Scatter(
-                    x=pointpos_df["time"],
+                    # x=pointpos_df["time"],
+                    x=pointpos_df["number"],
                     y=pointpos_df["pointpos"],
                     line=dict(color="#3d5ab2"),
                     name="wave line",
@@ -297,7 +306,8 @@ def DrawChart(
 
             fig.add_trace(
                 go.Scatter(
-                    x=df["time"],
+                    # x=df["time"],
+                    x=df["number"],
                     y=power_ups,
                     mode="markers",
                     marker=dict(size=10, color="green", symbol="star"),
@@ -306,7 +316,8 @@ def DrawChart(
             )
             fig.add_trace(
                 go.Scatter(
-                    x=df["time"],
+                    # x=df["time"],
+                    x=df["number"],
                     y=power_downs,
                     mode="markers",
                     marker=dict(size=10, color="red", symbol="star"),
@@ -315,7 +326,8 @@ def DrawChart(
             )
             fig.add_trace(
                 go.Scatter(
-                    x=df["time"],
+                    # x=df["time"],
+                    x=df["number"],
                     y=power_weaking_ups,
                     mode="markers",
                     marker=dict(size=10, color="green", symbol="circle-open"),
@@ -324,7 +336,8 @@ def DrawChart(
             )
             fig.add_trace(
                 go.Scatter(
-                    x=df["time"],
+                    # x=df["time"],
+                    x=df["number"],
                     y=power_weaking_downs,
                     mode="markers",
                     marker=dict(size=10, color="red", symbol="circle-open"),
@@ -334,13 +347,9 @@ def DrawChart(
             rownum = 1
             if read_ichi:
                 helper.append_ichi(df)
-                df_copy = df.copy()
 
-                df_copy["label"] = np.where(df["ich_moku_color"] > 0, 1, 0)
-                df_copy["group"] = (
-                    df_copy["label"].ne(df_copy["label"].shift()).cumsum()
-                )
-                df_copy = df_copy.groupby("group")
+                df_copy = df.copy()
+                df_copy = df_copy.groupby("ichi_label")
                 dfs = []
                 for name, data in df_copy:
                     dfs.append(data)
@@ -350,7 +359,8 @@ def DrawChart(
 
                     fig.add_trace(
                         go.Scatter(
-                            x=d["time"],
+                            # x=df["time"],
+                            x=d["number"],
                             y=d["ich_a"],
                             name="trace",
                             line=dict(color="white", width=0),
@@ -361,10 +371,11 @@ def DrawChart(
                     )
                     fig.add_trace(
                         go.Scatter(
-                            x=d["time"],
+                            # x=df["time"],
+                            x=d["number"],
                             y=d["ich_b"],
                             fill="tonexty",
-                            fillcolor=fillcol(d["label"].iloc[0]),
+                            fillcolor=fillcol(d["ichi_label"].iloc[0]),
                             name="trace",
                             line=dict(color="white", width=0),
                             mode="lines",
@@ -378,7 +389,8 @@ def DrawChart(
 
                 fig.add_trace(
                     go.Scatter(
-                        x=df["time"],
+                        # x=df["time"],
+                        x=df["number"],
                         y=df["ich_a"],
                         name="span a",
                         line=dict(color="green", width=0.7),
@@ -388,7 +400,8 @@ def DrawChart(
                 )
                 fig.add_trace(
                     go.Scatter(
-                        x=df["time"],
+                        # x=df["time"],
+                        x=df["number"],
                         y=df["ich_b"],
                         name="span b",
                         line=dict(color="red", width=0.7),
@@ -399,7 +412,8 @@ def DrawChart(
 
                 fig.add_trace(
                     go.Scatter(
-                        x=df["time"],
+                        # x=df["time"],
+                        x=df["number"],
                         y=df["ich_base_line"],
                         name="ichi_base_line",
                         line=dict(color="blue", width=1),
@@ -409,7 +423,8 @@ def DrawChart(
                 )
                 fig.add_trace(
                     go.Scatter(
-                        x=df["time"],
+                        # x=df["time"],
+                        x=df["number"],
                         y=df["ich_conversion_line"],
                         name="ichi_conversion_line",
                         line=dict(color="red", width=1),
@@ -421,13 +436,15 @@ def DrawChart(
             if patterns_res:
                 rownum += 1
                 fig_bull = go.Scatter(
-                    x=ndf["time"],
+                    # x=ndf["time"],
+                    x=ndf["number"],
                     y=ndf["bullish"],
                     name="Bullish Patterns",
                     line=dict(color="green"),
                 )
                 fig_bear = go.Scatter(
-                    x=ndf["time"],
+                    # x=ndf["time"],
+                    x=ndf["number"],
                     y=ndf["bearish"],
                     name="Bearish Patterns",
                     line=dict(color="red"),
@@ -440,7 +457,8 @@ def DrawChart(
             if entry_signals:
                 fig.add_trace(
                     go.Scatter(
-                        x=df["time"],
+                        # x=df["time"],
+                        x=df["number"],
                         y=df["adx_signal_marker"],
                         mode="markers",
                         marker=dict(
@@ -456,14 +474,16 @@ def DrawChart(
                 rownum += 1
                 helper.append_fi(df)
                 fig.add_trace(
-                    go.Scatter(x=df["time"], y=df["fi_norm"], name="fi_norm"),
+                    # go.Scatter(x=df["time"], y=df["fi_norm"], name="fi_norm"),
+                    go.Scatter(x=df["number"], y=df["fi_norm"], name="fi_norm"),
                     row=rownum,
                     col=1,
                 )
                 if entry_signals:
                     fig.add_trace(
                         go.Scatter(
-                            x=df["time"],
+                            # x=df["time"],
+                            x=df["number"],
                             y=df["fi_entry_signal"],
                             mode="markers",
                             marker=dict(
@@ -478,24 +498,28 @@ def DrawChart(
                     df, entry_signal=entry_signals, entry_signal_mode=entry_signal_mode
                 )
                 fig.add_trace(
-                    go.Scatter(x=df["time"], y=df["middleband"], name="middle band"),
+                    # go.Scatter(x=df["time"], y=df["middleband"], name="middle band"),
+                    go.Scatter(x=df["number"], y=df["middleband"], name="middle band"),
                     row=1,
                     col=1,
                 )
                 fig.add_trace(
-                    go.Scatter(x=df["time"], y=df["upperband"], name="upper band"),
+                    # go.Scatter(x=df["time"], y=df["upperband"], name="upper band"),
+                    go.Scatter(x=df["number"], y=df["upperband"], name="upper band"),
                     row=1,
                     col=1,
                 )
                 fig.add_trace(
-                    go.Scatter(x=df["time"], y=df["lowerband"], name="lower band"),
+                    # go.Scatter(x=df["time"], y=df["lowerband"], name="lower band"),
+                    go.Scatter(x=df["number"], y=df["lowerband"], name="lower band"),
                     row=1,
                     col=1,
                 )
                 if entry_signals:
                     fig.add_trace(
                         go.Scatter(
-                            x=df["time"],
+                            # x=df["time"],
+                            x=df["number"],
                             y=df["bb_entry_signal"],
                             mode="markers",
                             marker=dict(
@@ -508,7 +532,8 @@ def DrawChart(
                     )
                     fig.add_trace(
                         go.Scatter(
-                            x=df["time"],
+                            # x=df["time"],
+                            x=df["number"],
                             y=df["bb_sq_entry_signal"],
                             mode="markers",
                             marker=dict(
@@ -545,7 +570,8 @@ def DrawChart(
                 )
                 fig.add_trace(
                     go.Scatter(
-                        x=df["time"],
+                        # x=df["time"],
+                        x=df["number"],
                         y=df["rsi"],
                         name="rsi",
                         line=dict(width=2, color="#d5dae5"),
@@ -578,7 +604,8 @@ def DrawChart(
                         )
                     fig.add_trace(
                         go.Scatter(
-                            x=df["time"],
+                            # x=df["time"],
+                            x=df["number"],
                             y=df["rsi_entry_signal"],
                             mode="markers",
                             marker=dict(
@@ -592,22 +619,26 @@ def DrawChart(
             if read_vol:
                 rownum += 1
                 fig.add_trace(
-                    go.Scatter(x=df["time"], y=df["volume"], name="Volume"),
+                    # go.Scatter(x=df["time"], y=df["volume"], name="Volume"),
+                    go.Scatter(x=df["number"], y=df["volume"], name="Volume"),
                     row=rownum,
                     col=1,
                 )
             if read_sma:
                 helper.append_sma_2(df, entry_signal=entry_signals, w1=10, w2=50)
                 fig.add_trace(
-                    go.Scatter(x=df["time"], y=df["sma_1"], name="sma 10"), row=1, col=1
+                    # go.Scatter(x=df["time"], y=df["sma_1"], name="sma 10"), row=1, col=1
+                    go.Scatter(x=df["number"], y=df["sma_1"], name="sma 10"), row=1, col=1
                 )
                 fig.add_trace(
-                    go.Scatter(x=df["time"], y=df["sma_2"], name="sma 50"), row=1, col=1
+                    # go.Scatter(x=df["time"], y=df["sma_2"], name="sma 50"), row=1, col=1
+                    go.Scatter(x=df["number"], y=df["sma_2"], name="sma 50"), row=1, col=1
                 )
                 if entry_signals:
                     fig.add_trace(
                         go.Scatter(
-                            x=df["time"],
+                            # x=df["time"],
+                            x=df["number"],
                             y=df["sma_entry_signal"],
                             mode="markers",
                             marker=dict(
@@ -624,22 +655,26 @@ def DrawChart(
                     df, entry_signal=entry_signals, entry_signal_mode=entry_signal_mode
                 )
                 fig.add_trace(
-                    go.Scatter(x=df["time"], y=df["ema_5"], name="ema 5"), row=1, col=1
+                    # go.Scatter(x=df["time"], y=df["ema_5"], name="ema 5"), row=1, col=1
+                    go.Scatter(x=df["number"], y=df["ema_5"], name="ema 5"), row=1, col=1
                 )
                 fig.add_trace(
-                    go.Scatter(x=df["time"], y=df["ema_10"], name="ema 10"),
+                    # go.Scatter(x=df["time"], y=df["ema_10"], name="ema 10"),
+                    go.Scatter(x=df["number"], y=df["ema_10"], name="ema 10"),
                     row=1,
                     col=1,
                 )
                 fig.add_trace(
-                    go.Scatter(x=df["time"], y=df["ema_30"], name="ema 30"),
+                    # go.Scatter(x=df["time"], y=df["ema_30"], name="ema 30"),
+                    go.Scatter(x=df["number"], y=df["ema_30"], name="ema 30"),
                     row=1,
                     col=1,
                 )
                 if entry_signals:
                     fig.add_trace(
                         go.Scatter(
-                            x=df["time"],
+                            # x=df["time"],
+                            x=df["number"],
                             y=df["ema_entry_signal"],
                             mode="markers",
                             marker=dict(
@@ -653,7 +688,7 @@ def DrawChart(
 
             helper.append_macd(df)
 
-            fig.update_layout(xaxis_rangeslider_visible=False, height=chart_height)
+            fig.update_layout(xaxis_rangeslider_visible=False, height=chart_height,xaxis=dict(tickvals=df['number'], ticktext=df['time']))
             st.plotly_chart(fig, use_container_width=True)
 
             # # fig2.update_xaxes(type='category')
@@ -805,6 +840,8 @@ with st.sidebar:
     #             symbol = q['symbol'][0]
     #             tf = q['tf'][0]
     #             PredictPrice(coin=symbol, tf=tf, forecast_out=forecast_out)
+
+
 
 with st.container():
     cols = st.columns([1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1])

@@ -105,7 +105,7 @@ def ReadForexMarket(timeframes,testdata=False,local=False,symbol='',secrets=[]):
     try:
         forex_markets = []
         period_dict={"1day":30, '5min':1 , 
-            "15min" :1 , "30min":2 , "1Hour":5 , "4Hour":10 }
+            "15min" :7 , "30min":2 , "1Hour":7 , "4Hour":10 }
         forex_markets = forex_market.GetMarkets(local)
         for i in range(0, len(timeframes)):
             try:

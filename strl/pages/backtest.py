@@ -50,10 +50,10 @@ with st.sidebar:
                 "Taking Profit Method:", ["By Strategy", "Manually"]
             )
             if take_proft_opt == "Manually":
-                takeprofit = st.number_input("Take Profit (%):", value=7, min_value=1)
+                takeprofit = st.number_input("Take Profit (%):", value=7.0, min_value=0.05)
             else:
                 takeprofit = 0
-            stoploss = st.number_input("Stop Loss (%):", value=7, min_value=1)
+            stoploss = st.number_input("Stop Loss (%):", value=7.0, min_value=0.05)
         case "ML Analysis":
             candles_back = st.number_input(
                 "Candles:", min_value=1, max_value=320, value=50
@@ -62,15 +62,17 @@ with st.sidebar:
         #     candles_back=st.number_input("Candles Back:",min_value=1,max_value=320,value=300)
         #     stoploss=st.number_input('Stop Loss (%):',value=2,min_value=1)
 q = st.experimental_get_query_params()
-symbol = "ATOM_USDT"
-tf = "1h"
+symbol = None
+tf = None
+exch = None
+q = st.experimental_get_query_params()
 if q.__contains__("symbol"):
     symbol = q["symbol"][0]
 if q.__contains__("tf"):
     tf = q["tf"][0]
-exch = "Kucoin"
+if q.__contains__("exch"):
+    exch = q["exch"][0]
 init_df = helper.GetData(tf, symbol, exch)
-
 
 def Run_sma_Strategy(x) -> tm.TradingEnv:
     fee = 0.99875
@@ -158,6 +160,11 @@ def Run_sma_Strategy(x) -> tm.TradingEnv:
 def ML_Anaylsis():
     # candles_back=1
     tfs = ["1d", "4h", "1h", "15m"]
+    if exch.lower()=='forex':
+        tfs = ["1day", "4Hour", "1Hour", "15min"]
+    if exch.lower()=='yahoo':
+       tfs = ["1d", "90m", "60m", "15m"]
+
     totalpoints = {}
     totalpoints[tf] = []
     df = helper.GetData(tf=tf, symbol=symbol, exch=exch)
@@ -266,6 +273,11 @@ def ML_Anaylsis():
 def Point_Anaylsis():
     #candles_back=1
     tfs = ["1d", "4h", "1h", "15m"]
+    if exch.lower()=='forex':
+        tfs = ["1day", "4Hour", "1Hour", "15min"]
+    if exch.lower()=='yahoo':
+       tfs = ["1d", "90m", "60m", "15m"]
+    
     totalpoints = {}
     totalpoints[tf] = []
     df = helper.GetData(tf=tf, symbol=symbol, exch=exch)

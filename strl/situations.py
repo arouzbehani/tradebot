@@ -136,7 +136,7 @@ class Situation:
 
         self.ichi_stat = c.Ichi_Stat.Nothing
         self.ichi_parent_stat = c.Ichi_Stat.Nothing
-
+        self.bermuda=False
         self.bollinger_top_candle_location = {}
         self.bollinger_bot_candle_location = {}
         # self.sma_50_stat=c.SMA_Stat.Above

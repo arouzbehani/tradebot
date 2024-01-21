@@ -90,7 +90,7 @@ class Analyzer:
 
                 helper.append_ichi(df_short)
                 ichi_status = helper.GetIchiStatus(df_short)
-
+                has_bermuda,bermuda_distance,min_ichi,max_ichi=helper.has_Ichi_Bermuda(df_short)
                 helper.append_rsi(df_short)
                 rsi_data={"dvg":c.Rsi_Stat.Nothing,"chart_line":[],"rsi_line":[]}
                 rsi_dvg,chart_xs,chart_ys,rsi_xs,rsi_ys=helper.Rsi_Divergence_3(df_short)
@@ -173,6 +173,7 @@ class Analyzer:
                             'short_trend': trend_short,'short_trend_points':[short_up_points,short_down_points],
                             'current_trend':current_trend,
                             'last_candles_diection':last_candles_diection,
+                            'ichi_bermuda':{'hasBermuda':has_bermuda,'distance':bermuda_distance,'min_val':min_ichi,'max_val':max_ichi},
                             'pa_break': pa_break, 'is_break': is_break, 'break_level':break_level,
 
                             'static_levels': static_levels,

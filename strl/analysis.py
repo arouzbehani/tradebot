@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import gc
 import ML_2
+import streamlit_utils as stutil
 # from talibHelper import AllPatterns as alp
 # from sklearn.linear_model import LinearRegression
 # from sklearn.metrics import r2_score
@@ -20,17 +21,30 @@ import ML_2
 # from matplotlib import style
 # import datetime
 # import plotly.figure_factory as ff
-# import MarketReader as mr
+import MarketReader as mr
+import top_100_crypto
 
-def getTilte():
+local=helper.GetLocal()
+    
+def getTilte(title='Chart'):
     q = st.experimental_get_query_params()
-    if (q.__contains__('symbol')):
-        return f'{q["symbol"][0]} Analysis'
-    return "Analysis"
+    if q.__contains__("symbol"):
+        return f'{q["symbol"][0]} {title}'
+    return title
+symbol = None
+tf = None
+exch = None
+q = st.experimental_get_query_params()
+if q.__contains__("symbol"):
+    symbol = q["symbol"][0]
+if q.__contains__("tf"):
+    tf = q["tf"][0]
+if q.__contains__("exch"):
+    exch = q["exch"][0]
 
-
-st. set_page_config(layout="wide", page_title=getTilte())
-st.markdown("""
+st.set_page_config(layout="wide", page_title=getTilte(title='Analysis'))
+st.markdown(
+    """
 
         <style>
                 ..css-k1ih3n {
@@ -38,30 +52,36 @@ st.markdown("""
                 }
 
         </style>
-        """, unsafe_allow_html=True)
-
-tf='4Hour'
-symbol = 'AUD_USD'
-exch = 'Forex'
-
-# symbol = None
-# exch = None
-q = st.experimental_get_query_params()
-if (q.__contains__('symbol')):
-    symbol = q['symbol'][0]
-if (q.__contains__('exch')):
-    exch = q['exch'][0]
-if (q.__contains__('tf')):
-    tf = q['tf'][0]
-
+        """,
+    unsafe_allow_html=True,
+)
+# symbol = 'GBP_CHF'
+# tf = '4Hour'
+# exch = 'Forex'
+base_urls={'forex':'https://bingx.com/en-us/futures/forex',
+        'yahoo':'https://bingx.com/en-us/futures/forward',
+        'kucoin':'https://bingx.com/en-us/futures/forward'}
+markets=[]
+indexed_symbol=''
 if (symbol != None):
-    st.title(symbol.replace('_', '-').upper())
-    url = 'https://bingx.com/en-us/futures/forward/{}'.format(
-        symbol.replace('_', '').upper())
-    link = (st.markdown(f'''
-    <a href={url}><button style="background-color:transparent;border:none;text-decoration: underline; color:#21a58a; font-size:large">View {symbol.replace('_','/')} Chart on BingX</button></a>
+    if exch=='Forex':
+        markets=mr.forex_market.GetMarkets(local=local)
+        indexed_symbol=symbol.replace('_','/')
+    if exch=='Kucoin':
+        markets=top_100_crypto.top100
+        indexed_symbol=symbol
+    if exch=='Yahoo':
+        markets=mr.ym.GetMarkets(local=local)
+        indexed_symbol=symbol
+selected_item = st.selectbox(label='', options= markets,index=markets.index(indexed_symbol)) 
+st.experimental_set_query_params(tf=tf, exch=exch, symbol=selected_item.replace('/','_').replace('-','_'))
+
+url = '{}/{}'.format(
+    base_urls[exch.lower()],symbol.replace('_', '').upper())
+link = (st.markdown(f'''
+<a href={url}><button style="background-color:transparent;border:none;text-decoration: underline; color:#21a58a; font-size:large">View {symbol.replace('_','/')} Chart on BingX</button></a>
 ''',
-                        unsafe_allow_html=True))
+                    unsafe_allow_html=True))
 
 st.sidebar.title("Analysis Settings: ")
 
@@ -92,34 +112,35 @@ def DrawCandleSticks(df,df2,both=True,cols=1,rows=1,column_width=[1],row_heights
         column_widths=column_width,
         row_heights=row_heights,
         shared_xaxes=True, vertical_spacing=0.01)
-
+        if not 'number' in df.columns:
+            df['number']=range(1,len(df)+1)
         if both:
 
             fig.add_trace(
-                go.Candlestick(x=df['time'], open=df['open'], close=df['close'], high=df['high'], low=df['low'], name=symbol.replace('_', '/')), row=1, col=1
+                go.Candlestick(x=df['number'], open=df['open'], close=df['close'], high=df['high'], low=df['low'], name=symbol.replace('_', '/')), row=1, col=1
             )    
             pointpos_df = pd.DataFrame(
-                data=df[~pd.isnull(df['pointpos'])], columns=['time', 'pointpos', 'pivot', 'timestamp'])
+                data=df[~pd.isnull(df['pointpos'])], columns=['time', 'pointpos', 'pivot', 'timestamp','number'])
             pointpos_df2 = pd.DataFrame(
-                data=df2[~pd.isnull(df2['pointpos'])], columns=['time', 'pointpos', 'pivot', 'timestamp'])
+                data=df2[~pd.isnull(df2['pointpos'])], columns=['time', 'pointpos', 'pivot', 'timestamp','number'])
 
             fig.add_trace(
-                go.Scatter(x=pointpos_df['time'], y=pointpos_df['pointpos'], line=dict(
+                go.Scatter(x=pointpos_df['number'], y=pointpos_df['pointpos'], line=dict(
                     color="#3d5ab2"), name='long term wave line'),row=1,col=1
             )
             fig.add_trace(
-                go.Scatter(x=pointpos_df2['time'], y=pointpos_df2['pointpos'], line=dict(
+                go.Scatter(x=pointpos_df2['number'], y=pointpos_df2['pointpos'], line=dict(
                     color="#9999ff"), name='short term wave line'),row=1,col=1
             )    
             return fig
         else:
             fig.add_trace(
-                go.Candlestick(x=df2['time'], open=df2['open'], close=df2['close'], high=df2['high'], low=df2['low'], name=symbol.replace('_', '/')), row=1, col=1
+                go.Candlestick(x=df2['number'], open=df2['open'], close=df2['close'], high=df2['high'], low=df2['low'], name=symbol.replace('_', '/')), row=1, col=1
             )    
             pointpos_df2 = pd.DataFrame(
-                data=df2[~pd.isnull(df2['pointpos'])], columns=['time', 'pointpos', 'pivot', 'timestamp'])
+                data=df2[~pd.isnull(df2['pointpos'])], columns=['time', 'pointpos', 'pivot', 'timestamp','number'])
             fig.add_trace(
-                go.Scatter(x=pointpos_df2['time'], y=pointpos_df2['pointpos'], line=dict(
+                go.Scatter(x=pointpos_df2['number'], y=pointpos_df2['pointpos'], line=dict(
                     color="#9999ff"), name='short term wave line'),row=1,col=1
             )    
             return fig
@@ -148,7 +169,9 @@ def DoAnalysis():
     st.markdown("""---""")
    
     df=sit.long_term_df
+    df['number']=range(1,len(df)+1)
     df2=sit.short_term_df
+    df2['number']=range(len(df)-len(df2)+1,len(df)+1)
     ################################################################## ML Prediction #############################################################################
                 # # lrow=df.iloc[-1]
                 # df0=df[["close","open","high","low","volume"]].tail(1).reset_index(drop=True)
@@ -189,15 +212,15 @@ def DoAnalysis():
     trend_points=[sit.short_trend_points,sit.long_trend_points]
 
     for i in range(0,2):
-        trend_down_xs=[df[df['row_index']==trend_points[i][0][0][0]]['timestamp'].values[0],df[df['row_index']==trend_points[i][0][1][0]]['timestamp'].values[0]]
+        trend_down_xs=[df[df['row_index']==trend_points[i][0][0][0]]['number'].values[0],df[df['row_index']==trend_points[i][0][1][0]]['number'].values[0]]
         trend_down_ys=[trend_points[i][0][0][1],trend_points[i][0][1][1]]
 
-        trend_up_xs=[df[df['row_index']==trend_points[i][1][0][0]]['timestamp'].values[0],df[df['row_index']==trend_points[i][1][1][0]]['timestamp'].values[0]]
+        trend_up_xs=[df[df['row_index']==trend_points[i][1][0][0]]['number'].values[0],df[df['row_index']==trend_points[i][1][1][0]]['number'].values[0]]
         trend_up_ys=[trend_points[i][1][0][1],trend_points[i][1][1][1]]
 
         trend_down_xs_time=pd.to_datetime(trend_down_xs,unit='ms')
         fig.add_trace(
-            go.Scatter(x=trend_down_xs_time, y=trend_down_ys, line=dict(
+            go.Scatter(x=trend_down_xs, y=trend_down_ys, line=dict(
                 color="gray",width=0.5), name=f'support'), row=1, col=1
         )                           
 
@@ -207,19 +230,19 @@ def DoAnalysis():
                 color="gray",width=0.5), name=f'resist'), row=1, col=1
         )         
     if sit.trend_break_level>0:
-        pa_beark_level_xs=[df.iloc[0].timestamp,df.iloc[-1].timestamp]
+        pa_beark_level_xs=[df.iloc[0].number,df.iloc[-1].number]
         pa_break_level_ys=[sit.trend_break_level,sit.trend_break_level]
         pa_beark_level_xs_time=pd.to_datetime(pa_beark_level_xs,unit='ms')
         fig.add_trace(
-            go.Scatter(x=pa_beark_level_xs_time, y=pa_break_level_ys, line=dict(
+            go.Scatter(x=pa_beark_level_xs, y=pa_break_level_ys, line=dict(
                 color="#e05293",width=0.75), name=f'Trend Break Level'), row=1, col=1
         )         
     
     fig.add_trace(
-        go.Scatter(x=df['time'], y=df['ema_150'], name='ema 150'), row=1, col=1
+        go.Scatter(x=df['number'], y=df['ema_150'], name='ema 150'), row=1, col=1
     )    
     fig.update_layout(xaxis_rangeslider_visible=False,
-                        height=450)
+                        height=450,xaxis=dict(tickvals=df['number'], ticktext=df['time']))
     st.plotly_chart(fig, use_container_width=True)
     st.markdown("""---""")
 
@@ -244,16 +267,16 @@ def DoAnalysis():
         for l in static_levels[i]:
             if l[1]<=max_level and l[0]>=min_level:
                 for i in range(0,2):
-                    level_xs=[df2.iloc[0].timestamp,df2.iloc[-1].timestamp]
+                    level_xs=[df2.iloc[0].number,df2.iloc[-1].number]
                     level_ys=[l[i],l[i]]
                     level_xs_time=pd.to_datetime(level_xs,unit='ms')
                     fig.add_trace(
-                    go.Scatter(x=level_xs_time, y=level_ys, line=dict(
+                    go.Scatter(x=level_xs, y=level_ys, line=dict(
                         color=f"{static_level_colors[i]}",width=0.55), name=f'Static Level {i+1}'), row=1, col=1
         )         
 
         fig.update_layout(xaxis_rangeslider_visible=False,
-                            height=450)
+                            height=450,xaxis=dict(tickvals=df['number'], ticktext=df['time']))
         st.plotly_chart(fig, use_container_width=True)
     st.markdown("""---""")
 
@@ -268,6 +291,7 @@ def DoAnalysis():
     df_p=None
     if sit.dynamic_support_line_parent!={} and sit.dynamic_resist_line_parent!={}:
           df_p=sit.long_term_df_parent
+          df_p['number']=range(1,len(df_p)+1)
           lines.append([sit.dynamic_support_line_parent,sit.dynamic_resist_line_parent])
     legends=['Dynamic Support','Dynamic Resist']
     colors=['#52b47f','#e05293']
@@ -276,32 +300,32 @@ def DoAnalysis():
         st.write(f'Buy Point: {dynamic_sr_buy_points[i]}')
         st.write(f'Sell Point: {dynamic_sr_sell_points[i]}')
         fig=DrawCandleSticks(df,df,both=False)
-        xs=[df.iloc[0].timestamp,df.iloc[-1].timestamp]
+        xs=[df.iloc[0].number,df.iloc[-1].number]
 
         for j in range(0,2):
             
             
             if i==0:
-                ys_start=lines[i][j]['p0_y']-(lines[i][j]['p0_x']-df[df['timestamp']==xs[0]]['row_index'].values[0])*lines[i][j]['m']
-                ys_end=lines[i][j]['p0_y']+(df[df['timestamp']==xs[1]]['row_index'].values[0]-lines[i][j]['p0_x'])*lines[i][j]['m']
+                ys_start=lines[i][j]['p0_y']-(lines[i][j]['p0_x']-df[df['number']==xs[0]]['row_index'].values[0])*lines[i][j]['m']
+                ys_end=lines[i][j]['p0_y']+(df[df['number']==xs[1]]['row_index'].values[0]-lines[i][j]['p0_x'])*lines[i][j]['m']
             if i==1:
-                xs_p=[df_p.iloc[0].timestamp,df_p.iloc[-1].timestamp]
+                xs_p=[df_p.iloc[0].number,df_p.iloc[-1].number]
                 y0_p=lines[i][j]['p0_y']
                 m_p=lines[i][j]['m']
-                xs_0=df[df['timestamp']==xs[0]]['row_index'].values[0]
-                xs_p_0=df_p[df_p['timestamp']==xs_p[0]]['row_index'].values[0]
+                xs_0=df[df['number']==xs[0]]['row_index'].values[0]
+                xs_p_0=df_p[df_p['number']==xs_p[0]]['row_index'].values[0]
                 y0_child=y0_p+m_p*(xs[0]-xs_p[0])
-                ys_start=lines[i][j]['p0_y']-(lines[i][j]['p0_x']-df[df['timestamp']==xs[0]]['row_index'].values[0])*lines[i][j]['m']
-                ys_end=lines[i][j]['p0_y']+(df_p[df_p['timestamp']==xs_p[1]]['row_index'].values[0]-lines[i][j]['p0_x'])*lines[i][j]['m']
+                ys_start=lines[i][j]['p0_y']-(lines[i][j]['p0_x']-df[df['number']==xs[0]]['row_index'].values[0])*lines[i][j]['m']
+                ys_end=lines[i][j]['p0_y']+(df_p[df_p['number']==xs_p[1]]['row_index'].values[0]-lines[i][j]['p0_x'])*lines[i][j]['m']
             ys=[ys_start,ys_end]
             xs_time=pd.to_datetime(xs,unit='ms')
             fig.add_trace(
-            go.Scatter(x=xs_time, y=ys, line=dict(
+            go.Scatter(x=xs, y=ys, line=dict(
                 color=f"{colors[j]}",width=0.55), name=f'{legends[j]}, R2={lines[i][j]["r2"]}'), row=1, col=1
             )
 
         fig.update_layout(xaxis_rangeslider_visible=False,
-                            height=450)
+                            height=450,xaxis=dict(tickvals=df['number'], ticktext=df['time']))
         st.plotly_chart(fig, use_container_width=True)
     ################################################################## SMA 10 , 50 ####################################################################################
 
@@ -329,16 +353,16 @@ def DoAnalysis():
     # helper.append_ema(df2,entry_signal_mode='',exit_signal=True)
     fig=DrawCandleSticks(df,df2,both=False)
     fig.add_trace(
-        go.Scatter(x=df2['time'], y=df2['ema_5'], name='ema 5'), row=1, col=1
+        go.Scatter(x=df2['number'], y=df2['ema_5'], name='ema 5'), row=1, col=1
     )
     fig.add_trace(
-        go.Scatter(x=df2['time'], y=df2['ema_10'], name='ema 10'), row=1, col=1
+        go.Scatter(x=df2['number'], y=df2['ema_10'], name='ema 10'), row=1, col=1
     )
     fig.add_trace(
-        go.Scatter(x=df2['time'], y=df2['ema_30'], name='ema 30'), row=1, col=1
+        go.Scatter(x=df2['number'], y=df2['ema_30'], name='ema 30'), row=1, col=1
     )    
     fig.update_layout(xaxis_rangeslider_visible=False,
-                        height=450)
+                        height=450,xaxis=dict(tickvals=df['number'], ticktext=df['time']))
     st.plotly_chart(fig, use_container_width=True)
     gc.collect()  
     ################################################################## Fibo Retracement ###########################################################################
@@ -354,7 +378,7 @@ def DoAnalysis():
 
     for l in sit.fibo_retrace_levels:
         i +=1
-        level_xs=[df.iloc[0].timestamp,df.iloc[-1].timestamp]
+        level_xs=[df.iloc[0].number,df.iloc[-1].number]
         level_ys=[l,l]
         level_xs_time=pd.to_datetime(level_xs,unit='ms')
         statval=sit.fibo_level_retrace_stat.value
@@ -366,7 +390,7 @@ def DoAnalysis():
             fibo_line=dict(color="#93e2ec",width=0.55)
         fibname=round(float(str(c.Candle_Fibo_Stat(i-1)).split('_')[3])/1000,3)
         fig.add_trace(
-        go.Scatter(x=level_xs_time, y=level_ys, line=fibo_line, name=f'Fibo Retrace Level {fibname}'), row=1, col=1)
+        go.Scatter(x=level_xs, y=level_ys, line=fibo_line, name=f'Fibo Retrace Level {fibname}'), row=1, col=1)
  
         # Add a rectangle shape to fill the space between the lines
         if len(rgbs)>i-1:
@@ -386,7 +410,7 @@ def DoAnalysis():
     #fig.layout.shapes=shapes
     
     fig.update_layout(xaxis_rangeslider_visible=False,
-                        height=450)
+                        height=450,xaxis=dict(tickvals=df['number'], ticktext=df['time']))
     st.plotly_chart(fig, use_container_width=True)
     ################################################################## Fibo Trend Base #########################################################################
     st.subheader('Fibonacci Trend Base')
@@ -397,7 +421,7 @@ def DoAnalysis():
     fibo_line=dict(color="#93e2ec",width=0.55)
     for l in sit.fibo_trend_levels:
         i +=1
-        level_xs=[df.iloc[0].timestamp,df.iloc[-1].timestamp]
+        level_xs=[df.iloc[0].number,df.iloc[-1].number]
         level_ys=[l,l]
         level_xs_time=pd.to_datetime(level_xs,unit='ms')
         statval=sit.fibo_level_trend_stat.value
@@ -409,10 +433,10 @@ def DoAnalysis():
             fibo_line=dict(color="#93e2ec",width=0.55)
         fibname=round(float(str(c.Candle_Fibo_Stat(i-1)).split('_')[3])/1000,3)
         fig.add_trace(
-        go.Scatter(x=level_xs_time, y=level_ys, line=fibo_line, name=f'Fibo Trend Base Level {fibname}'), row=1, col=1
+        go.Scatter(x=level_xs, y=level_ys, line=fibo_line, name=f'Fibo Trend Base Level {fibname}'), row=1, col=1
 )         
     fig.update_layout(xaxis_rangeslider_visible=False,
-                        height=450)
+                        height=450,xaxis=dict(tickvals=df['number'], ticktext=df['time']))
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -424,7 +448,7 @@ def DoAnalysis():
 
     fig=DrawCandleSticks(df,df2_rsi,both=False,cols=1,rows=2,column_width=[1],row_heights=[0.7,0.4])
     fig.add_trace(
-        go.Scatter(x=df2_rsi['time'], y=df2_rsi['rsi'], name='rsi', line=dict(width=2, color='#d5dae5')), row=2, col=1
+        go.Scatter(x=df2_rsi['number'], y=df2_rsi['rsi'], name='rsi', line=dict(width=2, color='#d5dae5')), row=2, col=1
     )
     if not sit.rsi_divergance==c.Rsi_Stat.Nothing:
         fig.add_trace(
@@ -434,7 +458,7 @@ def DoAnalysis():
             go.Scatter(x=sit.rsi_line[0], y=sit.rsi_line[1], name='direction on rsi', line=dict(width=2, color='#ff6c00')), row=2, col=1
         )
     fig.update_layout(xaxis_rangeslider_visible=False,
-                        height=450)
+                        height=450,xaxis=dict(tickvals=df['number'], ticktext=df['time']))
     st.plotly_chart(fig, use_container_width=True)
     del df2_rsi
     gc.collect()
@@ -446,7 +470,10 @@ def DoAnalysis():
     dfs=[[df2,df2.copy()]]
     if isinstance(sit.short_term_df_parent,pd.DataFrame):
         if len(sit.short_term_df_parent)>0:
-            dfs.append([sit.short_term_df_parent, sit.short_term_df_parent.copy()])
+            sit.short_term_df_parent['number']=range(1,len(sit.short_term_df_parent)+1)
+            df_copy_short_term_df_parent=sit.short_term_df_parent.copy()
+            df_copy_short_term_df_parent['number']=range(1,len(df_copy_short_term_df_parent)+1)
+            dfs.append([sit.short_term_df_parent, df_copy_short_term_df_parent])
     for i in range(len(dfs)):
         st.subheader(hraders_ichi[i])
         st.write(f'Buy Point: {ichi_buy_points[i]}')
@@ -464,30 +491,30 @@ def DoAnalysis():
             all_dfs.append(data)
         for d in all_dfs:
             fig.add_trace(
-                go.Scatter(x=d['time'], y=d['ich_a'], name='trace', line=dict(color="white", width=0), mode='lines'), row=1, col=1,
+                go.Scatter(x=d['number'], y=d['ich_a'], name='trace', line=dict(color="white", width=0), mode='lines'), row=1, col=1,
             )
             fig.add_trace(
-                go.Scatter(x=d['time'], y=d['ich_b'], fill='tonexty', fillcolor=fillcol(d['label'].iloc[0]), name='trace', line=dict(color="white", width=0), mode='lines'), row=1, col=1
+                go.Scatter(x=d['number'], y=d['ich_b'], fill='tonexty', fillcolor=fillcol(d['label'].iloc[0]), name='trace', line=dict(color="white", width=0), mode='lines'), row=1, col=1
             )
         for trace in fig['data']:
             if (trace['name'] == 'trace'):
                 trace['showlegend'] = False
 
         fig.add_trace(
-            go.Scatter(x=dfs[i][0]['time'], y=dfs[i][0]['ich_a'], name='span a', line=dict(color="green", width=0.7)), row=1, col=1
+            go.Scatter(x=dfs[i][0]['number'], y=dfs[i][0]['ich_a'], name='span a', line=dict(color="green", width=0.7)), row=1, col=1
         )
         fig.add_trace(
-            go.Scatter(x=dfs[i][0]['time'], y=dfs[i][0]['ich_b'], name='span b', line=dict(color="red", width=0.7)), row=1, col=1
+            go.Scatter(x=dfs[i][0]['number'], y=dfs[i][0]['ich_b'], name='span b', line=dict(color="red", width=0.7)), row=1, col=1
         )
 
         fig.add_trace(
-            go.Scatter(x=dfs[i][0]['time'], y=dfs[i][0]['ich_base_line'], name='ichi_base_line', line=dict(color="blue", width=1)), row=1, col=1
+            go.Scatter(x=dfs[i][0]['number'], y=dfs[i][0]['ich_base_line'], name='ichi_base_line', line=dict(color="blue", width=1)), row=1, col=1
         )
         fig.add_trace(
-            go.Scatter(x=dfs[i][0]['time'], y=dfs[i][0]['ich_conversion_line'], name='ichi_conversion_line', line=dict(color="red", width=1)), row=1, col=1
+            go.Scatter(x=dfs[i][0]['number'], y=dfs[i][0]['ich_conversion_line'], name='ichi_conversion_line', line=dict(color="red", width=1)), row=1, col=1
         )
         fig.update_layout(xaxis_rangeslider_visible=False,
-                            height=450)
+                            height=450,xaxis=dict(tickvals=df['number'], ticktext=df['time']))
         st.plotly_chart(fig, use_container_width=True)
 
 
