@@ -164,3 +164,6 @@ test.py
 madat.tar.gz
 *.tar.gz
 test.py
+strl/input.csv
+strl/MyStrat.html
+strl/01_Strategy_Scalping_Modified_I.ipynb

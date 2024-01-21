@@ -465,8 +465,8 @@ def DoAnalysis():
 
     ################################################################## Current Ichi Moko ######################################################################################
     hraders_ichi=['Ichi Moku Status','Parent Ichi Moku Status']
-    ichi_buy_points=[buy_pars.ichi_location[0]*buy_pars.ichi_location[1],buy_pars.ichi_location_parent[0]*buy_pars.ichi_location_parent[1]]
-    ichi_sell_points=[sell_pars.ichi_location[0]*sell_pars.ichi_location[1],sell_pars.ichi_location_parent[0]*sell_pars.ichi_location_parent[1]]
+    ichi_buy_points=[buy_pars.ichi_location[0]*buy_pars.ichi_location[1]+buy_pars.ichi_bermuda[0]*buy_pars.ichi_bermuda[1],buy_pars.ichi_location_parent[0]*buy_pars.ichi_location_parent[1]]
+    ichi_sell_points=[sell_pars.ichi_location[0]*sell_pars.ichi_location[1]+sell_pars.ichi_bermuda[0]*sell_pars.ichi_bermuda[1],sell_pars.ichi_location_parent[0]*sell_pars.ichi_location_parent[1]]
     dfs=[[df2,df2.copy()]]
     if isinstance(sit.short_term_df_parent,pd.DataFrame):
         if len(sit.short_term_df_parent)>0:

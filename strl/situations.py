@@ -19,6 +19,7 @@ class Parametrs:
         self.fibo_trend = [1, False]
         self.fibo_trend_parent = [0.5, False]
         self.ichi_location = [0.5, False]
+        self.ichi_bermuda=[2,False]
         self.ichi_location_parent = [0.3, False]
         # self.dynamic_SR_closeness = [1.5, False]  # Short Term Dynamic S/R
         self.dynamic_SR_long_closeness = [1, False]
@@ -46,6 +47,7 @@ class Parametrs:
             self.fibo_trend_parent,
             self.ichi_location,
             self.ichi_location_parent,
+            self.ichi_bermuda,
             #self.dynamic_SR_closeness,
             self.dynamic_SR_long_closeness,
             self.dynamic_SR_closeness_parrent,
@@ -136,7 +138,7 @@ class Situation:
 
         self.ichi_stat = c.Ichi_Stat.Nothing
         self.ichi_parent_stat = c.Ichi_Stat.Nothing
-        self.bermuda=False
+        self.ichi_bermuda={}
         self.bollinger_top_candle_location = {}
         self.bollinger_bot_candle_location = {}
         # self.sma_50_stat=c.SMA_Stat.Above
@@ -430,12 +432,20 @@ class Situation:
 
         if self.ichi_stat == c.Ichi_Stat.Above_Green:
             buy_pars.ichi_location[1] = True
+
         if self.ichi_parent_stat == c.Ichi_Stat.Above_Green:
             buy_pars.ichi_location_parent[1] = True
         if self.ichi_stat == c.Ichi_Stat.Below_Green:
             sell_pars.ichi_location[1] = True
         if self.ichi_parent_stat == c.Ichi_Stat.Below_Green:
             sell_pars.ichi_location_parent[1] = True
+        
+        if self.ichi_bermuda['hasbermuda']==True:
+            if self.ichi_bermuda['location']=='up':
+                buy_pars.ichi_bermuda[1]=True
+            elif self.ichi_bermuda['location']=='down':
+                sell_pars.ichi_bermuda[1]=True    
+    
 
         ##     Double Bot/Top Status
 
@@ -933,3 +943,44 @@ class Situation:
         if parent_dict:
             f.update(parent_dict)
         return f
+
+    def bermuda_position(self):
+        pos = {}
+        if self.ichi_bermuda['hasbermuda']:
+            close = self.short_term_df.iloc[-1].close
+            min_val=self.ichi_bermuda['min_val']
+            max_val=self.ichi_bermuda['max_val']
+            dist=self.ichi_bermuda['distance']
+            if close<min_val:
+                tp=round(min_val,4)
+                sl=0
+                sl_percent=0
+                tp_percent=round(100*(tp/close-1),2)
+                return{
+                    'position':'long',
+                    'name':'Bermuda',
+                    'tp': tp,
+                    'sl':'0',
+                    "tp_percent": tp_percent,
+                    "sl_percent": sl_percent,
+                    "patterns": self.matching_patterns(
+                        self.bullish_reversal_patterns, bullish=True
+                    ),
+                }
+            else:
+                tp=round(max_val,4)
+                tp_percent = round(100 * (1 - tp / close), 2)
+                sl=0
+                sl_percent=0
+                return {
+                    "position": "short",
+                    "name": "Bermuda",
+                    "tp": tp,
+                    "sl": sl,
+                    "tp_percent": tp_percent,
+                    "sl_percent": sl_percent,
+                    "patterns": self.matching_patterns(
+                        self.bearish_reversal_patterns, bullish=False
+                    ),
+                }                
+        return pos

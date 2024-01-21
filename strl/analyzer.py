@@ -59,6 +59,7 @@ class Analyzer:
                     if candles_back > len(df) - self.trend_limit_long:
                         candles_back_copy = len(df) - self.trend_limit_long
 
+                helper.append_ichi(df)
                 df_long = df[len(df)-self.trend_limit_long-candles_back_copy:len(df)-candles_back_copy].reset_index(drop=True)
                 
                 df_short = df[len(df)-self.trend_limit_short-candles_back_copy:len(df)-candles_back_copy].reset_index(drop=True)
@@ -88,9 +89,8 @@ class Analyzer:
                 static_levels = helper.GetImportantLevels(
                     df_levels, threshold=adj_th*2, combined=True)
 
-                helper.append_ichi(df_short)
                 ichi_status = helper.GetIchiStatus(df_short)
-                has_bermuda,bermuda_distance,min_ichi,max_ichi=helper.has_Ichi_Bermuda(df_short)
+                has_bermuda,bermuda_location,bermuda_distance,min_ichi,max_ichi=helper.has_Ichi_Bermuda(df_short)
                 helper.append_rsi(df_short)
                 rsi_data={"dvg":c.Rsi_Stat.Nothing,"chart_line":[],"rsi_line":[]}
                 rsi_dvg,chart_xs,chart_ys,rsi_xs,rsi_ys=helper.Rsi_Divergence_3(df_short)
@@ -173,7 +173,7 @@ class Analyzer:
                             'short_trend': trend_short,'short_trend_points':[short_up_points,short_down_points],
                             'current_trend':current_trend,
                             'last_candles_diection':last_candles_diection,
-                            'ichi_bermuda':{'hasBermuda':has_bermuda,'distance':bermuda_distance,'min_val':min_ichi,'max_val':max_ichi},
+                            'ichi_bermuda':{'hasbermuda':has_bermuda,'location':bermuda_location,'distance':bermuda_distance,'min_val':min_ichi,'max_val':max_ichi},
                             'pa_break': pa_break, 'is_break': is_break, 'break_level':break_level,
 
                             'static_levels': static_levels,
@@ -216,6 +216,7 @@ class Analyzer:
             sit.trend_break_level=dict[tf]['break_level']
             sit.candle_color=dict[tf]['last_candle_color']
             sit.ichi_stat=dict[tf]['ichi_stat']
+            sit.ichi_bermuda=dict[tf]['ichi_bermuda']
             sit.long_trend_stat=dict[tf]['long_trend']
             sit.short_trend_stat=dict[tf]['short_trend']
             sit.current_trend_stat=dict[tf]['current_trend']

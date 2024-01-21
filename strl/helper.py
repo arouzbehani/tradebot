@@ -16,11 +16,13 @@ from ta.trend import MACD as macd
 from ta.trend import IchimokuIndicator as ichi
 from ta.volume import ForceIndexIndicator as fi
 from ta.volume import OnBalanceVolumeIndicator as obv
+from ta.volatility import AverageTrueRange as atr
+
 from statistics import mean
 import pivot_helper as ph
 import subprocess
 def GetLocal():
-    # return True
+    #return True
     interface='eth0'
     try:
         ip_address = subprocess.check_output(["ip", "addr", "show", interface]).decode()
@@ -263,7 +265,53 @@ def append_bb(df, entry_signal=False, entry_signal_mode="Uptrend"):
 
     return df
 
+def append_bb_v2(df, win=20,win_dev=2,ema_win=170):
+    indicator_bb = bb(close=df["close"], window=win, window_dev=win_dev, fillna=False)
+    df["upperband"] = indicator_bb.bollinger_hband()
+    df["middleband"] = indicator_bb.bollinger_mavg()
+    df["lowerband"] = indicator_bb.bollinger_lband()
+    df["pband"] = indicator_bb.bollinger_pband()
+    df['bb_width']=indicator_bb.bollinger_wband()
 
+    if not f"ema_{ema_win}" in df.columns:
+        append_ema_W(df=df,window=ema_win)    
+    df["bb_long_signal"] = np.where(
+                                np.logical_and(df["close"] > df[f"ema_{ema_win}"],
+                                                np.logical_and(
+                                                                df["close"] > df["lowerband"],
+                                                                df["close"].shift(1) < df["lowerband"].shift(1)
+                                                            )
+                                            )
+                            ,df["close"],np.nan)
+    df["bb_short_signal"] = np.where(
+                                np.logical_and(df["close"] < df[f"ema_{ema_win}"],
+                                                np.logical_and(
+                                                                df["close"] < df["upperband"],
+                                                                df["close"].shift(1) > df["upperband"].shift(1)
+                                                            )
+                                            )
+                            ,df["close"],np.nan)
+
+    return df
+
+def append_bb_v3(df, win=20,win_dev=2,ema_win1=30,ema_win2=50):
+    indicator_bb = bb(close=df["close"], window=win, window_dev=win_dev, fillna=False)
+    df["upperband"] = indicator_bb.bollinger_hband()
+    df["middleband"] = indicator_bb.bollinger_mavg()
+    df["lowerband"] = indicator_bb.bollinger_lband()
+    df["pband"] = indicator_bb.bollinger_pband()
+    if not f"ema_{ema_win1}" in df.columns:
+        append_ema_W(df=df,window=ema_win1)
+        append_ema_W(df=df,window=ema_win2)
+
+    df["bb_long_signal"] =np.where(np.logical_and(df["close"] < df["lowerband"],df[f'ema_{ema_win1}']>df[f'ema_{ema_win2}']), df["close"],np.nan)
+    df["bb_short_signal"] =np.where(np.logical_and(df["close"] > df["upperband"],df[f'ema_{ema_win1}']<df[f'ema_{ema_win2}']), df["close"],np.nan)
+    return df
+
+
+def append_atr(df,win=20):
+    indicator_ta=atr(close=df['close'],high=df['high'],low=df['low'],window=win,fillna=False)
+    df['atr']=indicator_ta.average_true_range()
 def append_rsi(df, entry_signal=False, entry_signal_mode="Uptrend"):
     rsi_indicator = rsi(close=df["close"], window=14, fillna=False)
     df["rsi"] = rsi_indicator.rsi()
@@ -426,13 +474,13 @@ def append_sma_2(df, entry_signal=False, w1=10, w2=50):
     # df.to_csv('test.csv', header=True, index=True, sep=',', mode='w')
 
 
-def append_ema(df, entry_signal=False, entry_signal_mode="Uptrend", exit_signal=False):
-    ema_indicator_5 = ema(close=df["close"], window=5, fillna=False)
-    ema_indicator_10 = ema(close=df["close"], window=10, fillna=False)
-    ema_indicator_30 = ema(close=df["close"], window=30, fillna=False)
-    df["ema_5"] = ema_indicator_5.ema_indicator()
-    df["ema_10"] = ema_indicator_10.ema_indicator()
-    df["ema_30"] = ema_indicator_30.ema_indicator()
+def append_ema(df, entry_signal=False, entry_signal_mode="Uptrend", exit_signal=False,win1=5,win2=10,win3=30):
+    ema_indicator_win1 = ema(close=df["close"], window=win1, fillna=False)
+    ema_indicator_win2 = ema(close=df["close"], window=win2, fillna=False)
+    ema_indicator_win3 = ema(close=df["close"], window=win3, fillna=False)
+    df[f"ema_{win1}"] = ema_indicator_win1.ema_indicator()
+    df[f"ema_{win2}"] = ema_indicator_win2.ema_indicator()
+    df[f"ema_{win3}"] = ema_indicator_win3.ema_indicator()
     if entry_signal:
         if entry_signal_mode == "Uptrend":
             df["ema_entry_signal"] = np.where(
@@ -440,50 +488,50 @@ def append_ema(df, entry_signal=False, entry_signal_mode="Uptrend", exit_signal=
                     df["adx_signal"].isnull() == False,
                     np.logical_and(
                         np.logical_and(
-                            df["ema_30"] < df["ema_10"], df["ema_10"] < df["ema_5"]
+                            df[f"ema_{win3}"] < df[f"ema_{win2}"], df[f"ema_{win2}"] < df[f"ema_{win1}"]
                         ),
                         np.logical_or(
                             np.logical_or(
-                                df["ema_30"].shift(1) > df["ema_10"].shift(1),
-                                df["ema_10"].shift(1) > df["ema_5"].shift(1),
+                                df[f"ema_{win3}"].shift(1) > df[f"ema_{win2}"].shift(1),
+                                df[f"ema_{win2}"].shift(1) > df[f"ema_{win1}"].shift(1),
                             ),
-                            df["ema_30"].shift(1) > df["ema_5"].shift(1),
+                            df[f"ema_{win3}"].shift(1) > df[f"ema_{win1}"].shift(1),
                         ),
                     ),
                 ),
-                df["ema_30"],
+                df[f"ema_{win3}"],
                 np.nan,
             )
         else:
             df["ema_entry_signal"] = np.where(
                 np.logical_and(
                     np.logical_and(
-                        df["ema_30"] < df["ema_10"], df["ema_10"] < df["ema_5"]
+                        df[f"ema_{win3}"] < df[f"ema_{win2}"], df[f"ema_{win2}"] < df[f"ema_{win1}"]
                     ),
                     np.logical_or(
                         np.logical_or(
-                            df["ema_30"].shift(1) > df["ema_10"].shift(1),
-                            df["ema_10"].shift(1) > df["ema_5"].shift(1),
+                            df[f"ema_{win3}"].shift(1) > df[f"ema_{win2}"].shift(1),
+                            df[f"ema_{win2}"].shift(1) > df[f"ema_{win1}"].shift(1),
                         ),
-                        df["ema_30"].shift(1) > df["ema_5"].shift(1),
+                        df[f"ema_{win3}"].shift(1) > df[f"ema_{win1}"].shift(1),
                     ),
                 ),
-                df["ema_30"],
+                df["close"],
                 np.nan,
             )
     if exit_signal:
         df["ema_exit_signal"] = np.where(
             np.logical_and(
-                np.logical_and(df["ema_30"] > df["ema_10"], df["ema_10"] > df["ema_5"]),
+                np.logical_and(df[f"ema_{win3}"] > df[f"ema_{win2}"], df[f"ema_{win2}"] > df[f"ema_{win1}"]),
                 np.logical_or(
                     np.logical_or(
-                        df["ema_30"].shift(1) < df["ema_10"].shift(1),
-                        df["ema_10"].shift(1) < df["ema_5"].shift(1),
+                        df[f"ema_{win3}"].shift(1) < df[f"ema_{win2}"].shift(1),
+                        df[f"ema_{win2}"].shift(1) < df[f"ema_{win1}"].shift(1),
                     ),
-                    df["ema_30"].shift(1) < df["ema_5"].shift(1),
+                    df[f"ema_{win3}"].shift(1) < df[f"ema_{win1}"].shift(1),
                 ),
             ),
-            df["ema_30"],
+            df[f"close"],
             np.nan,
         )
 
@@ -875,12 +923,15 @@ def GetIchiStatus(df) -> c.Ichi_Stat:
         return ichi_stat
 
 def has_Ichi_Bermuda(df)->(bool,int,float,float):
+    close=float(df['close'].iloc[-1])
     mygroup=int(df['ichi_label'].iloc[-1])
+    first_group=int(df['ichi_label'].iloc[0])
     bermuda_group=-1
     max_g=0
     min_g=0
     bermuda_distance=-1
-    for g in range(mygroup-1,0,-1):
+    location=''
+    for g in range(mygroup-1,first_group-1,-1):
         group_df=df[(df['ichi_label'] == g)]
         group_df['max_ichi'] = group_df[['ich_a', 'ich_b']].max(axis=1)
         group_df['min_ichi'] = group_df[['ich_a', 'ich_b']].min(axis=1)
@@ -891,6 +942,10 @@ def has_Ichi_Bermuda(df)->(bool,int,float,float):
             bermuda_distance=df.index[-1]-group_df.index[-1]
             max_g=group_df['max_ichi'].values.max()
             min_g=group_df['min_ichi'].values.min()
+            if close< min_g:
+                location='up'
+            if close> max_g:
+                location='down'
             del group_df
             del filtered_rows
             gc.collect()
@@ -905,9 +960,9 @@ def has_Ichi_Bermuda(df)->(bool,int,float,float):
             del test_df
             del filtered_rows
             gc.collect()
-            return (True,bermuda_distance,min_g,max_g) 
+            return (True,location,bermuda_distance,min_g,max_g) 
             
-    return (False,0,0,0)
+    return (False,'',0,0,0)
 def double_levels(df, threshold=0.01):
     try:
         double_bot_level = 0

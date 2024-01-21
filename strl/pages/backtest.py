@@ -9,6 +9,42 @@ import analyzer as a
 import situations as s
 import chart_helper as chh
 import ML_2
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+def plot_profit_dist(env_df):
+
+
+    # Assuming env_df is your DataFrame
+    # Replace 'Profit' with the actual column name if it's different
+    profit_column = env_df['Profit']
+
+    # Calculate mean and standard deviation
+    mean_profit = profit_column.mean()
+    std_dev_profit = profit_column.std()
+
+    # Generate data points for the normal distribution PDF
+    min_value = profit_column.min()
+    max_value = profit_column.max()
+    x = np.linspace(min_value, max_value, 1000)
+    pdf = norm.pdf(x, mean_profit, std_dev_profit)
+
+    # Plot the histogram of 'Profit'
+    plt.hist(profit_column, bins=30, density=True, alpha=0.7, color='blue', label='Histogram')
+
+    # Plot the PDF of the normal distribution
+    plt.plot(x, pdf, color='red', label='Normal Distribution')
+
+    # Add labels and a legend
+    plt.xlabel('Profit')
+    plt.ylabel('Probability Density')
+    plt.title('Normal Distribution of Profit')
+    plt.legend()
+
+    # Show the plot
+    plt.show()
 
 st.set_page_config(layout="wide")
 st.markdown(
@@ -36,24 +72,54 @@ st.markdown(
 )
 start_test = 0
 end_test = 400
-
+takeprofit=0
+stoploss=0
 st.sidebar.title("Settings: ")
 with st.sidebar:
-    strategy = st.selectbox("Choose Strategy:", ["Point Analysis","ML Analysis","SMA"])
+    fee=st.number_input("Transaction Fee (%):",value=0.125,min_value=0.01,max_value=100.0)
+    leverage=st.number_input("Leverage:",value=10,max_value=1000,min_value=1)
+    tpsl_opt=st.radio("TP/SL Method:",['By Strategy','Fixed'])
+    if tpsl_opt=='Fixed':
+        stoploss_percent = st.number_input("Stop Loss (%):", value=2.0, min_value=0.05)
+        tpsl_ratio=st.number_input("TPSL Ratio:",value=1.5,min_value=0.1)
+    else:
+        stoploss=0
+        tpsl_ratio=0
+
+    strategy = st.selectbox("Choose Strategy:", ["EMA","Bollinger Bands (Single EMA)","Bollinger Bands (Double EMA)","Point Analysis","ML Analysis"])
+    
+
+
     match strategy:
+        case "EMA":
+            ema_win1=st.number_input("EMA 1:",5)
+            ema_win2=st.number_input("EMA 2:",10)
+            ema_win3=st.number_input("EMA 3:",30)
+            ema_sl_coef=st.number_input("SL Coef.:",value=2.0,min_value=0.1)
+            ema_tpsl_ratio=st.number_input("TPLS Ratio:",value=1.5,min_value=0.1)
+
+        case "Bollinger Bands (Single EMA)":
+            bb_ema=st.number_input("EMA:",value=170 , min_value=5)
+            bb_window=st.number_input("Window",value=15,min_value=5)
+            bb_window_dev=st.number_input("Win Dev.",value=1.5,min_value=0.1)
+            bb_atr_win=st.number_input("ATR Window:",value=7,min_value=1)
+            bb_sl_coef=st.number_input("SL Coef.:",value=1.1,min_value=0.1)
+            bb_tpsl_ratio=st.number_input("TPLS Ratio:",value=1.5,min_value=0.1)
+
+        case "Bollinger Bands (Double EMA)":
+            bb_ema_1=st.number_input("EMA 1:",value=30 , min_value=5)
+            bb_ema_2=st.number_input("EMA 2:",value=50 , min_value=5)
+            bb_window=st.number_input("Window",value=15,min_value=5)
+            bb_window_dev=st.number_input("Win Dev.",value=1.5,min_value=0.1)
+            bb_atr_win=st.number_input("ATR Window:",value=7,min_value=1)
+            bb_sl_coef=st.number_input("SL Coef.:",value=1.1,min_value=0.1)
+            bb_tpsl_ratio=st.number_input("TPLS Ratio:",value=1.5,min_value=0.1)
+
         case "Point Analysis":
             candles_back = st.number_input(
                 "Candles:", min_value=1, max_value=320, value=50
             )
-        case "SMA":
-            take_proft_opt = st.radio(
-                "Taking Profit Method:", ["By Strategy", "Manually"]
-            )
-            if take_proft_opt == "Manually":
-                takeprofit = st.number_input("Take Profit (%):", value=7.0, min_value=0.05)
-            else:
-                takeprofit = 0
-            stoploss = st.number_input("Stop Loss (%):", value=7.0, min_value=0.05)
+
         case "ML Analysis":
             candles_back = st.number_input(
                 "Candles:", min_value=1, max_value=320, value=50
@@ -65,6 +131,9 @@ q = st.experimental_get_query_params()
 symbol = None
 tf = None
 exch = None
+# symbol = 'EUR_USD'
+# tf = '5min'
+# exch = 'Forex'
 q = st.experimental_get_query_params()
 if q.__contains__("symbol"):
     symbol = q["symbol"][0]
@@ -74,88 +143,164 @@ if q.__contains__("exch"):
     exch = q["exch"][0]
 init_df = helper.GetData(tf, symbol, exch)
 
-def Run_sma_Strategy(x) -> tm.TradingEnv:
-    fee = 0.99875
+
+# strategy='EMA'
+# ema_win1=5
+# ema_win2=10
+# ema_win3=30
+# ema_sl_coef=2
+# ema_tpsl_ratio=1.5
+
+# strategy='Bollinger Bands (Double EMA)'
+# bb_window=15
+# bb_window_dev=1.5
+# bb_atr_win=7
+# bb_sl_coef=1.1
+# bb_tpsl_ratio=1.5
+# bb_ema_1=30
+# bb_ema_2=50 
+
+
+# strategy='Bollinger Bands (Single EMA)'
+# bb_window=15
+# bb_window_dev=1.5
+# bb_atr_win=7
+# bb_sl_coef=1.1
+# bb_tpsl_ratio=1.5
+# bb_ema=170
+
+# fee=0.00125
+# leverage=100
+
+def Run_Strategy() -> tm.TradingEnv:
     env = tm.TradingEnv(
-        balance_amount=100, balance_unit="USDT", trading_fee_multiplier=fee
+        balance_amount=100, balance_unit="USDT", trading_fee_multiplier=fee*0.01,leverage=leverage
     )
 
     df = pd.DataFrame(data=init_df).copy()
 
     buying = False
+    match strategy:
+        case "EMA":
+            long_signal_header='ema_entry_signal'
+            short_signal_header='ema_exit_signal'
+            helper.append_ema(df, entry_signal=True, entry_signal_mode="All", exit_signal=True, win1=ema_win1,win2=ema_win2,win3=ema_win3)
+            df = df.loc[df[f"ema_{ema_win3}"].isna() == False].reset_index()
+        case "Bollinger Bands (Single EMA)":
+            long_signal_header='bb_long_signal'
+            short_signal_header='bb_short_signal'            
+            helper.append_ema_W(df,window=bb_ema)
+            helper.append_bb_v2(df,win=bb_window,win_dev=bb_window_dev)
+            helper.append_atr(df,win=bb_atr_win)
+            df = df.loc[df[f"ema_{bb_ema}"].isna() == False].reset_index()
 
-    helper.append_sma(df, entry_signal=True, entry_signal_mode="All")
-    df = df.loc[df["sma_30"].isna() == False].reset_index()
-    profit = x[0]
-    stoploss = x[1]
-    entry_offset = 0
-    exit_offset = 1
-    df_crop = df[entry_offset:-exit_offset].reset_index()
+        case "Bollinger Bands (Double EMA)":
+            long_signal_header='bb_long_signal'
+            short_signal_header='bb_short_signal'            
+            helper.append_ema_W(df,window=bb_ema_1)
+            helper.append_ema_W(df,window=bb_ema_2)
+            helper.append_atr(df,win=bb_atr_win)
+            helper.append_bb_v3(df,win=bb_window,win_dev=bb_window_dev)
+            df = df.loc[df[f"ema_{bb_ema_2}"].isna() == False].reset_index()
+
+    entry_offset = -10000
+    exit_offset = -1
+    df_crop = df[entry_offset:exit_offset].reset_index()
     transaction = None
+    stoploss=0
+    profit=0
+    trade_mode='spot'
+    df_crop['balance']=0
+    df_crop.loc[0,'balance']=env.balance_amount
     for i in range(0, len(df_crop)):
-        close_price = df_crop.loc[i, "close"]
+        if i>0:
+            if df_crop.loc[i-1,'balance']>0:
+                df_crop.loc[i,'balance']=df_crop.loc[i-1,'balance']
+        close_price = df_crop.loc[i, "close"]       
         low_price = df_crop.loc[i, "low"]
         high_price = df_crop.loc[i, "high"]
-        sma_5 = df_crop.loc[i, "sma_5"]
-        sma_10 = df_crop.loc[i, "sma_10"]
-        sma_30 = df_crop.loc[i, "sma_30"]
-        # forward=df.loc[df['timestamp']>df.loc[i,'timestamp']].reset_index()
         time = df_crop.loc[i, "time"]
-        open_price = df_crop.loc[i, "open"]
+        if tpsl_opt=='By Strategy':
+            match strategy:
+                case "EMA":
+                    stoploss=ema_sl_coef*(high_price-low_price)
+                    profit=tpsl_ratio*stoploss
+                case "Bollinger Bands (Single EMA)":
+                    atr = df_crop.loc[i, "atr"]
+                    stoploss=bb_sl_coef*atr
+                case "Bollinger Bands (Double EMA)":
+                    atr = df_crop.loc[i, "atr"]
+                    stoploss=bb_sl_coef*atr
+                    profit=bb_tpsl_ratio*stoploss                   
+        else:
+            stoploss=stoploss_percent*0.01*close_price
+            profit=stoploss*tpsl_ratio
+
         if buying == False:
-            if not pd.isna(df_crop.loc[i, "sma_entry_signal"]):
-                env.buy(symbol == symbol, buy_price=open_price, time=time)
+            if not pd.isna(df_crop.loc[i, f"{long_signal_header}"]):           
+                env.buy(symbol == symbol, trade_mode='long', buy_price=close_price, time=time)
                 transaction = tm.Transaction(
-                    coin=symbol, buy_time=time, buy_price=open_price, signal_time=time
+                    coin=symbol, trade_mode='long', buy_time=time, buy_price=close_price, signal_time=time,sl=close_price-stoploss,tp=close_price+profit
                 )
+                trade_mode='long'
                 buying = True
-            else:
+                continue
+            elif not pd.isna(df_crop.loc[i, f"{short_signal_header}"]):     
+                env.buy(symbol == symbol, trade_mode='short', buy_price=close_price, time=time)
+                transaction = tm.Transaction(
+                    coin=symbol, trade_mode='short', buy_time=time, buy_price=close_price, signal_time=time,sl=close_price+stoploss,tp=close_price-profit
+                )
+                trade_mode='short'
+                buying = True
                 continue
         else:
-            if low_price < (1 - 0.01 * stoploss) * transaction.Buy_price:  # stopp loss
-                env.sell(
-                    sell_price=(1 - 0.01 * stoploss) * transaction.Buy_price,
-                    time=time,
-                    transaction=transaction,
-                )
+            if (trade_mode=='long' and low_price < transaction.SL) or (trade_mode=='short' and high_price >  transaction.SL):  # stopp loss
+                transaction.Sell_price=transaction.SL
+                transaction.Sell_time=time
+                df_crop.loc[i, "balance"]=env.sell(transaction=transaction)
                 transaction = None
                 buying = False
                 continue
             if profit > 0:
-                if (
-                    high_price > (1 + 0.01 * profit) * transaction.Buy_price
-                ):  # take profit
-                    env.sell(
-                        sell_price=(1 + 0.01 * profit) * transaction.Buy_price,
-                        time=time,
-                        transaction=transaction,
-                    )
+                if (trade_mode=='long' and high_price > close_price+ profit) or (trade_mode=='short' and low_price < profit) : # take profit
+                    transaction.Sell_price=transaction.TP
+                    transaction.Sell_time=time
+                    df_crop.loc[i, "balance"]=env.sell(transaction=transaction)
                     transaction = None
                     buying = False
-                    continue
+                    continue        
             else:
-                if not (pd.isna(sma_30) or pd.isna(sma_10) or pd.isna(sma_5)):
-                    if sma_30 > sma_10 and sma_10 > sma_5:
-                        env.sell(
-                            sell_price=close_price, time=time, transaction=transaction
-                        )
+                if (trade_mode=='long' and not pd.isna(df_crop.loc[i, f"{short_signal_header}"])) or \
+                   (trade_mode=='short' and not pd.isna(df_crop.loc[i, f"{long_signal_header}"])):
+                    if (trade_mode=='long'  and close_price>transaction.Buy_price*(1+fee*0.01) or (trade_mode=='short'  and close_price<transaction.Buy_price*(1-fee*0.01))):
+                        transaction.Sell_price=close_price
+                        transaction.Sell_time=time                    
+                        df_crop.loc[i, "balance"]=env.sell(transaction=transaction)
                         transaction = None
                         buying = False
-                        continue
-
+                        continue    
             if i == len(df_crop) - 1:  # last time
-                env.sell(sell_price=close_price, time=time, transaction=transaction)
+                transaction.Sell_price=close_price
+                transaction.Sell_time=time     
+                df_crop.loc[i, "balance"]=env.sell(transaction=transaction)
                 transaction = None
                 buying = False
                 continue
+        
+    if not env == None:
+        print(f"Balance: {env.balance_amount} unit:{env.balance_unit}")
+        print(f"Total Profit: {round(env.balance_amount-100,2)} %")
+        print(f"Total Transactions: {len(env.transactions)}")
+        print(f"Win Rate: {round(env.wins/len(env.transactions)*100,2)}")
+        env_df=(env.dataframe())
+        sorted_env_df=env_df.sort_values(by="Profit", ascending=False)
+        print(f'Best Trade:{sorted_env_df.iloc[0].Profit}')
+        print(f'Worst Trade:{sorted_env_df.iloc[-1].Profit}')
+        # plot_profit_dist(env_df)
 
-    # if(len(env.transactions)>0):
-    #     lastsell_time=env.transactions[-1].Sell_time
-    #     if(df_crop.loc[i,'date']<lastsell_time):continue
-    return env
+    return env,df_crop
 
     # st.text(f"fee:{fee} ; profit:{profit} ; stoploss:{stoploss}")
-
 
 def ML_Anaylsis():
     # candles_back=1
@@ -352,17 +497,100 @@ def Point_Anaylsis():
     fig.update_layout(xaxis_rangeslider_visible=False, height=450)
     st.plotly_chart(fig, use_container_width=True)
 
+def PlotResult(crop_df,emas=[]):
+    row_heights = [0.6,0.4]
+    fig = make_subplots(
+    rows=2, cols=1,
+    column_widths=[1],
+    row_heights=row_heights,
+    shared_xaxes=True, vertical_spacing=0.01)
 
-#Point_Anaylsis()
+    fig.add_trace(
+        go.Candlestick(x=crop_df['time'], open=crop_df['open'], close=crop_df['close'], high=crop_df['high'], low=crop_df['low'], name=symbol.replace('_', '/')), row=1, col=1
+    )    
+
+    fig.add_trace(
+        go.Scatter(x=crop_df["time"], y=crop_df[f"balance"], name='total balamce', line=dict(width=1), mode='lines'), row=2, col=1
+    )    
+    if 'upperband' in crop_df.columns:
+        fig.add_trace(
+            go.Scatter(x=crop_df["time"], y=crop_df["middleband"], name="middle band"),
+            row=1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(x=crop_df["time"], y=crop_df["upperband"], name="upper band"),
+            row=1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(x=crop_df["time"], y=crop_df["lowerband"], name="lower band"),
+            row=1,
+            col=1,
+        )    
+        # fig.add_trace(
+        #     go.Scatter(x=crop_df["time"], y=crop_df["bb_width"], name="bb_width"),
+        #     row=2,
+        #     col=1,
+        # )                
+    if len(emas)>0:
+        for ema in emas:
+            fig.add_trace(
+                # go.Scatter(x=df["time"], y=df["ema_5"], name="ema 5"), row=1, col=1
+                go.Scatter(x=crop_df["time"], y=crop_df[f"ema_{ema}"], name=f"ema_{ema}"), row=1, col=1
+            )
+        if "ema_entry_signal" in crop_df.columns:
+            fig.add_trace(
+                go.Scatter(
+                    # x=df["time"],
+                    x=crop_df["time"],
+                    y=crop_df["ema_entry_signal"],
+                    mode="markers",
+                    marker=dict(
+                        size=8,
+                        symbol="x-thin",
+                        line=dict(width=2, color="green"),
+                    ),
+                    name="ema long signal",
+                )
+                )    
+        if "ema_exit_signal" in crop_df.columns:
+            fig.add_trace(
+                go.Scatter(
+                    # x=df["time"],
+                    x=crop_df["time"],
+                    y=crop_df["ema_exit_signal"],
+                    mode="markers",
+                    marker=dict(
+                        size=8,
+                        symbol="x-thin",
+                        line=dict(width=2, color="red"),
+                    ),
+                    name="ema short signal",
+                )
+                )                     
+    fig.update_layout(xaxis_rangeslider_visible=False, height=450)
+    st.plotly_chart(fig, use_container_width=True)    
+#Run_Strategy()
+
 st.title(f"{strategy} Strategy")
 if st.button("Run Strategy"):
+    if strategy == "EMA" :
+        env,crop_df = Run_Strategy()
+        PlotResult(crop_df=crop_df,emas=[ema_win1,ema_win2,ema_win3])
+    if strategy == "Bollinger Bands (Single EMA)" :
+        env,crop_df = Run_Strategy()
+        PlotResult(crop_df=crop_df,emas=[bb_ema])
+    if strategy ==  "Bollinger Bands (Double EMA)":
+        env,crop_df = Run_Strategy()
+        PlotResult(crop_df=crop_df,emas=[bb_ema_1,bb_ema_2])                
     if strategy == "Point Analysis":
         Point_Anaylsis()
-    if strategy == "SMA":
-        x = [takeprofit, stoploss]
-        env = Run_sma_Strategy(x)
-        st.text(f"Balance: {env.balance_amount} unit:{env.balance_unit}")
-        st.text(f"Total Profit: {round(env.balance_amount-100,2)} %")
-        st.dataframe(env.dataframe())
     if strategy == "ML Analysis":
         ML_Anaylsis()
+    if not env == None:
+        st.text(f"Balance: {env.balance_amount} unit:{env.balance_unit}")
+        st.text(f"Total Profit: {round(env.balance_amount-100,2)} %")
+        st.text(f"Total Transactions: {len(env.transactions)}")
+        st.text(f"Win Rate: {round(env.wins/len(env.transactions)*100,2)}")
+        st.dataframe(env.dataframe())

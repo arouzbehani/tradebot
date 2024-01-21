@@ -50,9 +50,9 @@ st.markdown(
         """,
     unsafe_allow_html=True,
 )
-symbol = 'FTM_USDT'
-tf = '1h'
-exch = 'Kucoin'
+# symbol = 'FTM_USDT'
+# tf = '1h'
+# exch = 'Kucoin'
 base_urls={'forex':'https://bingx.com/en-us/futures/forex',
         'yahoo':'https://bingx.com/en-us/futures/forward',
         'kucoin':'https://bingx.com/en-us/futures/forward'}
@@ -688,7 +688,8 @@ def DrawChart(
 
             helper.append_macd(df)
 
-            fig.update_layout(xaxis_rangeslider_visible=False, height=chart_height,xaxis=dict(tickvals=df['number'], ticktext=df['time']))
+            fig.update_layout(  xaxis_rangeslider_visible=False, height=chart_height,xaxis=dict(tickvals=df['number'], ticktext=df['time'],dtick=10))
+
             st.plotly_chart(fig, use_container_width=True)
 
             # # fig2.update_xaxes(type='category')
