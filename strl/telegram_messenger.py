@@ -1,9 +1,10 @@
 import asyncio
 import requests
 import telegram
+import config
+
 def send_message_to_channel(channel_id, message):
-    bot_token = "6256939846:AAFYhqqownIKVb5T-Bh5-r6ctwMmJWp_RfI"
-    api_url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
+    api_url = f'https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/sendMessage'
     params = {
         'chat_id': channel_id,
         'text': message
@@ -14,7 +15,7 @@ def send_message_to_channel(channel_id, message):
     else:
         print('Failed to send message.')
 async def send_simple(channel_id, message):
-    bot = telegram.Bot(token='6256939846:AAFYhqqownIKVb5T-Bh5-r6ctwMmJWp_RfI')
+    bot = telegram.Bot(token=config.TELEGRAM_BOT_TOKEN)
     await bot.sendMessage(chat_id=channel_id, text=message)
 
 async def main(channel_id, message):
