@@ -945,6 +945,7 @@ class Situation:
         return f
 
     def bermuda_position(self):
+
         pos = {}
         if self.ichi_bermuda['hasbermuda']:
             close = self.short_term_df.iloc[-1].close
@@ -983,4 +984,123 @@ class Situation:
                         self.bearish_reversal_patterns, bullish=False
                     ),
                 }                
+        return pos
+
+    def fvg_position(self):
+        fibo_retrace_short = False
+        fibo_trend_short = False
+        pos = {}
+        candle = self.short_term_df.iloc[-1]
+        candle_1 = self.short_term_df.iloc[-2]
+        candle_2 = self.short_term_df.iloc[-3]
+        if candle_1.close>can
+        if (
+            self.fibo_level_retrace_dir == c.Fibo_Direction.Down
+            and self.ema_150_trend == c.Trend.Bullish
+        ):
+            if self.fibo_level_retrace_stat == c.Candle_Fibo_Stat._618:
+                fibo_retrace = True
+                tp = round(self.fibo_retrace_levels[0], 4)
+                tp_percent = round(100 * (tp / close - 1), 2)
+                sl = round(self.fibo_retrace_levels[5], 4)
+                sl_percent = round(100 * (1 - sl / close), 2)
+                name = "Fib Retrace 0.618"
+                if (
+                    self.fibo_level_trend_dir == c.Fibo_Direction.Down
+                    and self.fibo_level_trend_stat != c.Candle_Fibo_Stat.Nothing
+                ):
+                    name += f" + Fib Trend ({round(float(str(self.fibo_level_trend_stat).split('_')[3])/1000,3)})"
+                return {
+                    "position": "long",
+                    "name": name,
+                    "tp": tp,
+                    "sl": sl,
+                    "tp_percent": tp_percent,
+                    "sl_percent": sl_percent,
+                    "patterns": self.matching_patterns(
+                        self.bullish_reversal_patterns, bullish=True
+                    ),
+                }
+        if (
+            self.fibo_level_trend_dir == c.Fibo_Direction.Down
+            and self.ema_150_trend == c.Trend.Bullish
+        ):
+            if self.fibo_level_trend_stat == c.Candle_Fibo_Stat._618:
+                tp = round(self.fibo_trend_levels[0], 4)
+                tp_percent = round(100 * (tp / close - 1), 2)
+                sl = round(self.fibo_trend_levels[5], 4)
+                sl_percent = round(100 * (1 - sl / close), 2)
+                name = "Fib Trend 0.618"
+                if (
+                    self.fibo_level_retrace_dir == c.Fibo_Direction.Down
+                    and self.fibo_level_retrace_stat != c.Candle_Fibo_Stat.Nothing
+                ):
+                    name += f" + Fib Retrace ({round(float(str(self.fibo_level_retrace_stat).split('_')[3])/1000,3)})"
+
+                return {
+                    "position": "long",
+                    "name": name,
+                    "tp": tp,
+                    "sl": sl,
+                    "tp_percent": tp_percent,
+                    "sl_percent": sl_percent,
+                    "patterns": self.matching_patterns(
+                        self.bullish_reversal_patterns, bullish=True
+                    ),
+                }
+        if (
+            self.fibo_level_retrace_dir == c.Fibo_Direction.Up
+            and self.ema_150_trend == c.Trend.Bearish
+        ):
+            if self.fibo_level_retrace_stat == c.Candle_Fibo_Stat._618:
+                tp = round(self.fibo_retrace_levels[0], 4)
+                tp_percent = round(100 * (1 - tp / close), 2)
+                sl = round(self.fibo_retrace_levels[5], 4)
+                sl_percent = round(100 * (sl / close - 1), 2)
+                name = "Fib Retrace 0.618"
+                if (
+                    self.fibo_level_trend_dir == c.Fibo_Direction.Up
+                    and self.fibo_level_trend_stat != c.Candle_Fibo_Stat.Nothing
+                ):
+                    name += f" + Fib Trend ({round(float(str(self.fibo_level_trend_stat).split('_')[3])/1000,3)})"
+
+                return {
+                    "position": "short",
+                    "name": name,
+                    "tp": tp,
+                    "sl": sl,
+                    "tp_percent": tp_percent,
+                    "sl_percent": sl_percent,
+                    "patterns": self.matching_patterns(
+                        self.bullish_reversal_patterns, bullish=False
+                    ),
+                }
+        if (
+            self.fibo_level_trend_dir == c.Fibo_Direction.Up
+            and self.ema_150_trend == c.Trend.Bearish
+        ):
+            if self.fibo_level_trend_stat == c.Candle_Fibo_Stat._618:
+                tp = round(self.fibo_trend_levels[0], 4)
+                tp_percent = round(100 * (1 - tp / close), 2)
+                sl = round(self.fibo_trend_levels[5], 4)
+                sl_percent = round(100 * (sl / close - 1), 2)
+                name = "Fib Trend 0.618"
+                if (
+                    self.fibo_level_retrace_dir == c.Fibo_Direction.Up
+                    and self.fibo_level_retrace_stat != c.Candle_Fibo_Stat.Nothing
+                ):
+                    name += f" + Fib Retrace ({round(float(str(self.fibo_level_retrace_stat).split('_')[3])/1000,3)})"
+
+                return {
+                    "position": "short",
+                    "name": name,
+                    "tp": tp,
+                    "sl": sl,
+                    "tp_percent": tp_percent,
+                    "sl_percent": sl_percent,
+                    "patterns": self.matching_patterns(
+                        self.bullish_reversal_patterns, bullish=False
+                    ),
+                }
+
         return pos

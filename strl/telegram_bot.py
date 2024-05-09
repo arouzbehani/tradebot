@@ -1,3 +1,4 @@
+import config
 import gc
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -59,7 +60,7 @@ async def prd(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(text)
 
 
-app = ApplicationBuilder().token("6256939846:AAFYhqqownIKVb5T-Bh5-r6ctwMmJWp_RfI").build()
+app = ApplicationBuilder().token(config.TELEGRAM_BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("predict", prd))

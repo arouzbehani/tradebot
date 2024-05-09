@@ -356,3 +356,5 @@ class Analyzer:
         return self.situations[tf].fibo_position()
     def dynamic_SR_position(self,tf):
         return self.situations[tf].dynamic_SR_position()
+    def fvg_position(self,tf):
+        return self.fibo_position

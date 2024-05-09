@@ -22,6 +22,7 @@ plt.figure(figsize=(12, 6))
 plt.plot(stock_data['Close'], label='Close Price', color='blue')
 plt.scatter(accumulation_points.index, accumulation_points['Close'], 
             label='Accumulation', color='green', marker='^')
+# plt.plot(stock_data['Volume_SMA10'], label='10-day SMA', color='orange')  # Add SMA line
 
 plt.title(f'{symbol} Stock Price with Accumulation Points')
 plt.xlabel('Date')
